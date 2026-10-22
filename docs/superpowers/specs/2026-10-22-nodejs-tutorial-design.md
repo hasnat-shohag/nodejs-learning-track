@@ -34,8 +34,10 @@ Decisions made in brainstorming:
 ## 1. Repository & architecture
 
 - `~/nodejs-tutorial`, git repository, branch `main`.
+- GitHub repo: `hasnat-shohag/nodejs-learning-track`
+  (`https://github.com/hasnat-shohag/nodejs-learning-track.git`).
 - GitHub Pages site, base `/nodejs-tutorial/`, `trailingSlash: 'always'`,
-  `site: 'https://<owner>.github.io'`. Node >= 22, pnpm.
+  `site: 'https://hasnat-shohag.github.io'`. Node >= 22, pnpm.
 - Astro + Starlight, ported from CCAR-F (`/home/vivasoft/ccar-f`):
   - `src/components/starlight/Head.astro`
   - `src/styles/custom.css` (minus CCAR-F exam-specific rules)
