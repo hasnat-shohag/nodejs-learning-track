@@ -37,7 +37,7 @@ const argValue = (name, fallback) => {
 	const index = args.indexOf(name);
 	return index === -1 ? fallback : args[index + 1];
 };
-const base = argValue('--base', '/nodejs-tutorial');
+const base = argValue('--base', '/nodejs-learning-track');
 const verbose = args.includes('--verbose');
 const allowMissingBrowser = args.includes('--allow-missing-browser');
 

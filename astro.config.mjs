@@ -31,7 +31,7 @@ const label = (en, bn) => ({ label: en, translations: { 'bn-BD': bn } });
 
 export default defineConfig({
 	site: 'https://hasnat-shohag.github.io',
-	base: '/nodejs-tutorial',
+	base: '/nodejs-learning-track',
 	trailingSlash: 'always',
 	integrations: [
 		starlight({

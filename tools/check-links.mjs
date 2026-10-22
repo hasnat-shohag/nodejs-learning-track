@@ -6,7 +6,7 @@
  * reported as "pending" (the sidebar and roadmap grow milestone by milestone),
  * everything else that is missing counts as broken and fails the run.
  *
- * Usage: node tools/check-links.mjs [--base /nodejs-tutorial]
+ * Usage: node tools/check-links.mjs [--base /nodejs-learning-track]
  */
 
 import { readFile, readdir } from 'node:fs/promises';
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
 const baseIndex = process.argv.indexOf('--base');
-const base = baseIndex === -1 ? '/nodejs-tutorial' : process.argv[baseIndex + 1];
+const base = baseIndex === -1 ? '/nodejs-learning-track' : process.argv[baseIndex + 1];
 
 /** Planned slugs from src/lib/lessons.ts — not yet built, so not failures. */
 const lessonsSource = await readFile(join(root, 'src/lib/lessons.ts'), 'utf8');
