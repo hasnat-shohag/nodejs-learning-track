@@ -1,0 +1,68 @@
+---
+title: "টাইমার ডিপ: ref/unref, নেস্টিং, setInterval drift"
+titleEn: "Timers deep: ref/unref, nesting, setInterval drift"
+description: unref মানে cancel নয়; রি-আর্মড টাইমার নিজের লুপ-পাকে চলে; মিস হওয়া interval due ফেলে দেওয়া হয়, কখনো শোধ করে না। তিনটি টাইমার আচরণ যা প্রতিটি Node ডেভ একবার ভুল অনুমান করে।
+domain: 1
+task: "1.6"
+order: 6
+sourceUrl: https://nodejs.org/api/timers.html
+updated: 2026-10-22
+keywords:
+  - term: ref/unref
+  - term: timer drift
+sources:
+  - label: Node.js docs — Timers
+    href: https://nodejs.org/api/timers.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.6</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+টাইমার event loop-এর সবচেয়ে অপব্যবহৃত API। এই লেসন তিনটি আচরণ পিন করে যা মানুষ ভুল পায়: **ref/unref** — `unref()` শুধু টাইমারের প্রসেস-বাঁচিয়ে-রাখার ভোট সরায়, cancel করে না; **রি-আর্মিং** — টাইমার callback-এর ভেতর থেকে শিডিউল করা `setTimeout` *পরের লুপ-পাকে* চলে, রিকার্সন নয়; আর **interval drift** — callback দীর্ঘ চললে মিস হওয়া due *ফেলে দেওয়া হয়*, তাই ১৫০ms callback-এর নিচে ১০০ms interval একবার দেরিতে ফায়ার করে তারপর গ্রিডে ফিরে যায়। কোনো catch-up burst নেই, কখনোই।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="'unref করলাম, তাহলে চলল কেন?'">
+	<p>
+		কারণ অন্য কিছু লুপকে বাঁচিয়ে রেখেছিল। `unref()` বলে "এই টাইমার একা প্রসেসকে ধরে রাখতে পারবে না" — খোলা সার্ভার বা আরেকটি ref-ড টাইমার লুপ খোলা রাখলে আপনার unref-ড টাইমার ঠিকই শিডিউলে ফায়ার করবে। ডেমো প্রমাণ করে: ref-ড interval চলার সময় unref-ড ৫০ms টাইমআউট তবু ফায়ার করে, আর শুধু <em>unref-ড</em> টাইমার ঝুলে থাকা child_process সাথে সাথে বেরিয়ে যায়।
+	</p>
+</Pitfall>
+
+## তিন আচরণ, এক ডেমো
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/1-node-anatomy-event-loop/1-6-timers-deep/demo.js
+```
+
+চারটি সেকশন ছাপে: unref-ড টাইমার তবু ফায়ার (`fired=true`); টাইমার ঝুলিয়ে চাইল্ড বেরিয়ে যাওয়া; `ref()` কিপ-অ্যালাইভ ফিরিয়ে আনা; আর একটি drift প্রোব — ১০০ms interval যার প্রথম callback ১৫০ms ব্লক করে, গ্যাপ ছাপে `100 150 100 100 100`: একবার দেরি, দুটি due ফেলে দেওয়া, তারপর গ্রিডে ফেরা। নিয়মের সাথে গ্যাপগুলো আবার পড়ুন: **ফায়ার কখনো আগে চলে না, আর মিস কখনো শোধ করে না**।
+
+<BuildExercise
+	title="প্রতিটি নিয়ম ইচ্ছা করে ভাঙুন"
+	difficulty="মাঝারি"
+	time="২০ মিনিট"
+	objectives={['জীবিত প্রসেসে unref-ড টাইমার ফায়ার করবে কি অনুমান করা', 'ফেলে দেওয়া due বনাম catch-up শিডিউলিং ব্যাখ্যা করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'চারটি সেকশন তাদের রায়-লাইনসহ দেখা।', expect: 'fired=true; চাইল্ড বেরিয়ে যায়; ref() ধরে রাখে; গ্যাপ 100 150 100 …।' },
+		{ title: 'সার্ভার socket-এ unref', why: 'টাইমার ছাড়াও যেকোনো ref-ড handle লুপ খোলা রাখে নিশ্চিত করা।', expect: 'সার্ভার শুনলে unref-ড টাইমার ফায়ার করে; প্রসেস server.close() পর্যন্ত বাঁচে।' },
+		{ title: 'দুই interval-এর চেয়ে বড় ব্লক', why: 'drift ঠেলা: ৩৫০ms ব্লক করা।', expect: '~৩৫০-তে এক ফায়ার, ২০০/৩০০-এর due ফেলে দেওয়া — পরেও কোনো burst নেই।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-6" />

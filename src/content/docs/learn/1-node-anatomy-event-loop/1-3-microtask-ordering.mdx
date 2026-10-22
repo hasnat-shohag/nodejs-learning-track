@@ -1,0 +1,68 @@
+---
+title: "Microtask ordering: nextTick vs Promise vs setImmediate"
+description: The two microtask queues — nextTick and Promise — and the exact drain rules that decide whether your callback runs before or after the loop takes another turn.
+domain: 1
+task: "1.3"
+order: 3
+sourceUrl: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+updated: 2026-10-22
+keywords:
+  - term: microtask
+  - term: process.nextTick
+  - term: setImmediate
+sources:
+  - label: "Node.js docs — Event loop: timers and nextTick"
+    href: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.3</span>
+</div>
+
+## What you will learn
+
+Between every loop phase — and after every callback — Node drains two **microtask** queues before moving on: first the entire `process.nextTick` queue, then the entire **Promise** queue (V8's own microtasks, including `await` continuations). `setImmediate` and `setTimeout` are *not* microtasks; they wait in their phases. This lesson pins the three rules the demo proves: nextTick drains first and completely; once Promise callbacks start, the whole Promise queue drains even if nextTicks are queued mid-drain; and both queues empty before any phase runs.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="nextTick starves I/O; Promise does not (as much)">
+	<p>
+		A recursive `process.nextTick` chain never yields — timers and I/O wait forever, and Node 22+ warns and crashes on infinite nextTick recursion. A recursive Promise chain yields <em>slightly</em> (same drain window, still blocks phases but the promise queue does drain between ticks… until it also starves). Rule of thumb: in libraries use `queueMicrotask` or Promise; keep `nextTick` for the rare "run before I/O continues" cases, and never in a loop without a base case.
+	</p>
+</Pitfall>
+
+## Three queues, one verdict each
+
+Run the demo file for this lesson:
+
+```bash
+node code/1-node-anatomy-event-loop/1-3-microtask-ordering/demo.js
+```
+
+Ten numbered lines, and the <em>numbers</em> are the lesson: watch `[1]`–`[2]` (nextTick FIFO) print before `[3]` (first Promise) — then `[5]`, a nextTick queued <em>from</em> a Promise callback, prints only after the whole Promise queue `[3]`–`[7]` has drained. Phases `[8]`/`[9]` come last, and their relative order is deliberately shown after both queues — never depend on it.
+
+<BuildExercise
+	title="Pin the drain rules yourself"
+	difficulty="intermediate"
+	time="20 min"
+	objectives={['State which queue drains first and what "completely" means', 'Predict output order for nested nextTick/Promise chains']}
+	steps={[
+		{ title: 'Run the demo', why: 'Read the numbers against the three rules in the comments.', expect: 'Exact order [0]-[9] as listed in the file header; stable across runs.' },
+		{ title: 'Queue a nextTick from a Promise', why: 'Test rule 2 — does it preempt remaining promises?', expect: 'No: the Promise queue drains fully first, then the new nextTick.' },
+		{ title: 'Uncomment the starvation lines', why: 'Feel the difference between nextTick and Promise recursion.', expect: 'With `starve()` active, the timeout never prints — the loop never gets a turn.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-3" />

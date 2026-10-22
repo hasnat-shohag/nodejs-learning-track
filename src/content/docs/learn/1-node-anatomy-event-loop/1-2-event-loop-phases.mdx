@@ -1,0 +1,67 @@
+---
+title: "Event loop phases: timers, poll, check, close"
+description: One full turn of the event loop — timers, poll, check, close — and the two-phase rule that makes I/O callbacks schedule better than timers.
+domain: 1
+task: "1.2"
+order: 2
+sourceUrl: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+updated: 2026-10-22
+keywords:
+  - term: event loop phases
+  - term: poll phase
+sources:
+  - label: "Node.js docs — Event loop: timers and nextTick"
+    href: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.2</span>
+</div>
+
+## What you will learn
+
+The event loop is not a queue — it is a **cycle of phases**. Each turn, libuv visits: **timers** (due `setTimeout`/`setInterval` callbacks), **pending** (some I/O results), **idle/prepare** (internal), **poll** (wait for new I/O events and run their callbacks), **check** (`setImmediate` callbacks), then **close** (teardown callbacks like a socket's `'close'`). This lesson walks one turn, phase by phase, and shows you the one ordering rule interview questions actually test: inside an I/O callback, `setImmediate` beats `setTimeout(…, 0)`.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="'setTimeout(fn, 0)' is not 'run next'">
+	<p>
+		A 0ms timeout does not run after your current code — it waits for the <strong>next timers phase</strong>, which is a full loop turn away. If you schedule work from inside an I/O callback and want it in the <em>same</em> turn, `setImmediate` runs in the <strong>check</strong> phase, right after the current poll phase ends. That is why the order flips: at top level the two are a coin flip; from inside poll, immediate always wins.
+	</p>
+</Pitfall>
+
+## One turn, four visible phases
+
+Run the demo file for this lesson:
+
+```bash
+node code/1-node-anatomy-event-loop/1-2-event-loop-phases/demo.js
+```
+
+It prints one loop turn in order: the **timers** phase fires a 0ms `setTimeout`, the **poll** phase delivers a real `fs.readFile` event, and the **check** phase runs `setImmediate` — including the flipped order when both are scheduled <em>from inside</em> the poll callback, where immediate no longer has to wait for a next turn's timers phase.
+
+<BuildExercise
+	title="Watch your own loop turn"
+	difficulty="beginner"
+	time="15 min"
+	objectives={['Name the six phases and what runs in each', 'Predict setImmediate vs setTimeout(0) at top level vs inside an I/O callback']}
+	steps={[
+		{ title: 'Run the demo', why: 'See timers → poll → check play out with real phase tags in the output.', expect: 'immediate before timeout at top level or after — nondeterministic; inside the read callback, immediate always first.' },
+		{ title: 'Add a close event', why: 'See the close phase, the one the demo omits.', expect: 'A socket or watcher `.close()` callback runs last, after check.' },
+		{ title: 'Break the order on purpose', why: 'Move the nested immediate/timeout into a plain (non-I/O) callback.', expect: 'Order becomes environment-dependent again — poll context is what made it deterministic.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-2" />

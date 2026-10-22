@@ -1,5 +1,14 @@
 [
 	{
+		"term": "blocking",
+		"defEn": "JS code that hogs the single thread — synchronous fs/crypto/CPU loops — so no other callback can run until it returns.",
+		"defBn": "JS কোড যা একক থ্রেড দখলে রাখে — sync fs/crypto/CPU লুপ — ফলে ফেরার আগে আর কোনো callback চলতে পারে না।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+		],
+		"domain": 1
+	},
+	{
 		"term": "event loop",
 		"defEn": "The single-threaded cycle that Node runs on: pick queued callbacks, run them to completion, then repeat. All JS code shares it, so one slow callback delays every request.",
 		"defBn": "Node-এর একক-থ্রেড সাইকেল: কিউতে থাকা callback নেয়, সম্পূর্ণ চালায়, আবার পুনরাবৃত্তি করে। সব JS কোড এটি শেয়ার করে, তাই একটি ধীর callback সব রিকোয়েস্ট দেরি করায়।",
@@ -10,17 +19,111 @@
 		"domain": 1
 	},
 	{
+		"term": "event loop phases",
+		"defEn": "The ordered stages libuv cycles through: timers → pending → idle/prepare → poll → check → close. Each phase drains its own callback queue before moving on.",
+		"defBn": "libuv যে ক্রমিক ধাপগুলো ঘুরে আসে: timers → pending → idle/prepare → poll → check → close। প্রতিটি ফেজ পরের ফেজে যাওয়ার আগে নিজের callback কিউ খালি করে।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+		],
+		"domain": 1
+	},
+	{
+		"term": "event-loop lag",
+		"defEn": "Delay between when a callback was due and when it ran — measurable with monitorEventLoopDelay or a self-ping. The number blocking costs you.",
+		"defBn": "callback কখন চলা উচিত ছিল আর কখন সত্যিই চলল — monitorEventLoopDelay বা self-ping দিয়ে মাপা যায়। ব্লকিংয়ের প্রকৃত খরচ এই সংখ্যা।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+		],
+		"domain": 1
+	},
+	{
 		"term": "libuv",
 		"defEn": "The C library under Node that provides the event loop, TCP/UDP sockets, filesystem and thread-pool operations. Node's async I/O is libuv plus OS kernel facilities.",
 		"defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও থ্রেড-পুল অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
-		"refs": ["https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"],
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+		],
+		"domain": 1
+	},
+	{
+		"term": "microtask",
+		"defEn": "A callback that runs between event-loop phases rather than in one: process.nextTick queue and the Promise (V8) queue. Drained fully after each callback.",
+		"defBn": "ফেজের ভেতরে নয়, দুই ফেজের মাঝে চলা callback: process.nextTick কিউ ও Promise (V8) কিউ। প্রতিটি callback-এর পরে সম্পূর্ণ নিষ্কাশিত হয়।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+		],
+		"domain": 1
+	},
+	{
+		"term": "poll phase",
+		"defEn": "The event-loop phase that waits for I/O events, computes how long to block, and processes incoming connections/data — the loop's center of gravity.",
+		"defBn": "event loop-এর সেই ফেজ যা I/O ইভেন্টের জন্য অপেক্ষা করে, কতক্ষণ ব্লক করবে হিসাব করে, নতুন কানেকশন ও ডেটা প্রসেস করে — লুপের ভারকেন্দ্র।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+		],
+		"domain": 1
+	},
+	{
+		"term": "process.nextTick",
+		"defEn": "Queues a callback on the microtask queue that runs after the current operation completes, before the event loop continues — starves I/O if abused.",
+		"defBn": "মাইক্রোটাস্ক কিউতে callback রাখে, বর্তমান অপারেশন শেষ হলে event loop চালু হওয়ার আগেই চলে — অতিরিক্ত ব্যবহারে I/O অনাহারিত করে।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+		],
+		"domain": 1
+	},
+	{
+		"term": "ref/unref",
+		"defEn": "Timers/handles keep the process alive while referenced; .unref() lets the process exit with them pending, .ref() restores the default keep-alive.",
+		"defBn": "রেফারেন্সড থাকা টাইমার/হ্যান্ডেল প্রসেসকে বাঁচিয়ে রাখে; .unref() করলে সেগুলো ঝুলে থাকলেও প্রসেস বেরিয়ে যেতে পারে, .ref() আবার ডিফল্ট ফিরিয়ে আনে।",
+		"refs": [
+			"https://nodejs.org/api/timers.html"
+		],
+		"domain": 1
+	},
+	{
+		"term": "setImmediate",
+		"defEn": "Schedules a callback in the check phase, after the current poll phase — the I/O-friendly alternative to nextTick for post-phase work.",
+		"defBn": "check ফেজে callback নির্ধারণ করে, চলমান poll ফেজের পরে — ফেজ-পরবর্তী কাজের জন্য nextTick-এর I/O-বান্ধব বিকল্প।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+		],
+		"domain": 1
+	},
+	{
+		"term": "thread pool",
+		"defEn": "libuv's pool of worker threads (default 4, tunable via UV_THREADPOOL_SIZE) that runs fs, DNS, crypto.pbkdf2 and other blocking ops off the main thread.",
+		"defBn": "libuv-এর ওয়ার্কার থ্রেডের পুল (ডিফল্ট ৪, UV_THREADPOOL_SIZE দিয়ে বদলানো যায়) যা fs, DNS, crypto.pbkdf2 ইত্যাদি ব্লকিং কাজ মেইন থ্রেডের বাইরে চালায়।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+		],
+		"domain": 1
+	},
+	{
+		"term": "timer drift",
+		"defEn": "setInterval callbacks fire relative to when the previous one ran (blocking included), so a 100ms interval under load becomes slower and slower.",
+		"defBn": "setInterval-এর callback চলে আগেরটা কখন শেষ হলো তার থেকে (ব্লকিংসহ), তাই লোডের নিচে ১০০ms-এর ইন্টারভাল ক্রমশ ধীর হয়ে যায়。",
+		"refs": [
+			"https://nodejs.org/api/timers.html"
+		],
+		"domain": 1
+	},
+	{
+		"term": "UV_THREADPOOL_SIZE",
+		"defEn": "Environment variable setting libuv thread-pool size. Must be set before the process starts; default 4, max useful ≈ 128.",
+		"defBn": "libuv থ্রেড-পুলের সাইজ নির্ধারণকারী environment variable। প্রসেস শুরুর আগে সেট করতে হয়; ডিফল্ট ৪, কার্যকর সর্বোচ্চ প্রায় ১২৮।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+		],
 		"domain": 1
 	},
 	{
 		"term": "worker_threads",
 		"defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
 		"defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",
-		"refs": ["https://nodejs.org/api/worker_threads.html"],
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html"
+		],
 		"domain": 3
 	}
 ]

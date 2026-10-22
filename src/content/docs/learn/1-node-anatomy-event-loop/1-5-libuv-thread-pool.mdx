@@ -1,0 +1,68 @@
+---
+title: "libuv thread pool: UV_THREADPOOL_SIZE and off-thread work"
+description: fs, DNS, and crypto.pbkdf2 do not run on your JS thread — they queue for libuv's worker pool, four threads wide by default, and you can watch the batches.
+domain: 1
+task: "1.5"
+order: 5
+sourceUrl: https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv
+updated: 2026-10-22
+keywords:
+  - term: thread pool
+  - term: UV_THREADPOOL_SIZE
+sources:
+  - label: Node.js docs — Introduction to libuv
+    href: https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.5</span>
+</div>
+
+## What you will learn
+
+"Node is single-threaded" is only about your JavaScript. Some async work — file system calls, DNS lookups (when not `c-ares`), `crypto.pbkdf2`, `zlib` — is too, because the OS has no non-blocking form of it. libuv runs that work on a **thread pool**: four OS threads by default, fixed at process start. Six pool jobs therefore run as **two waves** of four and two. This lesson shows you the waves, and what `UV_THREADPOOL_SIZE` does to them.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="The pool is a shared bottleneck">
+	<p>
+		Those four threads serve <strong>every</strong> pool task in the process — one slow `fs.stat` on a cold NFS mount delays every `pbkdf2` behind it, and vice versa. Setting `UV_THREADPOOL_SIZE` higher looks free, but each thread costs a stack (~1MB) and more contention; the pool also stops being the bottleneck only if CPU and disk actually parallelize. Diagnose with `perf_hooks`/`--trace-sync-io` before tuning.
+	</p>
+</Pitfall>
+
+## Watch the waves
+
+Run the demo file for this lesson, then with a doubled pool:
+
+```bash
+node code/1-node-anatomy-event-loop/1-5-libuv-thread-pool/demo.js
+UV_THREADPOOL_SIZE=8 node code/1-node-anatomy-event-loop/1-5-libuv-thread-pool/demo.js
+```
+
+Six `pbkdf2` jobs at default size finish in two clusters — four together, then two — while your JS thread stays free the whole time. At size 8, all six land in one cluster. Note the env var must exist before the process starts; setting `process.env.UV_THREADPOOL_SIZE` at runtime does nothing.
+
+<BuildExercise
+	title="Feel the pool size"
+	difficulty="intermediate"
+	time="20 min"
+	objectives={['Name which Node APIs run on the thread pool and why', 'Show pool batching disappears with a larger pool']}
+	steps={[
+		{ title: 'Run default vs 8', why: 'See two waves collapse into one.', expect: 'Size 4: jobs 5-6 finish in a second cluster; size 8: one cluster, faster total.' },
+		{ title: 'Starve the pool', why: 'Prove the pool is shared across kinds of work.', expect: 'Six pbkdf2 plus a big fs.readFile: the read and the last job wait on the same threads.' },
+		{ title: 'Try runtime change', why: 'Confirm the pool is fixed at startup.', expect: 'Setting the env var inside the script changes nothing — sizes differ only when set before `node`.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-5" />

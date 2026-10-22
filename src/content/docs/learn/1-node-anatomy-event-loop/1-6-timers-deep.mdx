@@ -1,0 +1,67 @@
+---
+title: "Timers deep: ref/unref, nesting, setInterval drift"
+description: unref is not cancel; re-armed timers run on their own loop turn; missed interval dues are dropped, never repaid. Three timer behaviors every Node dev mispredicts once.
+domain: 1
+task: "1.6"
+order: 6
+sourceUrl: https://nodejs.org/api/timers.html
+updated: 2026-10-22
+keywords:
+  - term: ref/unref
+  - term: timer drift
+sources:
+  - label: Node.js docs — Timers
+    href: https://nodejs.org/api/timers.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.6</span>
+</div>
+
+## What you will learn
+
+Timers are the event loop's most abused API. This lesson pins the three behaviors people get wrong: **ref/unref** — `unref()` only removes a timer's vote to keep the process alive, it does not cancel it; **re-arming** — a `setTimeout` scheduled from inside a timer callback runs on a *later loop turn*, it is not recursion; and **interval drift** — when a callback runs long, missed dues are *dropped*, so a 100ms interval under a 150ms callback fires late once, then continues on its grid. No catch-up bursts, ever.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="'I unref-ed it, why did it still fire?'">
+	<p>
+		Because something else kept the loop alive. `unref()` says "this timer alone may not keep the process up" — if an open server or another ref-ed timer holds the loop open, your unref-ed timer still fires on schedule. The demo proves it: an unref-ed 50ms timeout fires anyway while a ref-ed interval runs, and a child process with <em>only</em> an unref-ed timer exits immediately.
+	</p>
+</Pitfall>
+
+## Three behaviors, one demo
+
+Run the demo file for this lesson:
+
+```bash
+node code/1-node-anatomy-event-loop/1-6-timers-deep/demo.js
+```
+
+Four sections print: unref-ed timer firing anyway (`fired=true`); a child exiting with a timer pending; `ref()` restoring keep-alive; and a drift probe — a 100ms interval whose first callback blocks 150ms prints gaps `100 150 100 100 100`: one late fire, two dropped dues, then back on grid. Re-read the gaps against the rule: **fires never run early, and never repay misses**.
+
+<BuildExercise
+	title="Break each rule on purpose"
+	difficulty="intermediate"
+	time="20 min"
+	objectives={['Predict whether an unref-ed timer fires in a live process', 'Explain dropped dues vs catch-up scheduling']}
+	steps={[
+		{ title: 'Run the demo', why: 'See all four sections with their verdict lines.', expect: 'fired=true; child exits; ref() holds; gaps 100 150 100 ….' },
+		{ title: 'unref a server socket', why: 'Confirm any ref-ed handle — not just timers — keeps the loop open.', expect: 'unref-ed timer fires while server listens; process lives until server.close().' },
+		{ title: 'Block longer than two intervals', why: 'Push drift: block 350ms.', expect: 'One fire at ~350, dues at 200/300 dropped — still no burst after.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-6" />

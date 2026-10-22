@@ -1,0 +1,68 @@
+---
+title: "Event loop-এর ফেজ: timers, poll, check, close"
+titleEn: "Event loop phases: timers, poll, check, close"
+description: event loop-এর এক পূর্ণ পাক — timers, poll, check, close — আর সেই দুই-ফেজ নিয়ম, যার কারণে I/O callback-এর ভেতর থেকে টাইমারের চেয়ে immediate-ই ভালো শিডিউল হয়।
+domain: 1
+task: "1.2"
+order: 2
+sourceUrl: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+updated: 2026-10-22
+keywords:
+  - term: event loop phases
+  - term: poll phase
+sources:
+  - label: "Node.js docs — Event loop: timers and nextTick"
+    href: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.2</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+event loop কোনো সাধারণ কিউ নয় — এটি **ফেজের চক্র**। প্রতি পাকে libuv ঘুরে আসে: **timers** (নির্ধারিত সময় পার হওয়া `setTimeout`/`setInterval` callback), **pending** (কিছু I/O রেজাল্ট), **idle/prepare** (অভ্যন্তরীণ), **poll** (নতুন I/O ইভেন্টের জন্য অপেক্ষা ও সেগুলোর callback চালানো), **check** (`setImmediate` callback), তারপর **close** (socket-এর `'close'`-এর মতো টিয়ারডাউন callback)। এই লেসন একে একে এক পাক দেখায়, সাথে সেই একটি অর্ডারিং নিয়ম যা ইন্টারভিউয়ে সত্যিই খোঁচে — I/O callback-এর ভেতর থেকে `setImmediate` জেতে `setTimeout(…, 0)`-কে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="'setTimeout(fn, 0)' মানে 'পরের সাথে চালাও' নয়">
+	<p>
+		0ms টাইমআউট আপনার চলমান কোডের পরেই চলে না — সে **পরের timers ফেজের** জন্য অপেক্ষা করে, যা পুরো এক লুপ-পাক দূরে। I/O callback-এর ভেতর থেকে কাজ শিডিউল করে একই পাকেই চালাতে চাইলে `setImmediate` ব্যবহার করুন — সে **check** ফেজে চলে, চলমান poll ফেজ শেষ হলেই। এজন্যই অর্ডার উল্টে যায়: টপ লেভেলে দুটো কয়েন-টস, কিন্তু poll-এর ভেতর থেকে immediate সবসময় জেতে।
+	</p>
+</Pitfall>
+
+## এক পাক, চারটি দৃশ্যমান ফেজ
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/1-node-anatomy-event-loop/1-2-event-loop-phases/demo.js
+```
+
+ক্রম অনুযায়ী এক লুপ-পাক প্রিন্ট করে: **timers** ফেজে 0ms `setTimeout` চলে, **poll** ফেজে সত্যিকারের `fs.readFile` ইভেন্ট পৌঁছায়, **check** ফেজে `setImmediate` চলে — সাথে poll callback-এর ভেতর থেকে শিডিউল করলে অর্ডার উল্টে যাওয়াটাও, যেখানে immediate-কে আর পরের পাকের timers ফেজের জন্য অপেক্ষা করতে হয় না।
+
+<BuildExercise
+	title="নিজের লুপ-পাক দেখুন"
+	difficulty="শুরুর স্তর"
+	time="১৫ মিনিট"
+	objectives={['ছয়টি ফেজের নাম ও প্রতিটিতে কী চলে তা বলা', 'টপ লেভেল বনাম I/O callback-এর ভেতর setImmediate বনাম setTimeout(0)-এর অর্ডার অনুমান করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'আউটপুটের ফেজ-ট্যাগ দেখে timers → poll → check ক্রম পড়া।', expect: 'টপ লেভেলে immediate/timeout আগে-পরে হতে পারে — ননডিটারমিনিস্টিক; read callback-এর ভেতর থেকে immediate সবসময় আগে।' },
+		{ title: 'একটি close ইভেন্ট যোগ করুন', why: 'ডেমো যে ফেজটি বাদ দিয়েছে সেটি দেখা।', expect: 'socket বা watcher-এর `.close()` callback শেষে, check-এর পরে চলে।' },
+		{ title: 'ইচ্ছা করে অর্ডার ভাঙুন', why: 'nested immediate/timeout-কে সাধারণ (non-I/O) callback-এ সরিয়ে দেখা।', expect: 'অর্ডার আবার এনভায়রনমেন্টনির্ভর হয় — deterministic করেছিল poll-এর কনটেক্সটই।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-2" />
