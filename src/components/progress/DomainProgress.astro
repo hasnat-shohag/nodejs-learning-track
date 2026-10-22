@@ -1,0 +1,82 @@
+---
+import { DOMAINS, type DomainId } from '../../lib/domains';
+import { domainLessons } from '../../lib/lessons';
+
+interface Props {
+	domain: DomainId;
+	showLabel?: boolean;
+}
+
+const { domain, showLabel = true } = Astro.props;
+const meta = DOMAINS.find((item) => item.id === domain)!;
+const total = domainLessons(domain).length;
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const domainLabel = isBn ? meta.labelBn : meta.labelEn;
+const ariaLabel = isBn ? `${domainLabel} অগ্রগতি` : `${domainLabel} progress`;
+---
+
+<div class="progress-row" data-domain-progress={domain} data-domain-lessons={total}>
+	{
+		showLabel && (
+			<div class="progress-head">
+				<span>
+					D{domain} · {domainLabel}
+				</span>
+				<span class="progress-count" data-domain-count>
+					0/{total}
+				</span>
+			</div>
+		)
+	}
+	<div
+		class="progress-track"
+		role="progressbar"
+		aria-label={ariaLabel}
+		aria-valuemin="0"
+		aria-valuemax={total}
+		aria-valuenow="0"
+		data-domain-track
+	>
+		<div class="progress-fill" data-domain-fill></div>
+	</div>
+</div>
+
+<script>
+	import type { DomainId } from '../../lib/domains';
+	import { domainLessons } from '../../lib/lessons';
+	import { LESSON_EVENT, domainCompleted, isComplete, loadState } from '../../lib/progress';
+
+	function paintDomains(): void {
+		const state = loadState();
+		document.querySelectorAll<HTMLElement>('[data-domain-progress]').forEach((row) => {
+			const domain = Number(row.dataset.domainProgress) as DomainId;
+			const total = domainLessons(domain).length;
+			if (total === 0) return;
+			const completed = domainCompleted(state, domain);
+			const percent = Math.round((completed / total) * 100);
+			const fill = row.querySelector<HTMLElement>('[data-domain-fill]');
+			const count = row.querySelector<HTMLElement>('[data-domain-count]');
+			const track = row.querySelector<HTMLElement>('[data-domain-track]');
+			if (fill) fill.style.transform = `scaleX(${(percent / 100).toFixed(4)})`;
+			if (count) count.textContent = `${completed}/${total}`;
+			if (track) track.setAttribute('aria-valuenow', String(completed));
+		});
+	}
+
+	function paintLessonChecks(): void {
+		const state = loadState();
+		document.querySelectorAll<HTMLElement>('[data-lesson-check]').forEach((item) => {
+			const id = item.dataset.lessonCheck;
+			if (!id) return;
+			const done = isComplete(state, id);
+			item.dataset.done = String(done);
+		});
+	}
+
+	paintDomains();
+	paintLessonChecks();
+	window.addEventListener(LESSON_EVENT, () => {
+		paintDomains();
+		paintLessonChecks();
+	});
+</script>

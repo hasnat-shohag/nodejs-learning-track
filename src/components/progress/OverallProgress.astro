@@ -1,0 +1,65 @@
+---
+import { DOMAINS } from '../../lib/domains';
+import { TOTAL_LESSONS } from '../../lib/lessons';
+import DomainProgress from './DomainProgress.astro';
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const t = isBn
+	? { lessonsDone: 'লেসন সম্পন্ন', reset: 'অগ্রগতি রিসেট করুন' }
+	: { lessonsDone: 'lessons complete', reset: 'Reset progress' };
+---
+
+<div class="progress-summary">
+	<strong data-overall-percent>0%</strong>
+	<span class="progress-count" data-overall-count data-total={TOTAL_LESSONS}>0/{TOTAL_LESSONS} {t.lessonsDone}</span>
+</div>
+
+<div class="progress-list">
+	{DOMAINS.map((domain) => <DomainProgress domain={domain.id} />)}
+</div>
+
+<div class="progress-actions">
+	<button type="button" data-progress-reset>{t.reset}</button>
+</div>
+
+<p class="progress-hint">
+	{
+		isBn ? (
+			<>
+				অগ্রগতি আপনার ব্রাউজারের localStorage-এ (<code>nodejs:v1</code>) থাকে — কোনো অ্যাকাউন্ট বা সার্ভার নেই,
+				তাই এক ডিভাইস থেকে অন্য ডিভাইসে অগ্রগতি যায় না। সাইটের সাইডবারে সম্পন্ন লেসনের পাশে সম্পন্ন চিহ্ন
+				দেখাবে। ইংরেজি বা বাংলা — যে ভাষাতেই পড়ুন, অগ্রগতি একই থাকে।
+			</>
+		) : (
+			<>
+				Progress lives in your browser's localStorage (<code>nodejs:v1</code>) — no account, no server,
+				so it does not travel between devices. Completed lessons get a tick in the sidebar. Read in
+				English or Bangla; progress is shared across both.
+			</>
+		)
+	}
+</p>
+
+<script>
+	import { LESSON_EVENT, completedCount, loadState, overallPercent, resetProgress } from '../../lib/progress';
+
+	const lessonsDone = document.documentElement.lang.startsWith('bn') ? 'লেসন সম্পন্ন' : 'lessons complete';
+
+	function paintOverall(): void {
+		const state = loadState();
+		const percentEl = document.querySelector<HTMLElement>('[data-overall-percent]');
+		const countEl = document.querySelector<HTMLElement>('[data-overall-count]');
+		if (percentEl) percentEl.textContent = `${overallPercent(state)}%`;
+		if (countEl) countEl.textContent = `${completedCount(state)}/${countEl.dataset.total} ${lessonsDone}`;
+	}
+
+	document.addEventListener('click', (event) => {
+		const button = (event.target as HTMLElement | null)?.closest('[data-progress-reset]');
+		if (!button) return;
+		resetProgress();
+		paintOverall();
+	});
+
+	paintOverall();
+	window.addEventListener(LESSON_EVENT, paintOverall);
+</script>
