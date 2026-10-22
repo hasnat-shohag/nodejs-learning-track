@@ -1,0 +1,69 @@
+---
+title: "Request parsing: URL, headers, and the body you must read"
+description: "req.url is path+query only, headers arrive lower-cased, and the body is not parsed for you — it is a readable stream. This lesson handles all three, plus the size guard every real server needs."
+domain: 4
+task: "4.2"
+order: 2
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: IncomingMessage
+  - term: content-length
+sources:
+  - label: "Node.js docs — http: message API"
+    href: https://nodejs.org/api/http.html#class-httpincomingmessage
+  - label: "Node.js docs — WHATWG URL"
+    href: https://nodejs.org/api/url.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.2</span>
+</div>
+
+## What you will learn
+
+Three facts trip everyone writing their first handler. One: `req.url` is **not** a full URL — no scheme, no host, just path and query (`/items?name=x`); the host lives in `req.headers.host`, and `new URL(req.url, base)` splits path from query with `searchParams` decoding for you. Two: headers arrive **lower-cased** (`req.headers['content-type']`, never `contentType`), and most are strings — but repeated headers like `set-cookie` arrive as an **array**. Three: the body is not parsed for you. `req` is a readable stream, and "reading the body" means collecting chunks, concatenating, then parsing — plus a size guard, because an unguarded `JSON.parse` on a 2 GB upload is how servers die. The demo measures a Bangla word to make byte-vs-char stick: `হাই` is 3 characters and **9 UTF-8 bytes**, and `content-length` counts bytes, not chars.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Reading the body twice reads nothing the second time">
+	<p>
+		The body stream is consumed once. Middleware that reads the body (logging, old body-parser styles) leaves nothing for the handler — the second listener gets `'end'` with zero chunks. If two parts of your app need the body, read it once, attach it (`req.body = ...`), pass that along. This is the actual reason `express.json()` became middleware that assigns `req.body` rather than something each handler calls.
+	</p>
+</Pitfall>
+
+## Parse all three layers
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-2-request-parsing/demo.js
+```
+
+It prints: `[1]` the URL split — `req.url` carried `/items?name=হাঈ` with the query percent-decoded by `searchParams`; `[2]` the host header, and duplicate `set-cookie` headers arriving as an array of 2; `[3]` the body of `হাই`: 3 chars, 9 bytes — byte length ≠ char count; `[4]` the guarded body-read pattern: a 5-byte body returns 200, a 40-byte body hits the 16-byte cap and gets 413 with the upload cut mid-flight.
+
+<BuildExercise
+	title="Write the body-reading middleware"
+	difficulty="intermediate"
+	time="30 min"
+	objectives={['Split path and query with WHATWG URL, read headers including the array case', 'Read a body safely: collect, concat, parse, and guard the size']}
+	steps={[
+		{ title: 'Run the demo', why: 'See all three parsing layers and the 413 guard fire.', expect: 'Decoded query, array set-cookie, 9 bytes for 3 chars, 40→413.' },
+		{ title: 'Consume-twice bug', why: 'Add a body-logging middleware, then read the body again in the handler.', expect: 'Handler sees empty body — the stream was already consumed.' },
+		{ title: 'Count the bytes', why: 'Send an emoji-only body and compare Buffer.byteLength with string length.', expect: 'Char count × 1, byte count × 4 (most emoji) — content-length is bytes.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-2" />

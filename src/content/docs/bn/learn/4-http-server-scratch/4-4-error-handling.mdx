@@ -1,0 +1,70 @@
+---
+title: "Error handling: try/catch, .catch, 404 বনাম 500, uncaughtException"
+titleEn: "Error handling: try/catch, .catch, 404 vs 500, uncaughtException"
+description: "Sync error পড়ে try/catch-এ, async error পড়ে .catch-এ — আর Node 15 থেকে unhandled rejection প্রসেস মারে। Server-এ দুই জালই লাগে, লাগে 404/500 পার্থক্য, আর শেষ-উপায় হিসেবে বেরিয়ে যাওয়ার প্ল্যান।"
+domain: 4
+task: "4.4"
+order: 4
+sourceUrl: https://nodejs.org/api/process.html
+updated: 2026-10-23
+keywords:
+  - term: error-first callback
+  - term: uncaught exception
+sources:
+  - label: "Node.js docs — process: uncaughtException"
+    href: https://nodejs.org/api/process.html#event-uncaughtexception
+  - label: "Node.js docs — unhandled rejection"
+    href: https://nodejs.org/api/process.html#event-unhandledrejection
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.4</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Error আপনার server-এ পৌঁছায় দুই চ্যানেলে, দুটোর জন্যই জাল লাগবে। **Sync** throw handler-এর ভেতরে catch করা যায়: handler body-কে `try/catch`-এ মুড়ুন, 500 পাঠান, stack log করুন, সার্ভিং চালু রাখুন। **Async** ব্যর্থতা — rejected promise, stream-এর `error` ইভেন্ট — `try/catch`-এর চোখেই পড়ে না; শুধু `.catch()` (বা `async handler` + `.catch` র‍্যাপার) দেখে। আর ঝুঁকিটা আসল: Node 15 থেকে **unhandled rejection ডিফল্টে প্রসেস মারে** — এক route-এ একটা `.catch` না থাকলে পুরো server নিচে। ডেমো দেখায় দুই জালই আর প্রসেস-লেভেল শেষ উপায়: `process.on('uncaughtException')` ফায়ার করে, কিন্তু তখন প্রসেসের অবস্থা অজানা — handler-টা *logging আর পরিষ্কার বেরানোর* জন্য, সার্ভিং চালিয়ে যাওয়ার জন্য নয়। Domain 1-এ দেখা error-first callback রীতি (`(err, result) => ...`) তৃতীয় জাল, আর 404 বনাম 500 নিয়ম — অজানা route মানে ক্লায়েন্টের সমস্যা, handler-এর throw মানে আপনার — ক্লায়েন্টকে অর্থ পাঠায়, log-কে stack।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="uncaughtException handler বেরানোর জন্য, বীরত্বের জন্য নয়">
+	<p>
+		Uncaught exception-এর পরে V8 heap-এ থাকতে পারে অর্ধেক-শেষ mutation — এমন state যার আর কিছু অনুমান করা যায় না। Handler-এর কাজ: stack-সহ log করা, log flush, `process.exit(1)`, আর orchestrator-এর (PM2, Docker, Kubernetes) ছেড়ে দেওয়া যেন পরিষ্কার প্রসেস restart করে। নষ্ট প্রসেসে সার্ভিং চালিয়ে গেলে চারদিকে আবর্জনা লেখার ঝুঁকি। `unhandledRejection`-এও একই নিয়ম — log, তারপর ইচ্ছাকৃত exit।
+	</p>
+</Pitfall>
+
+## দুই জাল আর এক শেষ-উপায়
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/4-http-server-scratch/4-4-error-handling/demo.js
+```
+
+ছাপে: `[1]` sync throw `try/catch`-এ ধরা, 500 গেছে, প্রসেস বেঁচে; `[2]` একই async rejection `.catch`-এ ধরা (500 গেছে) — তারপর `.catch` *ছাড়া* একই rejection child প্রসেসে: exit 1, প্রসেস মরল, কারণ unhandled rejection ডিফল্টেই Node মারে; `[3]` child-এ `uncaughtException`: handler log করে, exit-এর যুক্তি ছাপে, ইচ্ছাকৃতভাবে বেরায় — শেষ-উপায় ঠিক শেষ-উপায়ের মতোই।
+
+<BuildExercise
+	title="নিজের server-এর error জাল বুনুন"
+	difficulty="উঁচু স্তর"
+	time="৩০ মিনিট"
+	objectives={['Sync throw আর async rejection দুটোর জন্যই handler মোড়া', '404 বনাম 500 ঠিক ঠিকানো আর uncaughtException কেবল-exit হিসেবে সামলানো']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'Sync জাল, async জাল, আর জাল ছাড়া মৃত্যু দেখুন।', expect: 'দুবার 500, unhandled rejection-এ child exit 1, uncaughtException-এ ইচ্ছাকৃত exit।' },
+		{ title: 'নিজের handler মুড়ুন', why: '4-3 router-এর handler-গুলো async-safe র‍্যাপারে মুড়ুন।', expect: 'যেকোনো route-এর throw বা rejection-ও ক্লায়েন্টকে 500 দেয়, log-এ stack যায়।' },
+		{ title: 'ঠিকভাবে মারুন', why: 'uncaughtException/unhandledRejection handler দিন যা log করে exit(1) করে।', expect: 'প্রথম uncaught error-এই server মরে — আর পরিষ্কারভাবে restart হয়, ডিজাইন অনুযায়ী।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-4" />

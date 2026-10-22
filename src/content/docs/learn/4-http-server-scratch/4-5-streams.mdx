@@ -1,0 +1,69 @@
+---
+title: "The four stream classes: Readable, Writable, Duplex, Transform"
+description: "Every data mover in Node is one of four classes — files, sockets, zlib, stdio all speak the same API. This lesson runs each class once and shows the two facts people miss: pause really pauses, and write() returns a bool."
+domain: 4
+task: "4.5"
+order: 5
+sourceUrl: https://nodejs.org/api/stream.html
+updated: 2026-10-23
+keywords:
+  - term: four stream classes
+  - term: highWaterMark
+sources:
+  - label: "Node.js docs — stream"
+    href: https://nodejs.org/api/stream.html
+  - label: "Node.js docs — stream: buffering and highWaterMark"
+    href: https://nodejs.org/api/stream.html#buffering
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.5</span>
+</div>
+
+## What you will learn
+
+Everything in Node that moves data is one of four classes. **Readable** produces data (`fs.createReadStream`, `process.stdin`, HTTP request bodies); **Writable** consumes it (`fs.createWriteStream`, `process.stdout`, HTTP responses); **Duplex** does both with *independent* buffers (a TCP socket, a `tls` connection); **Transform** is a stage — in one end, `transform()` fn, out the other (zlib's gzip, crypto ciphers). The API you learn here is the API everywhere: `data`/`end` on the way in, `write()` on the way out, and the two facts people miss. First, `pause()` genuinely stops the flow — no `data` events fire until `resume()`. Second, `write()` returns a **boolean**: `true` means keep pushing, `false` means the internal buffer has passed **highWaterMark** and you should stop and wait for `'drain'`. That boolean is the foundation of the next lesson — backpressure — and it is not optional knowledge for a server dev.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Duplex sides are buffered separately — one full does not gate the other">
+	<p>
+		A Duplex stream has a readable buffer and a writable buffer, sized independently. Writing the write side past its highWaterMark does not pause the read side; the two flows are separate and each carries its own backpressure signal. People assume "the stream is full" — there is no single stream-full; there are two buffers with two write() bools. A proxy that honors write-side backpressure but ignores read-side flow control will still misbehave, in the other direction.
+	</p>
+</Pitfall>
+
+## Four classes, four runs
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-5-streams/demo.js
+```
+
+It prints: `[1]` a Readable paused mid-flow — 50 ms pass with no `data` events, then `resume()` lets the rest through: pause is real; `[2]` a Writable with a 16-byte highWaterMark taking 48 bytes — `write()` returned false 9 times: the bool is the backpressure signal; `[3]` a Duplex whose read side delivered its chunks while the write side took 20 writes — two independent buffers, one object; `[4]` a Transform uppercasing in-flight, next to `createGzip()` — the same class in the wild, 13 bytes in, gzip bytes out.
+
+<BuildExercise
+	title="Build one of each class"
+	difficulty="advanced"
+	time="35 min"
+	objectives={['Implement all four classes with core stream, not frameworks', 'Observe pause/resume, the write() bool, and independent Duplex sides']}
+	steps={[
+		{ title: 'Run the demo', why: 'See pause hold, write() go false, sides stay independent, Transform pass through.', expect: 'All four sections as printed above.' },
+		{ title: 'Tune highWaterMark', why: 'Set [2] highWaterMark to 256, re-run.', expect: 'falses drop — the bool tracks the buffer size, not the sink speed.' },
+		{ title: 'Chain Transforms', why: 'Pipe your uppercase into a gzip and read the output.', expect: 'Readable → Transform → Transform composes — the pipeline idea, previewed.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-5" />

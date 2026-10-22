@@ -1,0 +1,69 @@
+---
+title: "Error handling: try/catch, .catch, 404 vs 500, uncaughtException"
+description: "Sync errors meet try/catch, async errors meet .catch — and since Node 15 an unhandled rejection kills the process. A server needs both nets, the 404/500 distinction, and a last-resort exit plan."
+domain: 4
+task: "4.4"
+order: 4
+sourceUrl: https://nodejs.org/api/process.html
+updated: 2026-10-23
+keywords:
+  - term: error-first callback
+  - term: uncaught exception
+sources:
+  - label: "Node.js docs — process: uncaughtException"
+    href: https://nodejs.org/api/process.html#event-uncaughtexception
+  - label: "Node.js docs — unhandled rejection"
+    href: https://nodejs.org/api/process.html#event-unhandledrejection
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.4</span>
+</div>
+
+## What you will learn
+
+Errors reach your server through two channels and you need a net for each. **Synchronous** throws inside a handler are catchable: wrap the handler body in `try/catch`, send a 500, log the stack, keep serving. **Async** failures — a rejected promise, an `error` event on a stream — are invisible to `try/catch`; only `.catch()` (or `async handler` + a `.catch` wrapper) sees them. And the stakes are real: since Node 15 an **unhandled rejection crashes the process by default** — one missing `.catch` in a route takes the whole server down. The demo shows both nets plus the process-level last resort: `process.on('uncaughtException')` fires, but by then the process state is unknown — the handler is for *logging and a clean exit*, not for keeping serving. The error-first callback convention you met in Domain 1 (`(err, result) => ...`) is the third net, and 404 vs 500 discipline — unknown route is a client problem, a thrown handler is yours — keeps meaning flowing to clients and stack traces flowing to logs.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="uncaughtException handlers are for exit, not for heroics">
+	<p>
+		After an uncaught exception the V8 heap may hold half-finished mutations — state you can no longer reason about. The handler's job: log with the stack, flush logs, `process.exit(1)`, and let the orchestrator (PM2, Docker, Kubernetes) restart a clean process. Serving more requests on a corrupted process risks writing garbage everywhere. `unhandledRejection` carries the same rule — log, then exit deliberately.
+	</p>
+</Pitfall>
+
+## Two nets and a last resort
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-4-error-handling/demo.js
+```
+
+It prints: `[1]` a sync throw caught by `try/catch`, 500 sent, process alive; `[2]` the same async rejection caught by `.catch` (500 sent) — then the *same* rejection with no `.catch` run in a child process: exit 1, process dead, because unhandled rejections crash Node by default; `[3]` an `uncaughtException` in a child: the handler logs, prints its exit rationale, and exits deliberately — the last resort behaving like one.
+
+<BuildExercise
+	title="Build the error net for your server"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Wrap handlers for both sync throws and async rejections', 'Decide 404 vs 500 correctly and handle uncaughtException as exit-only']}
+	steps={[
+		{ title: 'Run the demo', why: 'See the sync net, the async net, and the crash without them.', expect: '500 twice, child exit 1 with the unhandled rejection, deliberate exit on uncaughtException.' },
+		{ title: 'Wrap your own handlers', why: 'Take the 4-3 router and wrap handlers in an async-safe wrapper.', expect: 'Any throw or rejection from any route still answers the client 500 and logs the stack.' },
+		{ title: 'Kill it properly', why: 'Add uncaughtException/unhandledRejection handlers that log then exit(1).', expect: 'Server dies on the first uncaught error — and restarts clean, by design.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-4" />

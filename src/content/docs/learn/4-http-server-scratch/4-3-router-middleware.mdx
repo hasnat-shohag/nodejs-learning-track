@@ -1,0 +1,69 @@
+---
+title: "Router and middleware from scratch: loop, regex, next()"
+description: "A router is a table plus a regex; middleware is an array of functions plus next(). You will hand-roll both in thirty lines and every framework you meet afterwards reads as packaging."
+domain: 4
+task: "4.3"
+order: 3
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: router
+  - term: middleware
+sources:
+  - label: "Node.js docs — http"
+    href: https://nodejs.org/api/http.html
+  - label: "Express docs — middleware"
+    href: https://expressjs.com/en/guide/writing-middleware.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.3</span>
+</div>
+
+## What you will learn
+
+Strip Express to its bones and two ideas remain. The **router** is a table of `(method, pattern, handler)` rows; matching is a loop over the table plus a regex built from the pattern — `:id` becomes a capture group, `/users/42` matches, `42` lands in `req.params.id`, percent-encoding gets decoded. That is the whole mystery. **Middleware** is an array of functions taking `(req, res, next)`: each one can finish the request early (write a status and *not* call `next` — the chain stops) or do its work and call `next()` to pass the request down the line. Logging, auth, body-parsing — all the same shape. When you finish this lesson you have not used a framework; you have *built the 30 lines frameworks package*, and the packaging will never read as magic again.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Forgetting next() silently drops the request">
+	<p>
+		A middleware that neither responds nor calls `next()` leaves the request hanging — no response, no error, the client times out. The bug is invisible in the logs because nothing failed. The discipline: every middleware branch either writes to `res` or calls `next()`. Same trap on the handler side: if a route matched but the handler awaits something that never settles, the client hangs — the router cannot save you there.
+	</p>
+</Pitfall>
+
+## Thirty lines, two ideas
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-3-router-middleware/demo.js
+```
+
+It prints: `[1]` the route table working — `/health` matching exactly, `/users/42` extracting the param, `/users/a%20b` decoding to `a b`; `[2]` the middleware chain — a log line per request, auth rejecting a tokenless request with 401 (chain stopped early, handler never ran), the same route with a good token passing log → auth → handler; `[3]` the 404: `/nope` matched no row, and "no route matched" *is* the 404.
+
+<BuildExercise
+	title="Extend the router you just built"
+	difficulty="intermediate"
+	time="35 min"
+	objectives={['Implement param routes and a middleware chain with early-finish semantics', 'Explain 404 as the fallthrough case, not an error']}
+	steps={[
+		{ title: 'Run the demo', why: 'Watch the chain stop at auth and pass with a token.', expect: '401 without token, 200 with, 404 for unknown paths.' },
+		{ title: 'Add a route scope', why: 'Make auth apply to /users only, by path-prefix check.', expect: 'health stays public, users stay guarded — scoping is a condition in middleware.' },
+		{ title: 'Break it', why: 'Remove next() from the logger.', expect: 'Every request hangs — the chain died silently at step 1.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-3" />

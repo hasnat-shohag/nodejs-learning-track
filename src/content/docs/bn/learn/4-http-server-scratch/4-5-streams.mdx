@@ -1,0 +1,70 @@
+---
+title: "চার stream ক্লাস: Readable, Writable, Duplex, Transform"
+titleEn: "The four stream classes: Readable, Writable, Duplex, Transform"
+description: "Node-এ যা কিছু ডেটা নড়ায় সব চার ক্লাসের একটি — ফাইল, socket, zlib, stdio সবাই একই API বলে। এই লেসন প্রতিটি ক্লাস একবার চালায় আর দেখায় দুই তথ্য যা মানুষ মিস করে: pause সত্যিই pause করে, আর write() একটা bool ফেরায়।"
+domain: 4
+task: "4.5"
+order: 5
+sourceUrl: https://nodejs.org/api/stream.html
+updated: 2026-10-23
+keywords:
+  - term: four stream classes
+  - term: highWaterMark
+sources:
+  - label: "Node.js docs — stream"
+    href: https://nodejs.org/api/stream.html
+  - label: "Node.js docs — stream: buffering ও highWaterMark"
+    href: https://nodejs.org/api/stream.html#buffering
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.5</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Node-এ ডেটা নড়ানোর সব কিছুই চার ক্লাসের একটি। **Readable** ডেটা বানায় (`fs.createReadStream`, `process.stdin`, HTTP request body); **Writable** খায় (`fs.createWriteStream`, `process.stdout`, HTTP response); **Duplex** দুটোই করে, *স্বাধীন* বাফারসহ (TCP socket, `tls` connection); **Transform** একটি ধাপ — এক প্রান্তে ভেতরে, `transform()` ফাংশন, অন্য প্রান্তে বাইরে (zlib-এর gzip, crypto cipher)। এখানে যে API শিখবেন সেটাই সব জায়গায়: ভেতরের দিকে `data`/`end`, বাইরের দিকে `write()`, আর দুই তথ্য যা মানুষ মিস করে। প্রথমত, `pause()` সত্যিই flow থামায় — `resume()` ডাকার আগে কোনো `data` ইভেন্ট আসে না। দ্বিতীয়ত, `write()` একটি **boolean** ফেরায়: `true` মানে ঠেলতে থাকুন, `false` মানে internal buffer **highWaterMark** পার করেছে — থামুন, `'drain`-এর জন্য অপেক্ষা করুন। ওই boolean-ই পরের লেসনের ভিত্তি — backpressure — আর server ডেভের জন্য এটা ঐচ্ছিক জ্ঞান নয়।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Duplex-এর দুই পাশ আলাদা বাফারে — এক পাশ ভরল অন্যটা থামে না">
+	<p>
+		Duplex stream-এ readable বাফার একটা, writable বাফার আরেকটা, সাইজ স্বাধীন। Write পাশ তার highWaterMark পার করলে read পাশ pause হয় না; দুই flow আলাদা, প্রতিটির নিজের backpressure সংকেত। মানুষ ভাবে "stream ভরে গেছে" — একটা stream-ভরা বলে কিছু নেই; দুটি বাফার, দুটি write() bool। যে proxy write-পাশের backpressure সম্মান করে কিন্তু read-পাশের flow control উপেক্ষা করে, সে অন্য দিকে ভুল করবেই।
+	</p>
+</Pitfall>
+
+## চার ক্লাস, চার রান
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/4-http-server-scratch/4-5-streams/demo.js
+```
+
+ছাপে: `[1]` একটি Readable মাঝপথে pause — ৫০ms কোনো `data` ইভেন্ট ছাড়া গেল, তারপর `resume()`-এ বাকি সব বইল: pause আসল; `[2]` ১৬-byte highWaterMark-ওয়ালা Writable-এ ৪৮ byte — `write()` ৯ বার false ফেরাল: bool-টাই backpressure সংকেত; `[3]` একটি Duplex-এর read পাশ নিজের chunk দিল যখন write পাশ ২০টা write নিল — এক অবজেক্টে দুই স্বাধীন বাফার; `[4]` একটি Transform পথেই uppercase করল, পাশে `createGzip()` — একই ক্লাস বাস্তবে: ১৩ byte ভেতরে, gzip byte বাইরে।
+
+<BuildExercise
+	title="প্রতিটি ক্লাস একটা করে বানান"
+	difficulty="উঁচু স্তর"
+	time="৩৫ মিনিট"
+	objectives={['ফ্রেমওয়ার্ক ছাড়া, core stream দিয়ে চার ক্লাইসই বাস্তবায়ন করা', 'pause/resume, write() bool, আর Duplex-এর স্বাধীন পাশ চোখে দেখা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'Pause ধরে রাখা, write() false, পাশ স্বাধীন, Transform পাস — সব দেখুন।', expect: 'উপরের চার সেকশনের ছাপাই।' },
+		{ title: 'highWaterMark ঘোরান', why: '[2]-এ highWaterMark 256 করে আবার চালান।', expect: 'false কমে — bool বাফার সাইজ মাপে, sink-এর গতি নয়।' },
+		{ title: 'Transform জোড়া দিন', why: 'আপনার uppercase-কে gzip-এ pipe করে আউটপুট পড়ুন।', expect: 'Readable → Transform → Transform জুড়া যায় — pipeline আইডিয়া, আগাম দেখা।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-5" />

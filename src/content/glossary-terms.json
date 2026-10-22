@@ -395,5 +395,114 @@
 			"https://nodejs.org/api/worker_threads.html"
 		],
 		"domain": 3
+	},
+	{
+		"term": "backpressure",
+		"defEn": "The writable side's buffer is full and the readable side must slow down. In Node the signal is write() returning false — and honoring it is the difference between a server that streams forever and one that buffers every upload in RAM.",
+		"defBn": "writable পাশের বাফার ভরে গেছে আর readable পাশকে ধীর হতে হবে। Node-এ সংকেত হলো write() false ফেরানো — এটা সম্মান করাই বাড়িয়ে-চলা streaming server আর সব upload RAM-এ জমে-রাখা server-এর পার্থক্য।",
+		"refs": [
+			"https://nodejs.org/api/stream.html#buffering",
+			"https://nodejs.org/api/stream.html#writablewritethunk-callback"
+		],
+		"domain": 4
+	},
+	{
+		"term": "server lifecycle",
+		"defEn": "What happens between createServer() and the server emitting 'listening': Node binds, the kernel assigns the socket, and every 'connection' hands you a net.Socket with 'request' events on top.",
+		"defBn": "createServer() থেকে server-এর 'listening' emit হওয়া পর্যন্ত যা ঘটে: Node bind করে, kernel socket বরাদ্দ করে, আর প্রতিটি 'connection' আপনাকে একটি net.Socket দেয় যার ওপরে 'request' ইভেন্ট বসে।",
+		"refs": [
+			"https://nodejs.org/api/http.html"
+		],
+		"domain": 4
+	},
+	{
+		"term": "IncomingMessage",
+		"defEn": "The request object http hands your handler: a readable stream of the body, plus method, url, headers, and the raw socket. Parsing is already done for you.",
+		"defBn": "http আপনার হ্যান্ডলারকে যে request অবজেক্ট দেয়: body-র একটি readable stream, সাথে method, url, headers আর খোলা socket। parsing আগেই আপনার হয়ে হয়ে গেছে।",
+		"refs": [
+			"https://nodejs.org/api/http.html#class-httpincomingmessage"
+		],
+		"domain": 4
+	},
+	{
+		"term": "ServerResponse",
+		"defEn": "The response object: a writable stream plus writeHead(), setHeader(), and end(). You stream the body chunk by chunk; Node does the framing and flushing.",
+		"defBn": "response অবজেক্ট: একটি writable stream সাথে writeHead(), setHeader(), end()। body chunk ধরে ধরে stream করুন; framing আর flushing Node করে।",
+		"refs": [
+			"https://nodejs.org/api/http.html#class-httpserverresponse"
+		],
+		"domain": 4
+	},
+	{
+		"term": "router",
+		"defEn": "Code that maps method + path to a handler. Either you get one from a framework or write a match table yourself — either way it runs after parsing, before the handler.",
+		"defBn": "method + path থেকে handler-এ ম্যাপ করা কোড। ফ্রেমওয়ার্ক থেকে পান বা নিজে ম্যাচ টেবিল লেখেন — দুই ক্ষেত্রেই parsing-এর পরে, handler-এর আগে চলে।",
+		"refs": [
+			"https://nodejs.org/api/http.html"
+		],
+		"domain": 4
+	},
+	{
+		"term": "middleware",
+		"defEn": "A function that sees the request and either finishes early or calls next() to pass it on. Logging, body parsing, auth — cross-cutting concerns composed as a chain.",
+		"defBn": "এমন ফাংশন যে request দেখে, আগেই শেষ করে বা next() ডেকে পাস করে দেয়। logging, body parsing, auth — cross-cutting কাজগুলো চেইন হিসেবে জোড়া।",
+		"refs": [
+			"https://nodejs.org/api/http.html"
+		],
+		"domain": 4
+	},
+	{
+		"term": "error-first callback",
+		"defEn": "Node's convention: the callback's first argument is an error or null, the rest are results. The foundation of every fs/net/crypto callback you have met.",
+		"defBn": "Node-এর রীতি: callback-এর প্রথম আর্গুমেন্ট error অথবা null, বাকিগুলো ফলাফল। আপনার দেখা প্রতিটি fs/net/crypto callback-এর ভিত্তি এটাই।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/error-handling-in-nodejs"
+		],
+		"domain": 4
+	},
+	{
+		"term": "uncaught exception",
+		"defEn": "An exception with no try/catch or handler anywhere above it. The process emits 'uncaughtException', then exits unless you attach a listener — but the listener is for logging, not for continuing.",
+		"defBn": "এমন exception যার ওপরে কোথাও try/catch বা handler নেই। প্রসেস 'uncaughtException' emit করে, তারপর বেরিয়ে যায় যদি না listener বসান — কিন্তু listener-টা logging-এর জন্য, চালিয়ে যাওয়ার জন্য নয়।",
+		"refs": [
+			"https://nodejs.org/api/process.html#event-uncaughtexception"
+		],
+		"domain": 4
+	},
+	{
+		"term": "four stream classes",
+		"defEn": "Readable, Writable, Duplex, Transform. Everything in Node that moves data is one of these four — files, sockets, zlib, crypto, process stdio.",
+		"defBn": "Readable, Writable, Duplex, Transform। Node-এ যা কিছু ডেটা নড়ায় সে এই চারটির একটি — ফাইল, socket, zlib, crypto, process stdio।",
+		"refs": [
+			"https://nodejs.org/api/stream.html"
+		],
+		"domain": 4
+	},
+	{
+		"term": "highWaterMark",
+		"defEn": "The buffer size limit inside every stream: write() returns false once the internal buffer exceeds it — your signal to stop pushing and let the reader catch up.",
+		"defBn": "প্রতিটি stream-এর ভেতরের বাফার সাইজ সীমা: internal buffer এটা ছাড়ালেই write() false ফেরায় — ঠেলা থামিয়ে reader-কে ধরতে দেওয়ার সংকেত।",
+		"refs": [
+			"https://nodejs.org/api/stream.html#buffering"
+		],
+		"domain": 4
+	},
+	{
+		"term": "pipe",
+		"defEn": "Readable.pipe(writable): connects a readable to a writable and handles backpressure for you — pauses the readable when the writable's buffer fills, resumes when it drains.",
+		"defBn": "Readable.pipe(writable): readable-কে writable-এ জোড়ে আর backpressure সামলে দেয় — writable-এর বাফার ভরলে readable pause করে, খালি হলে resume করে।",
+		"refs": [
+			"https://nodejs.org/api/stream.html#readablepipedestination-options"
+		],
+		"domain": 4
+	},
+	{
+		"term": "content-length",
+		"defEn": "The header that tells the client how many body bytes are coming. Without it Node uses chunked transfer encoding and the client cannot know the total size up front.",
+		"defBn": "যে header ক্লায়েন্টকে বলে কত body বাইট আসছে। এটা ছাড়া Node chunked transfer encoding ব্যবহার করে, আর ক্লায়েন্ট আগাম মোট সাইজ জানতে পারে না।",
+		"refs": [
+			"https://nodejs.org/api/http.html#responsewriteheadstatus-statusmessage-headers"
+		],
+		"domain": 4
 	}
 ]

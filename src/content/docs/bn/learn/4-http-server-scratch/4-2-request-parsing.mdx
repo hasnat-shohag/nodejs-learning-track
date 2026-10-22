@@ -1,0 +1,70 @@
+---
+title: "Request parsing: URL, headers, আর পড়তে হবে এমন body"
+titleEn: "Request parsing: URL, headers, and the body you must read"
+description: "req.url-এ path+query ছাড়া কিছু নেই, headers ছোট হাতের অক্ষরে আসে, আর body আপনার হয়ে parsed হয় না — সেটা একটি readable stream। তিনটাই সামলানো হবে, সাথে প্রতিটি আসল server-এর size guard।"
+domain: 4
+task: "4.2"
+order: 2
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: IncomingMessage
+  - term: content-length
+sources:
+  - label: "Node.js docs — http: message API"
+    href: https://nodejs.org/api/http.html#class-httpincomingmessage
+  - label: "Node.js docs — WHATWG URL"
+    href: https://nodejs.org/api/url.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.2</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+প্রথম handler লেখার সময় তিনটা তথ্য সবাইকে হোঁচট খাওয়ায়। এক: `req.url` কোনো ফুল URL **নয়** — scheme নেই, host নেই, শুধু path আর query (`/items?name=x`); host থাকে `req.headers.host`-এ, আর `new URL(req.url, base)` path-query ভাগ করে, `searchParams` decode করে দেয়। দুই: headers **ছোট হাতের অক্ষরে** আসে (`req.headers['content-type']`, কখনোই `contentType` নয়), বেশিরভাগ string — কিন্তু বারবার আসা header যেমন `set-cookie` আসে **array** হয়ে। তিন: body আপনার হয়ে parsed হয় না। `req` একটি readable stream, "body পড়া" মানে chunk জোড়া, concat, তারপর parse — সাথে একটা size guard, কারণ ২ GB upload-এ পাহারাহীন `JSON.parse` মানেই server মৃত্যু। ডেমো byte-বনাম-char বোঝাতে একটা বাংলা শব্দ মাপে: `হাই` মানে ৩টি character আর **৯টি UTF-8 byte**, আর `content-length` গোনে byte, char নয়।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="body দুইবার পড়ার দ্বিতীয়বারটা শূন্য পড়ে">
+	<p>
+		Body stream একবারই খরচ হয়। Body পড়া middleware (logging, পুরনো body-parser ধাঁচ) handler-এর জন্য কিছুই রাখে না — দ্বিতীয় listener পায় `'end'`, chunk শূন্য। আপনার অ্যাপের দুই জায়গায় body লাগলে একবার পড়ুন, জুড়ে দিন (`req.body = ...`), সেটাই পাস করুন। `express.json()` কেন middleware হয়ে `req.body` বসায়, প্রতিটি handler-এর ডাকা নয় — আসল কারণ এটাই।
+	</p>
+</Pitfall>
+
+## তিন লেয়ারই parse
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/4-http-server-scratch/4-2-request-parsing/demo.js
+```
+
+ছাপে: `[1]` URL ভাগ — `req.url` বহন করেছিল `/items?name=হাঈ`, query `searchParams`-এ percent-decoded; `[2]` host header, আর ডাবল `set-cookie` header ২টির array হয়ে আসা; `[3]` `হাই`-এর body: ৩ char, ৯ byte — byte দৈর্ঘ্য ≠ char সংখ্যা; `[4]` guarded body-পড়া প্যাটার্ন: ৫-byte body ২০০, ৪০-byte body ১৬-byte ক্যাপে ছুঁয়ে 413, upload মাঝপথে কাটা।
+
+<BuildExercise
+	title="Body-পড়া middleware লিখুন"
+	difficulty="মাঝারি"
+	time="৩০ মিনিট"
+	objectives={['WHATWG URL দিয়ে path-query ভাগ, array কেসসহ header পড়া', 'নিরাপদে body পড়া: collect, concat, parse, size guard']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'তিন parsing লেয়ার আর 413 guard দেখুন।', expect: 'decoded query, array set-cookie, ৩ char-এ ৯ byte, ৪০ → 413।' },
+		{ title: 'দুইবার-খরচ বাগ', why: 'Body-logging middleware দিন, তারপর handler-এ আবার body পড়ুন।', expect: 'Handler খালি body পায় — stream আগেই খরচ।' },
+		{ title: 'byte গুনুন', why: 'শুধু emoji body পাঠিয়ে Buffer.byteLength আর string length মেলান।', expect: 'Char সংখ্যা × ১, byte সংখ্যা × ৪ (বেশিরভাগ emoji) — content-length হলো byte।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-2" />

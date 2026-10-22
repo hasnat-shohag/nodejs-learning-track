@@ -1,0 +1,71 @@
+---
+title: "node:http লাইফসাইকেল: createServer, listen, connection, request"
+titleEn: "node:http lifecycle: createServer, listen, connection, request"
+description: "Node server মানে TCP socket-এর ওপর একটি EventEmitter — listen একবার bind করে, প্রতিটি connection একটি খোলা socket দেয়, আর parsed প্রতিটি request বসে ওপরে। keep-alive-ই এটাকে দ্রুত লাগায়।"
+domain: 4
+task: "4.1"
+order: 1
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: server lifecycle
+  - term: IncomingMessage
+  - term: ServerResponse
+sources:
+  - label: "Node.js docs — http"
+    href: https://nodejs.org/api/http.html
+  - label: "Node.js docs — net.Server 'connection'"
+    href: https://nodejs.org/api/net.html#event-connection
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.1</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+`http.createServer(handler)`-এর দাম শূন্য — একটি অবজেক্ট বানিয়ে ফেরায়। Server আসল হয় `.listen()`-এ: Node bind করে, kernel socket বরাদ্দ করে, আর `'listening'` ইভেন্ট ফায়ার করে — `server.address()`-এ ঠিকানা। তারপর দুই ইভেন্ট লেয়ার চলে: `'connection'` দেয় খোলা একটি `net.Socket` (TCP লেয়ার), আর `'request'` বসে প্রতিটি socket-এর ওপর **parsed** HTTP হয়ে — একটি **IncomingMessage** (method, url, headers, আর body হিসেবে readable stream) আর একটি **ServerResponse** (writable stream সাথে `writeHead`/`end`)। লেয়ারিংটাই performance-এর গল্পও: HTTP/1.1 keep-alive মানে একটি TCP connection অনেক request বয়ে আনে, তাই দামি অংশটা (connection setup) একবার দেওয়া, ভাগ করে খরচ। ডেমোর তিন request এক connection-এই চলে — `connection` একবারই ফায়ার করে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="server.close() keep-alive socket-এর জন্য অপেক্ষা করে — প্রসেস ঝুলে থাকে">
+	<p>
+		`server.close()` *নতুন* connection বন্ধ করে কিন্তু চালু keep-alive socket খোলাই থাকে, তাই যে স্ক্রিপ্ট `close()` ডেকে callback-এর জন্য অপেক্ষা করে সে চিরদিন ঝুলে থাকতে পারে — idle ক্লায়েন্ট socket ধরে রেখেছে। সমাধান `server.closeAllConnections()` (Node 18.2+), নাহলে ক্লায়েন্ট পাশ থেকে বন্ধ করুন। একই পরিবার: পোর্ট `0` দিয়ে `server.listen(port)` করলে kernel বরাদ্দ দেয় — আসল পোর্ট `'listening'` callback-এ `server.address().port` থেকে পড়ুন, অনুমান কখনো নয়।
+	</p>
+</Pitfall>
+
+## এক server, দুই ইভেন্ট লেয়ার
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/4-http-server-scratch/4-1-server-lifecycle/demo.js
+```
+
+ছাপে: `[1]` `createServer()` ফিরেছে আর `listening === false` — `.listen()` ছাড়া কিছুই হয় না; `[2]` `'listening'` ইভেন্ট, kernel-দেওয়া পোর্টসহ; `[3]` একটি `POST /hello?x=1`-এর জন্য handler সত্যিই যা পায় — method, url, HTTP version, সব আগেই parsed; `[4]` তিনটি request একটিই TCP connection-এ — keep-alive handshake-এর খরচ ভাগ করছে।
+
+<BuildExercise
+	title="Server জুড়ে দিন, ইভেন্ট দেখুন"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['লাইফসাইকেল ট্রেস করা: createServer → listen → connection → request', 'keep-alive ব্যাখ্যা করা আর কেন connection সংখ্যা ≠ request সংখ্যা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'ক্রমান্বয়ে প্রতিটি ইভেন্ট লেয়ার ফায়ার দেখুন।', expect: 'listening=false → পোর্ট পাওয়া → parsed request → ৩ request/১ connection।' },
+		{ title: 'দুই লেয়ারই গুনুন', why: 'যেকোনো server-এ request আর connection কাউন্টার দিন।', expect: 'keep-alive ক্লায়েন্টে request ওঠে, connection সমতল থাকে।' },
+		{ title: 'close ভাঙুন', why: 'keep-alive ক্লায়েন্ট জুড়ে থাকা অবস্থায় server.close(), closeAllConnections ছাড়া।', expect: 'প্রসেস ঝুলে থাকে — তারপর closeAllConnections() দিলে বেরিয়ে আসে।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-1" />

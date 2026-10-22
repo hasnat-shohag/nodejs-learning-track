@@ -1,0 +1,70 @@
+---
+title: "Backpressure: write() false, drain, and what pipe buys you"
+description: "The writable side says I am full — write() returns false — and honoring that signal is the difference between a server that streams forever and one that buffers every slow client's response in RAM. Then pipe() shows you never had to write that loop."
+domain: 4
+task: "4.6"
+order: 6
+sourceUrl: https://nodejs.org/api/stream.html
+updated: 2026-10-23
+keywords:
+  - term: backpressure
+  - term: highWaterMark
+  - term: pipe
+sources:
+  - label: "Node.js docs — stream: buffering"
+    href: https://nodejs.org/api/stream.html#buffering
+  - label: "Node.js docs — readable.pipe()"
+    href: https://nodejs.org/api/stream.html#readablepipedestination-options
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.6</span>
+</div>
+
+## What you will learn
+
+**Backpressure** is the downstream end saying "slow down": the writable's internal buffer has passed **highWaterMark**, `write()` returned `false`, and pushing more data just grows memory. The disciplined response is a two-line loop — on `false`, stop writing and wait for `'drain'`; on `drain`, write again. Memory stays pinned near the highWaterMark no matter how slow the sink or how fast the source. Ignoring the signal is not a style choice: with a 10 ms-per-write sink, the demo's 400 ignored falses left 15 KB parked in the buffer — and in a real server that is *one slow client's response* ballooning in RAM, multiplied by every slow client you have. The payoff of understanding the loop is realizing you rarely write it: `pipe()` implements exactly this pause/resume dance between a readable and a writable, and `pipeline()` (stream/promises) does the same with error propagation end-to-end. A file streamed with `pipe` cannot outrun its client — that is not magic, it is the loop you just wrote.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="pipe() moves data but not errors — pipeline() moves both">
+	<p>
+		`src.pipe(dest)` forwards data and handles backpressure, but an error in the middle of a pipe chain emits on the failed stream and the *other* streams keep running — half-broken pipes leak. `pipeline(src, transform, dest)` from `node:stream/promises` wires `error` end-to-end, destroys every stream on failure, and returns a promise. In a server, prefer `pipeline` for anything multi-stage: streams that survive a failed request must be destroyed, or they hold file descriptors and memory.
+	</p>
+</Pitfall>
+
+## Feel the signal, honor it, then delete the loop
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-6-backpressure/demo.js
+```
+
+It prints: `[1]` a fast source into a slow sink — 20 writes, 13 returned false: the signal arriving; `[2]` the same pair honoring it — 30 chunks through 3 drain cycles, memory near the highWaterMark instead of near the transfer size; `[3]` the same pair ignoring it — 400 writes, 399 falses ignored, 15 KB sitting in the sink's buffer; `[4]` `pipe()` moving the same 30 chunks with zero drain code written — the loop, already written for you.
+
+<BuildExercise
+	title="Stream a file without dying"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Hand-write the drain loop once, then replace it with pipe/pipeline', 'Explain what ignoring write() false costs a server under slow clients']}
+	steps={[
+		{ title: 'Run the demo', why: 'See false arrive, the drain loop keep memory flat, and pipe do the same for free.', expect: 'falses observed, 3 drain cycles, 15KB buffered when ignored, pipe silent.' },
+		{ title: 'Serve a file slowly', why: 'createReadStream a big file, pipe to a response, throttle the client.', expect: 'Server memory flat — pipe pauses the read, not the loop.' },
+		{ title: 'Switch to pipeline', why: 'Replace pipe with pipeline() and make the middle stage throw.', expect: 'Every stage destroyed, promise rejects — no half-open streams left.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-6" />

@@ -1,0 +1,70 @@
+---
+title: "node:http lifecycle: createServer, listen, connection, request"
+description: "A Node server is an EventEmitter over TCP sockets — listen binds once, each connection hands you a raw socket, and every parsed request rides on top. Keep-alive is why it feels fast."
+domain: 4
+task: "4.1"
+order: 1
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: server lifecycle
+  - term: IncomingMessage
+  - term: ServerResponse
+sources:
+  - label: "Node.js docs — http"
+    href: https://nodejs.org/api/http.html
+  - label: "Node.js docs — net.Server 'connection'"
+    href: https://nodejs.org/api/net.html#event-connection
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.1</span>
+</div>
+
+## What you will learn
+
+`http.createServer(handler)` costs nothing — it builds an object and returns. The server only becomes real at `.listen()`: Node binds, the kernel assigns a socket, and the `'listening'` event fires with the address available at `server.address()`. From then on two event layers run: `'connection'` hands you a raw `net.Socket` (the TCP layer), and `'request'` rides on top of each socket as **parsed** HTTP — an **IncomingMessage** (method, url, headers, and the body as a readable stream) and a **ServerResponse** (a writable stream plus `writeHead`/`end`). The layering is the performance story too: HTTP/1.1 keep-alive means one TCP connection carries many requests, so the expensive part (connection setup) is paid once and amortized. The demo's three requests ride a single connection — `connection` fires once.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="server.close() waits for keep-alive sockets — the process hangs open">
+	<p>
+		`server.close()` stops accepting *new* connections but existing keep-alive sockets stay open, so a script that calls `close()` and waits for the callback can hang forever with idle clients holding sockets. The fix is `server.closeAllConnections()` (Node 18.2+), or close from the client side. Same family: `server.listen(port)` with port `0` asks the kernel to assign — read the real port from `server.address().port` in the `'listening'` callback, never assume.
+	</p>
+</Pitfall>
+
+## One server, two event layers
+
+Run the demo file for this lesson:
+
+```bash
+node code/4-http-server-scratch/4-1-server-lifecycle/demo.js
+```
+
+It prints: `[1]` `createServer()` returned with `listening === false` — nothing happens until `.listen()`; `[2]` the `'listening'` event with the kernel-assigned port; `[3]` what the handler actually receives for a `POST /hello?x=1` — method, url, HTTP version, all pre-parsed; `[4]` three requests delivered over ONE TCP connection — keep-alive amortizing the handshake.
+
+<BuildExercise
+	title="Wire a server and watch its events"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Trace the lifecycle: createServer → listen → connection → request', 'Explain keep-alive and why connection count ≠ request count']}
+	steps={[
+		{ title: 'Run the demo', why: 'See each event layer fire in order.', expect: 'listening=false → port assigned → parsed request → 3 requests/1 connection.' },
+		{ title: 'Count both layers', why: 'Add request and connection counters to any server you run.', expect: 'With keep-alive clients, requests climb, connections stay flat.' },
+		{ title: 'Break the close', why: 'Call server.close() with a keep-alive client connected, no closeAllConnections.', expect: 'Process hangs — then add closeAllConnections() and watch it exit.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-1" />

@@ -1,0 +1,70 @@
+---
+title: "Router আর middleware শূন্য থেকে: loop, regex, next()"
+titleEn: "Router and middleware from scratch: loop, regex, next()"
+description: "Router মানে টেবিল আর একটা regex; middleware মানে ফাংশনের array আর next()। ত্রিশ লাইনে দুটোই হাতে বানাবেন, আর তারপর থেকে প্রতিটি ফ্রেমওয়ার্ক পড়ে যাবে মোড়ক হিসেবে।"
+domain: 4
+task: "4.3"
+order: 3
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: router
+  - term: middleware
+sources:
+  - label: "Node.js docs — http"
+    href: https://nodejs.org/api/http.html
+  - label: "Express docs — middleware"
+    href: https://expressjs.com/en/guide/writing-middleware.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 4</span>
+	<span class="lesson-task">Task 4.3</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Express-কে হাড় পর্যন্ত ছাড়লে দুই আইডিয়া থাকে। **Router** হলো `(method, pattern, handler)` সারির টেবিল; matching মানে টেবিলের ওপর একটা loop আর pattern থেকে বানানো regex — `:id` হয় capture group, `/users/42` মেলে, `42` বসে `req.params.id`-তে, percent-encoding decode হয়। এটাই পুরো রহস্য। **Middleware** হলো `(req, res, next)` নেওয়া ফাংশনের array: প্রতিটি request আগেই শেষ করতে পারে (status লিখে `next` ডাকা *নয়* — চেইন থামে) বা কাজ সেরে `next()` ডেকে request নিচে পাঠাতে পারে। Logging, auth, body-parsing — সবই একই shape। এই লেসন শেষ করার পর আপনি ফ্রেমওয়ার্ক *ব্যবহার* করেননি; আপনি *ফ্রেমওয়ার্কের মোড়া ৩০ লাইনই বানিয়েছেন*, আর সেই মোড়ক আর কখনো জাদু মনে হবে না।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="next() ভুলে গেলে request নিঃশব্দে ঝুলে যায়">
+	<p>
+		যে middleware সাড়াও দেয় না, `next()`-ও ডাকে না, সেই request ঝুলে যায় — response নেই, error নেই, ক্লায়েন্ট timeout খায়। বাগটা log-এও দেখা যায় না, কারণ কিছুই fail করেনি। নিয়ম: middleware-এর প্রতিটি শাখা হয় `res`-এ লেখে নয় `next()` ডাকে। Handler পাশে একই ফাঁদ: route মিলেছে কিন্তু handler যেটার await কখনো মেটে না, ক্লায়েন্ট ঝুলবে — router সেখানে কিছু করতে পারে না।
+	</p>
+</Pitfall>
+
+## ত্রিশ লাইন, দুই আইডিয়া
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/4-http-server-scratch/4-3-router-middleware/demo.js
+```
+
+ছাপে: `[1]` route টেবিল চলা — `/health` exact মিলছে, `/users/42` param বের করছে, `/users/a%20b` decode হয়ে `a b`; `[2]` middleware চেইন — প্রতি request-এ log লাইন, auth টোকেন-ছাড়া request-এ 401 (চেইন আগেই থামল, handler আর চলেনি), একই route ভালো টোকেনে log → auth → handler; `[3]` 404: `/nope` কোনো সারিতে মেলেনি, আর "route মেলেনি" ব্যাপারটাই 404।
+
+<BuildExercise
+	title="নিজের বানানো router বাড়ান"
+	difficulty="মাঝারি"
+	time="৩৫ মিনিট"
+	objectives={['param route আর early-finish semantics-ওয়ালা middleware চেইন বানানো', '404-কে error নয়, fallthrough কেস হিসেবে ব্যাখ্যা করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'auth-এ চেইন থামা আর টোকেনে পারা দেখুন।', expect: 'টোকেন ছাড়া 401, সাথে 200, অজানা পাথে 404।' },
+		{ title: 'Route scope যোগ করুন', why: 'Path-prefix শর্তে auth শুধু /users-এ চাপুন।', expect: 'health খোলা, users পাহারায় — scoping মানে middleware-এর ভেতরের শর্ত।' },
+		{ title: 'ভাঙুন', why: 'Logger থেকে next() সরান।', expect: 'প্রতিটি request ঝুলে — চেইন প্রথম ধাপেই নিঃশব্দে মরল।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="4-3" />
