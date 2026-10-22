@@ -1,0 +1,71 @@
+---
+title: "নেটিভ বাউন্ডারি: N-API অ্যাডন, JS থেকে C++ কল"
+titleEn: "The native boundary: N-API addons, JS calling C++"
+description: প্রতিটি fs, crypto ও Buffer কল এমনিতেই C++-এ যায়। seam-টা শিখুন, তার দাম জানুন, আর কেন N-API-র স্থির ABI মানে কম্পাইল করা অ্যাডন Node আপগ্রেড টিকে যায়।
+domain: 2
+task: "2.5"
+order: 5
+sourceUrl: https://nodejs.org/api/n-api.html
+updated: 2026-10-23
+keywords:
+  - term: N-API
+  - term: addon
+  - term: node-gyp
+sources:
+  - label: "Node.js docs — N-API"
+    href: https://nodejs.org/api/n-api.html
+  - label: "Node.js docs — C++ addons"
+    href: https://nodejs.org/api/addons.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.5</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+আপনি সারাদিন C++ কল করেন: `fs.readFile`, `crypto.pbkdf2`, `Buffer.byteLength` — Node-এর C++ কোরের ওপর JS ফসাদ, আর বাউন্ডারিটা আসল seam, তার আসল দাম আছে। থার্ড-পার্টি **অ্যাডন** একই seam বাড়ায় — আর **N-API** হলো সেই চুক্তি যা অ্যাডনকে টেকসই করে: স্থির C ABI, V8-এর অভ্যন্তর থেকে বিচ্ছিন্ন, তাই একবার কম্পাইল করা অ্যাডন রিবিল্ড ছাড়াই Node ভার্সন জুড়ে লোড হতে থাকে। এই লেসন আপনার নিজের প্রসেসের ভেতরের নেটিভ স্ট্যাক ছাপে, বাউন্ডারি টাইম করে, আর দেখায় অ্যাডন প্যাকেজ `npm install` করলে `node-gyp` কী করে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="node-gyp-ই কারণ ভুল টুলচেইনে আপনার ডিপ্লয় ভাঙে">
+	<p>
+		অ্যাডন প্যাকেজ C++ সোর্স শিপ করে; `npm install` সেটা আপনার Node-এর হেডারের সাথে node-gyp দিয়ে কম্পাইল করে, যার মেশিনে লাগে Python 3 + C++ টুলচেইন। Alpine বা slim Docker ইমেজে সেই বিল্ড ভাঙে gyp-এর এররের দেয়াল নিয়ে। Prebuilt বাইনারি (prebuildify/napi-rs) এটা এড়ায় — কিন্তু অ্যাডন N-API মানলেই তবে। পুরনো V8-API অ্যাডন (node-sass যুগ) প্রতি Node মেজরে রিবিল্ড করতেই হয়; এটাই প্রোডাকশন রূপে ABI-র লেসন।
+	</p>
+</Pitfall>
+
+## seam, মাপা হলো
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/2-v8-memory-modules/2-5-native-boundary/demo.js
+```
+
+`[1]` `process.versions` ছাপে — node, v8, uv, zlib, openssl — আপনার প্রসেসে এমনিতেই থাকা C ও C++ লেয়ার। `[2]` `pbkdf2` চালায় ১ বনাম ১০০ হাজার iteration-এ: একই নেটিভ কল, যার কাজ নামে Domain 1-এ দেখা **thread pool**-এ পড়ে। `[3]` ১০ লাখ খাঁটি-JS কল বনাম ১০ লাখ `Buffer.byteLength` কল টাইম করে — প্রতিটি নেটিভ কল বাউন্ডারি পার করে, আর ~৪x পার্থক্যটা seam-এর দাম। যে নিয়মটা এটা কেনে: **কাজ এক পাশে বান্ডেল করুন**; আইটেম-প্রতি পিং-পংগ করবেন না।
+
+<BuildExercise
+	title="নিজের বাউন্ডারি অডিট করুন"
+	difficulty="মাঝারি"
+	time="২০ মিনিট"
+	objectives={['N-API কী স্থির করে আর node-gyp কী করে ব্যাখ্যা করা', 'হট লুপে বাউন্ডারি খরচ চেনা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'আপনার এমনিতেই শিপ করা নেটিভ স্ট্যাক আর তার কল-খরচ দেখা।', expect: 'প্রতি কলে byteLength খাঁটি JS-এর চেয়ে ধীর; দুই pbkdf2 সাইজেই একই দৈর্ঘ্যের key।' },
+		{ title: 'ক্রসিং বান্ডেল করুন', why: 'প্রতি-কল লুপের বদলে একটি Buffer.concat + এক byteLength করুন।', expect: 'সময় ভেঙে পড়ে — দশ লাখের বদলে এক ক্রসিং।' },
+		{ title: 'নিজের অ্যাডন তালিকা', why: 'নিজের প্রজেক্টে `npm ls` চালিয়ে নেটিভ ডিপ খুঁজুন।', expect: 'অন্তত একটি (যেমন sharp) — দেখুন prebuild শিপ করে কি না আর কোন Node ভার্সন ঢাকে।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-5" />

@@ -1,0 +1,68 @@
+---
+title: "Heap বনাম stack, --max-old-space-size, OOM ডায়াগনোসিস"
+titleEn: "Heap vs stack, --max-old-space-size, OOM diagnosis"
+description: stack ভরে গেলে RangeError ছোড়ে; heap বাড়তে না পারলে প্রসেস মারে। দুই ভিন্ন ব্যর্থতা, দুই ভিন্ন ডায়াগনোসিস — আর একটি ফ্ল্যাগ যা সীমা ধরে।
+domain: 2
+task: "2.2"
+order: 2
+sourceUrl: https://nodejs.org/en/learn/diagnostics/memory
+updated: 2026-10-23
+keywords:
+  - term: old space
+  - term: "--max-old-space-size"
+sources:
+  - label: "Node.js docs — Diagnostics: memory"
+    href: https://nodejs.org/en/learn/diagnostics/memory
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.2</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+দুটি মেমরি সিলিং, দুই ধরনের ব্যর্থতা। **stack** রাখে কল-ফ্রেম, তার সীমা গভীরতায় (ডিফল্ট ~১২ হাজার ফ্রেম), আর ভরে গেলে ছোড়ে *ধরা-যায়-এমন* `RangeError`। **heap** রাখে অবজেক্ট, তার সীমা `--max-old-space-size` (ডিফল্ট ~২–৪GB), আর ভরে গেলে *প্রসেস মেরে ফেলে* — SIGABRT, কোনো exception নেই, কোনো `finally` ব্লক নেই। এই লেসন দুটোই ইচ্ছা করে ঘটায় আর OOM আউটপুট পড়ে সেভাবেই যেভাবে প্রোডাকশন দাবি করে: কী অ্যালোকেট করছিল, কোন স্পেসে, লিমিট কখন ছুঁল।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="--max-old-space-size শুধু OLD space সীমিত করে">
+	<p>
+		ফ্ল্যাগটি পুরো heap সীমিত করে না: new space (young generation), code space আর large-object space এর বাইরে — তাই `--max-old-space-size=512`-এর প্রসেস বৈধভাবে ~৬০০MB RSS নিতে পারে। টিউন করুন `v8.getHeapSpaceStatistics()`-এর <strong>old space</strong> নম্বর থেকে, কন্টেইনারের RSS থেকে নয়। আর বাড়ানোর আগে ভাবুন: বৃদ্ধিটা লিক হলে বড় heap শুধু ক্র্যাশ দেরি করায় আর major-GC pause লম্বা করে।
+	</p>
+</Pitfall>
+
+## দুটি ব্যর্থতা ঘটান
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/2-v8-memory-modules/2-2-heap-stack-limits/demo.js
+```
+
+`[1]` ~১২.৫ হাজার ফ্রেমে রিকার্স করে `RangeError` — ধরা হলো, ছাপা হলো, প্রসেস চলতেই থাকল। `[2]` দেখায় heap বৃদ্ধি মানে শুধু নম্বর বাড়া, একটা লিমিট পর্যন্ত। `[3]` `--max-old-space-size=64` দিয়ে একটি চাইল্ড চালিয়ে মরতে দেয়: প্যারেন্ট রিপোর্ট করে SIGABRT সিগন্যাল আর চাইল্ডের stderr স্ট্যাকট্রেস পড়ে — V8 ফ্রেমগুলো অ্যালোকেশন সাইটের নাম নেয়, JS `throw`-এর না। কনট্রাস্টটাই লেসন: **stack overflow একটি exception; heap exhaustion একটি শাটডাউন**।
+
+<BuildExercise
+	title="নিজের ঘটানো OOM ডায়াগনোজ করুন"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['লক্ষণ দেখে stack overflow বনাম heap exhaustion আলাদা করা', 'OOM স্ট্যাকট্রেস পড়া আর রক্ষণযোগ্য heap লিমিট সেট করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'এক প্রসেস RangeError ধরছে আর আরেকটি heap-এ মরছে দেখা।', expect: '[1] গভীরতার নম্বর; [3] SIGABRT + stderr-এ "JavaScript heap out of memory"।' },
+		{ title: 'সীমা নামান', why: '[3]-এর লজিক --max-old-space-size=32 দিয়ে আবার চালান।', expect: 'চাইল্ড আরও তাড়াতাড়ি মরে; abort সিগনেচার একই — লিমিট শুধু old space-এর, আর কিছু বদলায় না।' },
+		{ title: 'অধরাকে ধরার চেষ্টা', why: 'চাইল্ড spawn-কে try/catch-এ মুড়ে নিশ্চিত করুন প্যারেন্ট বাঁচে।', expect: 'প্যারেন্ট spawn error ধরে চলতে থাকে — মরল শুধু চাইল্ড। প্রসেসের ভেতরে OOM ধরার কোনো উপায় নেই।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-2" />

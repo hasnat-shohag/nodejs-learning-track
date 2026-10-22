@@ -1,0 +1,67 @@
+---
+title: "Heap vs stack, --max-old-space-size, OOM diagnosis"
+description: The stack throws RangeError when it fills; the heap kills the process when it cannot grow. Two different failures, two different diagnoses — and one flag that sets the ceiling.
+domain: 2
+task: "2.2"
+order: 2
+sourceUrl: https://nodejs.org/en/learn/diagnostics/memory
+updated: 2026-10-23
+keywords:
+  - term: old space
+  - term: "--max-old-space-size"
+sources:
+  - label: "Node.js docs — Diagnostics: memory"
+    href: https://nodejs.org/en/learn/diagnostics/memory
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.2</span>
+</div>
+
+## What you will learn
+
+Two memory ceilings, two failure modes. The **stack** holds call frames, is capped by depth (~12k frames default), and overflows with a *catchable* `RangeError`. The **heap** holds objects, is capped by `--max-old-space-size` (~2–4GB by default), and overflows by *killing the process* — SIGABRT, no exception, no `finally` blocks. This lesson triggers both on purpose and reads the OOM output the way production demands: what was allocating, in which space, when the limit hit.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="--max-old-space-size caps OLD space only">
+	<p>
+		The flag does not cap the whole heap: new space (young generation), code space, and large-object space sit outside it — so a process with `--max-old-space-size=512` can legitimately use ~600MB RSS. Tune it from the <strong>old space</strong> number in `v8.getHeapSpaceStatistics()`, not from container RSS. And when raising it: if the growth is a leak, a bigger heap just delays the crash and lengthens the major-GC pauses.
+	</p>
+</Pitfall>
+
+## Trigger both failures
+
+Run the demo file for this lesson:
+
+```bash
+node code/2-v8-memory-modules/2-2-heap-stack-limits/demo.js
+```
+
+`[1]` recurses to `RangeError` at ~12.5k frames — caught, printed, process continues. `[2]` shows heap growth is just numbers moving until a limit. `[3]` spawns a child with `--max-old-space-size=64` and lets it die: the parent reports the SIGABRT signal and reads the child's stderr stacktrace — V8 frames naming the allocation site, not a JS `throw`. The contrast is the lesson: **stack overflow is an exception; heap exhaustion is a shutdown**.
+
+<BuildExercise
+	title="Diagnose an OOM you caused"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Distinguish stack overflow from heap exhaustion by symptom', 'Read an OOM stacktrace and set a defensible heap limit']}
+	steps={[
+		{ title: 'Run the demo', why: 'Watch one process catch RangeError and another die from heap.', expect: '[1] depth number; [3] SIGABRT + "JavaScript heap out of memory" on stderr.' },
+		{ title: 'Lower the cap', why: 'Re-run [3] logic with --max-old-space-size=32.', expect: 'Child dies sooner; same abort signature — the limit is about old space, nothing else changed.' },
+		{ title: 'Catch the uncatchable', why: 'Wrap the child spawn in try/catch to confirm the parent survives.', expect: 'Parent catches the spawn error and continues — only the CHILD died. There is no in-process catch for OOM.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-2" />

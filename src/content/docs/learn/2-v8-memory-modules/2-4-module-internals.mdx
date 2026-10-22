@@ -1,0 +1,70 @@
+---
+title: "CJS vs ESM internals: resolution, module cache, ESM loader"
+description: require() caches by resolved filename and hands circular imports a partial object; ESM links first, evaluates later, and gives live bindings that resolve at call time — the internals behind every import surprise.
+domain: 2
+task: "2.4"
+order: 4
+sourceUrl: https://nodejs.org/api/modules.html
+updated: 2026-10-23
+keywords:
+  - term: module cache
+  - term: circular import
+  - term: ESM loader
+sources:
+  - label: "Node.js docs — Modules: CJS"
+    href: https://nodejs.org/api/modules.html
+  - label: "Node.js docs — ESM"
+    href: https://nodejs.org/api/esm.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.4</span>
+</div>
+
+## What you will learn
+
+`require()` is a cache lookup keyed by resolved filename — the second call returns the *same* exports object, and the cache is writable (`delete require.cache[...]` forces a reload). ES modules are a different machine: the loader **resolves and links the whole graph first**, then evaluates modules depth-first. Circulars break both systems, differently: CJS hands one side a **partial exports object** (with a warning), ESM **TDZ-throws** on a top-level read — but ESM bindings are *live*, so a read deferred to call time sees the current value. This lesson runs all four behaviors and shows where each system's escape hatch is.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="package.json type decides, extension does not override">
+	<p>
+		`.cjs` is always CJS, `.mjs` is always ESM, and a bare `.js` follows the <em>nearest package.json's</em> `"type"` field. The same file can be a different module system depending on where it sits — which is why "it works in the repo but not in the published package" is so often a type-field mismatch. Dual-publishing (`"exports"` with both conditions) hides this until first `require`, not at install.
+	</p>
+</Pitfall>
+
+## Four behaviors, one run
+
+Run the demo file for this lesson:
+
+```bash
+node code/2-v8-memory-modules/2-4-module-internals/demo.js
+```
+
+It writes real modules to a temp dir and exercises them: `[1]` two `require()` calls return the identical object — mutate one, both see it. `[2]` deletes the cache entry and re-requires: fresh state, different object. `[3]` a circular `require` where `second.cjs` sees `first.firstValue === undefined` — the half-built exports — plus Node's circular-dependency warning on stderr. `[4]` the same cycle in ESM: a top-level read would TDZ-throw, but a read inside a function called *after* evaluation returns the live value. Check stderr for both warnings; they are the systems telling on themselves.
+
+<BuildExercise
+	title="Break the cache, survive the cycle"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Predict what a circular import returns in each system', 'Use require.cache deliberately (test isolation)']}
+	steps={[
+		{ title: 'Run the demo', why: 'See cache identity, eviction, and both circular behaviors.', expect: 'a === b true; c fresh; second sees undefined; readB() live.' },
+		{ title: 'Break [1] on purpose', why: 'Evict the cache between calls, confirm state resets.', expect: 'Same file, new object — module state is per-cache-entry, not per-file.' },
+		{ title: 'Fix the [3] cycle', why: 'Reorder requires so second loads fully first.', expect: 'Both values defined — but note the fix is structural; the warning is your real signal.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-4" />

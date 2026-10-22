@@ -1,0 +1,68 @@
+---
+title: "Memory leaks: closures, timers, listeners; heap snapshots"
+description: A leak is an object GC can still reach that your app will never use again. Build three leaks, watch the heap refuse to shrink, then find the retainer edge that pins each one.
+domain: 2
+task: "2.3"
+order: 3
+sourceUrl: https://nodejs.org/en/learn/diagnostics/memory
+updated: 2026-10-23
+keywords:
+  - term: memory leak
+  - term: heap snapshot
+  - term: retainer
+sources:
+  - label: "Node.js docs — Diagnostics: memory"
+    href: https://nodejs.org/en/learn/diagnostics/memory
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.3</span>
+</div>
+
+## What you will learn
+
+GC cannot free what it can reach, and "reachable" is the whole game. The three shapes that pin reachability in almost every Node leak: a **closure** captured into module state (a request map nobody prunes), a **timer** holding its scope alive, and a **listener** never removed — Node even warns at the 11th. This lesson builds the first and third, proves with GC-forced measurements which structure is a leak and which is bounded, and writes a **heap snapshot** you can open in DevTools to see the retainer edge itself.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="used_heap_size lies without a forced GC">
+	<p>
+		`v8.getHeapStatistics().used_heap_size` is "uncollected garbage + live objects" — the scavenger runs on its own schedule, so a number that stays high after you drop references proves nothing. The demo runs with `--expose-gc` and calls `global.gc()` before each reading, so the numbers mean "live objects". Do the same when diagnosing: a leak is memory that survives a <em>full</em> GC.
+	</p>
+</Pitfall>
+
+## Build a leak, then bound it
+
+Run the demo file for this lesson (note the flag):
+
+```bash
+node --expose-gc code/2-v8-memory-modules/2-3-memory-leaks/demo.js
+```
+
+`[1]` pins 40 payloads in a module-level Map: GC runs and the heap <em>stays</em> grown — 40 reachable, leak confirmed. `[2]` runs the same load into a 10-entry cache with eviction: 400 requests later the heap is back at baseline, because the map itself is bounded. `[3]` adds 12 listeners and lets Node's own `MaxListenersExceededWarning` call it out on stderr. `[4]` writes a `.heapsnapshot` to `/tmp` — open it in Chrome DevTools' Memory panel and the leaking Map appears with its retainer chain, which is the actual edge you must break.
+
+<BuildExercise
+	title="Find the retainer, break the edge"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Prove leak vs bounded with forced-GC heap readings', 'Locate a retainer chain in a real heap snapshot']}
+	steps={[
+		{ title: 'Run with --expose-gc', why: 'Trust the numbers: every reading is post-GC.', expect: '[1] heap stays grown after GC; [2] returns to baseline.' },
+		{ title: 'Break the [1] leak', why: 'Change the Map to the 10-entry cache pattern, re-run.', expect: '[1] now plateaus like [2] — the retainer edge was the unbounded Map.' },
+		{ title: 'Open the snapshot', why: 'Load the /tmp file in DevTools → Memory, search "Array".', expect: 'Retainers panel shows map → entry → payload chain; the map is what you must bound.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-3" />

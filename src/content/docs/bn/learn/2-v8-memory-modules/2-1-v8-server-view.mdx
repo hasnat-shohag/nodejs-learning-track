@@ -1,0 +1,71 @@
+---
+title: "সার্ভার ডেভের চোখে V8: JIT, হিডেন ক্লাস, GC"
+titleEn: "V8 from a server dev's view: JIT, hidden classes, GC"
+description: V8 আপনার হট কোড মেশিন কোডে কম্পাইল করে, একই গড়ের অবজেক্টকে একটি হিডেন ক্লাস দেয়, আর heap কালেক্ট করে নাম-দেওয়া স্পেসে — Node-এর প্রতিটি latency সংখ্যার পেছনে এই তিন আচরণ।
+domain: 2
+task: "2.1"
+order: 1
+sourceUrl: https://v8.dev/docs
+updated: 2026-10-23
+keywords:
+  - term: JIT
+  - term: hidden class
+  - term: garbage collection
+  - term: young generation
+  - term: old space
+sources:
+  - label: "V8 docs — Ignition and TurboFan"
+    href: https://v8.dev/docs/ignition
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.1</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+V8 কোনো ইন্টারপ্রেটার নয় — এটি টায়ারিং কম্পাইলার। আপনার কোড শুরু হয় বাইটকোড হিসেবে (Ignition), আর যে ফাংশন হট চলে সে রি-কম্পাইল হয় অপটিমাইজড মেশিন কোডে (TurboFan)। অপটিমাইজেশনের সিদ্ধান্ত দাঁড়িয়ে আছে **শেপ**-এর ওপর: একই প্রপার্টি একই ক্রমে বানানো অবজেক্টগুলো একটি **hidden class** শেয়ার করে, যাতে V8 প্রপার্টি অ্যাক্সেস ইনলাইন করতে পারে। শেপ ছড়িয়ে দিলে প্রতিটি রিড পড়ে ধীর লুকআপে। এই লেসন তিনটি তথ্যই মাপে — শেপ বিচ্ছিন্নতা, inline-cache ওভারফ্লো, আর GC স্পেসগুলো যেখান থেকে আপনার pause আসে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Deopt নিঃশব্দে ঘটে, আর ফাংশন-প্রতি ঘটে">
+	<p>
+		TurboFan একটি ফাংশন কম্পাইল করে <em>অনুমান</em> করে যে ধরনগুলো সে দেখেছে। একবার ভিন্ন শেপ খাওয়ালে — যেখানে সবসময় অবজেক্ট ছিল সেখানে `null`, যেখানে চারটা কনস্ট্রাক্টর চলত সেখানে পঞ্চম — V8 অপটিমাইজড কোড ফেলে দেয় (deopt) আর বাইটকোড থেকে আবার কম্পাইল করে। কোনো সতর্কতা ছাপা হয় না; ফাংশনটা শুধু ধীর হয়ে যায়। সমাধান মাইক্রো-টিউনিং নয়: হট পাথ মনোমর্ফিক রাখুন — এক শেপ, এক টাইপ, স্থির আর্গুমেন্ট।
+	</p>
+</Pitfall>
+
+## তিনটি মাপ
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/2-v8-memory-modules/2-1-v8-server-view/demo.js
+```
+
+ছাপে: `[1]` এক কনস্ট্রাকশন-ক্রম বনাম `[2]` তিন ক্রম মিশ্রিত — ছড়ানো সেটটি ~১.৭x ধীর পড়ে কারণ তার hidden class ভাগ হয়ে যায়; `[3]` এক রিড-সাইটে চার শেপ ঘুরে — inline cache ওভারফ্লো করে মেগামর্ফিক লুকআপে পড়ে; `[4]` চলমান প্রসেসের আসল V8 heap স্পেসগুলো, যাতে "young generation" আর "old space" শব্দভাণ্ডার না থেকে মেগাবাইট হয়ে ওঠে।
+
+<BuildExercise
+	title="নিজের হট পাথের শেপ দেখুন"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['hidden class ব্যাখ্যা করা আর কনস্ট্রাকশন-ক্রম কেন গুরুত্বপূর্ণ তা বলা', 'GC স্পেসগুলোর নাম ও কোনটির pause কত খরচ তা বলা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'ns/iter-এ শেপ-ফর্ক ও IC-ওভারফ্লো খরচ দেখা।', expect: 'scattered, friendly-র চেয়ে ধীর; চার-শেপ রিড এক-শেপ রিডের চেয়ে ধীর।' },
+		{ title: 'মাঝপথে শেপ ফর্ক করুন', why: 'অর্ধেক অবজেক্টে দেরিতে একটি প্রপার্টি যোগ করে [1] আবার চালান।', expect: 'রিড-টাইম বাড়ে — hidden class ট্রানজিশন হলো, cache অবৈধ হলো।' },
+		{ title: 'প্রতিটি স্পেস বাড়ান', why: '৪০০ হাজার অবজেক্ট অ্যালোকেট করে [4]-এ new_space তারপর old_space দেখা।', expect: 'new_space সীমিত থাকে (scavenger); টিকে থাকা অবজেক্ট উন্নীত হয়, old_space বাড়ে।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-1" />

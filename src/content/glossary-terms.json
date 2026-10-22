@@ -118,6 +118,141 @@
 		"domain": 1
 	},
 	{
+		"term": "--max-old-space-size",
+		"defEn": "Node flag capping V8 old-space heap (default ~2-4GB by arch). When the heap cannot grow past it and GC cannot free memory, the process dies with \"JavaScript heap out of memory\".",
+		"defBn": "V8 পুরনো-স্পেস heap সীমিত করার Node ফ্ল্যাগ (আর্কিটেকচার অনুযায়ী ডিফল্ট প্রায় ২-৪GB)। heap এর পর বাড়তে না পারলে আর GC মেমরি মুক্ত না করতে পারলে প্রসেস \"JavaScript heap out of memory\" বলে মরে।",
+		"refs": [
+			"https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
+		],
+		"domain": 2
+	},
+	{
+		"term": "addon",
+		"defEn": "A native (C/C++/Rust) module loaded into Node via N-API/node-gyp: JS calls C++ through the bindings layer, e.g. node-sass or sharp.",
+		"defBn": "N-API/node-gyp দিয়ে Node-এ লোড হওয়া নেটিভ (C/C++/Rust) মডিউল: bindings লেয়ার দিয়ে JS থেকে C++ কল হয়, যেমন node-sass বা sharp।",
+		"refs": [
+			"https://nodejs.org/api/addons.html"
+		],
+		"domain": 2
+	},
+	{
+		"term": "circular import",
+		"defEn": "Two modules requiring each other: CJS returns the partial exports object built so far (may miss later exports); ESM hoisted live bindings avoid the truncation but still need care at module-eval time.",
+		"defBn": "একে অপরকে require করা দুটি মডিউল: CJS তখন পর্যন্ত বানানো আংশিক exports অবজেক্ট ফেরায় (পরের exports মিস হতে পারে); ESM-এর হোয়েস্টেড লাইভ বাইন্ডিং সেই কাটা এড়ায়, তবে মডিউল-ইভাল সময়ে সতর্কতা তবু লাগে।",
+		"refs": [
+			"https://nodejs.org/api/modules.html#cycles"
+		],
+		"domain": 2
+	},
+	{
+		"term": "ESM loader",
+		"defEn": "Node's ES module pipeline: resolve (extensions/folders per --experimental-specifier-resolution), load, parse, then link before any module body runs; top-level await supported.",
+		"defBn": "Node-এর ES মডিউল পাইপলাইন: resolve (extensions/folders), load, parse, তারপর যেকোনো মডিউল বডি চলার আগে link; top-level await সমর্থিত।",
+		"refs": [
+			"https://nodejs.org/api/esm.html"
+		],
+		"domain": 2
+	},
+	{
+		"term": "garbage collection",
+		"defEn": "V8's automatic memory reclaim: scavenger (minor) collects the young generation; mark-sweep/mark-compact (major) collects old space. GC runs on the main thread (plus concurrent helpers) and pauses your JS.",
+		"defBn": "V8-এর স্বয়ংক্রিয় মেমরি ফেরত আনা: scavenger (minor) যুবক জেনারেশন কালেক্ট করে; mark-sweep/mark-compact (major) পুরনো স্পেস কালেক্ট করে। GC মেইন থ্রেডে চলে (সাথে কনকারেন্ট হেল্পার) আর আপনার JS থামায়।",
+		"refs": [
+			"https://nodejs.org/en/learn/diagnostics/memory"
+		],
+		"domain": 2
+	},
+	{
+		"term": "heap snapshot",
+		"defEn": "A full dump of the JS heap (nodes + edges) taken via inspector/heapdump, compared in Chrome DevTools to find what retains leaked objects.",
+		"defBn": "inspector/heapdump দিয়ে নেওয়া JS heap-এর পূর্ণ ডাম্প (নোড + এজ), Chrome DevTools-এ তুলনা করে লিকড অবজেক্ট কী ধরে রেখেছে তা খুঁজতে হয়।",
+		"refs": [
+			"https://nodejs.org/en/learn/diagnostics/memory"
+		],
+		"domain": 2
+	},
+	{
+		"term": "hidden class",
+		"defEn": "V8's internal shape-tracking for objects: objects built in the same property order share one hidden class, enabling inline caches. Adding properties in different orders forks the class and deoptimizes access.",
+		"defBn": "V8-এর অবজেক্টের গড়-ট্র্যাকিং: একই ক্রমে প্রপার্টি বসানো অবজেক্টগুলো একটি hidden class শেয়ার করে, যা inline cache চালু করে। ভিন্ন ক্রমে প্রপার্টি যোগ করলে ক্লাস ভাগ হয় আর অ্যাক্সেস ডিঅপটিমাইজ হয়।",
+		"refs": [
+			"https://v8.dev/blog/fast-properties"
+		],
+		"domain": 2
+	},
+	{
+		"term": "JIT",
+		"defEn": "Just-in-time compilation: V8 runs your JS first as bytecode (ignition), then promotes hot functions to optimized machine code (turbofan). Deopt happens when live input breaks an optimization assumption.",
+		"defBn": "জাস্ট-ইন-টাইম কম্পাইলেশন: V8 প্রথমে JS চালায় বাইটকোড হিসেবে (ignition), পরে হট ফাংশনগুলো অপটিমাইজড মেশিন কোডে উন্নীত করে (turbofan)। লাইভ ইনপুট কোনো অপটিমাইজেশন অনুমান ভাঙলে deopt ঘটে।",
+		"refs": [
+			"https://v8.dev/docs"
+		],
+		"domain": 2
+	},
+	{
+		"term": "memory leak",
+		"defEn": "Objects the app will never use again but GC can still reach: growing caches, timers capturing scope, un-removed listeners, closures pinned in module state.",
+		"defBn": "অ্যাপ আর কখনো ব্যবহার করবে না কিন্তু GC এখনো পৌঁছাতে পারে এমন অবজেক্ট: বাড়ন্ত ক্যাশ, স্কোপ ধরে রাখা টাইমার, না-সরানো লিসেনার, মডিউল স্টেটে পিন করা ক্লোজার।",
+		"refs": [
+			"https://nodejs.org/en/learn/diagnostics/memory"
+		],
+		"domain": 2
+	},
+	{
+		"term": "module cache",
+		"defEn": "CommonJS cache: require() stores loaded modules in require.cache keyed by resolved filename, so a second require returns the same exports object — circular imports get a partial exports.",
+		"defBn": "CommonJS ক্যাশ: require() লোড করা মডিউল require.cache-এ রাখে, রিজলভড ফাইলনেম দিয়ে চাবি করে — দ্বিতীয় require একই exports অবজেক্ট ফেরায়, আর সার্কুলার ইমপোর্ট আংশিক exports পায়।",
+		"refs": [
+			"https://nodejs.org/api/modules.html#modulecacheprobing"
+		],
+		"domain": 2
+	},
+	{
+		"term": "N-API",
+		"defEn": "Node's stable C ABI for native addons: compiled addons keep working across Node versions without rebuild because the ABI, not V8 internals, is the contract.",
+		"defBn": "নেটিভ অ্যাডনের জন্য Node-এর স্থির C ABI: কন্ট্র্যাক্ট V8-এর অভ্যন্তর নয়, ABI — তাই কম্পাইলড অ্যাডন Node ভার্সন বদলালেও রিবিল্ড ছাড়াই চলে।",
+		"refs": [
+			"https://nodejs.org/api/n-api.html"
+		],
+		"domain": 2
+	},
+	{
+		"term": "node-gyp",
+		"defEn": "The build tool that compiles native addons against the installed Node headers; triggered automatically by npm install for packages shipping .cc/.cpp sources.",
+		"defBn": "ইনস্টল করা Node হেডারের সাথে নেটিভ অ্যাডন কম্পাইল করার বিল্ড টুল; .cc/.cpp সোর্সসহ প্যাকেজ npm install করলে স্বয়ংক্রিয়ভাবে চালু হয়।",
+		"refs": [
+			"https://github.com/nodejs/node-gyp"
+		],
+		"domain": 2
+	},
+	{
+		"term": "old space",
+		"defEn": "The V8 heap region for long-lived objects and code; major GC (mark-sweep/compact) reclaims it. --max-old-space-size caps it.",
+		"defBn": "দীর্ঘস্থায়ী অবজেক্ট ও কোডের V8 heap অঞ্চল; major GC (mark-sweep/compact) এটি ফেরত আনে। --max-old-space-size এর সীমা ধরে।",
+		"refs": [
+			"https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
+		],
+		"domain": 2
+	},
+	{
+		"term": "retainer",
+		"defEn": "In a heap snapshot, the object path keeping a target alive — DevTools' Retainers panel answers 'who is holding this', which is the leak, not the target itself.",
+		"defBn": "heap snapshot-এ কোনো টার্গেটকে বাঁচিয়ে রাখা অবজেক্ট-পাথ — DevTools-এর Retainers প্যানেল উত্তর দেয় \"এটা কে ধরে আছে\", লিক হলো ওই ধরনে রাখা, টার্গেট নিজে নয়।",
+		"refs": [
+			"https://nodejs.org/en/learn/diagnostics/memory"
+		],
+		"domain": 2
+	},
+	{
+		"term": "young generation",
+		"defEn": "V8 heap region for short-lived objects, split into from/to semispaces; survivors of two scavenger collections get promoted to old space.",
+		"defBn": "স্বল্পস্থায়ী অবজেক্টের V8 heap অঞ্চল, from/to সেমিস্পেসে ভাগ করা; দুটি scavenger কালেকশন টিকে থাকলে অবজেক্ট পুরনো স্পেসে উন্নীত হয়।",
+		"refs": [
+			"https://v8.dev/blog/orinoco-parallel-scavenger"
+		],
+		"domain": 2
+	},
+	{
 		"term": "worker_threads",
 		"defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
 		"defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",

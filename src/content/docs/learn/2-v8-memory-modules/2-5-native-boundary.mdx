@@ -1,0 +1,70 @@
+---
+title: "The native boundary: N-API addons, JS calling C++"
+description: Every fs, crypto, and Buffer call already crosses into C++. Learn the seam, its cost, and why N-API's stable ABI means compiled addons survive Node upgrades.
+domain: 2
+task: "2.5"
+order: 5
+sourceUrl: https://nodejs.org/api/n-api.html
+updated: 2026-10-23
+keywords:
+  - term: N-API
+  - term: addon
+  - term: node-gyp
+sources:
+  - label: "Node.js docs — N-API"
+    href: https://nodejs.org/api/n-api.html
+  - label: "Node.js docs — C++ addons"
+    href: https://nodejs.org/api/addons.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.5</span>
+</div>
+
+## What you will learn
+
+You call C++ all day: `fs.readFile`, `crypto.pbkdf2`, `Buffer.byteLength` are JS facades over Node's C++ core, and the boundary is a real seam with a real cost. Third-party **addons** extend the same seam — and **N-API** is the contract that makes them durable: a stable C ABI, decoupled from V8's internals, so an addon compiled once keeps loading across Node versions without a rebuild. This lesson prints the native stack inside your own process, times the boundary, and shows what `node-gyp` does when you `npm install` an addon package.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="node-gyp is why your deploy breaks on the wrong toolchain">
+	<p>
+		An addon package ships C++ source; `npm install` compiles it against your Node's headers with node-gyp, which needs Python 3 + a C++ toolchain on the machine. On Alpine or slim Docker images that build fails with a wall of gyp errors. Prebuilt binaries (prebuildify/napi-rs) sidestep it — but only if the addon follows N-API. Old V8-API addons (node-sass era) must rebuild per major Node version; that is the ABI lesson in production form.
+	</p>
+</Pitfall>
+
+## The seam, measured
+
+Run the demo file for this lesson:
+
+```bash
+node code/2-v8-memory-modules/2-5-native-boundary/demo.js
+```
+
+`[1]` prints `process.versions` — node, v8, uv, zlib, openssl — the C and C++ layers already inside your process. `[2]` runs `pbkdf2` at 1 vs 100,000 iterations: the same native call, whose work lands on the **thread pool** you met in Domain 1. `[3]` times 1M pure-JS calls against 1M `Buffer.byteLength` calls — each native call crosses the boundary, and the ~4x difference is the seam's price. The rule it buys: **batch work on one side**; do not ping-pong per item.
+
+<BuildExercise
+	title="Audit your own boundary"
+	difficulty="intermediate"
+	time="20 min"
+	objectives={['Explain what N-API stabilizes and what node-gyp does', 'Recognize boundary cost in a hot loop']}
+	steps={[
+		{ title: 'Run the demo', why: 'See the native stack you already ship and its call cost.', expect: 'byteLength slower than pure JS per call; same output length keys for both pbkdf2 sizes.' },
+		{ title: 'Batch the crossing', why: 'Replace the per-call loop with one Buffer.concat + single byteLength.', expect: 'Time collapses — one crossing instead of a million.' },
+		{ title: 'List your addons', why: 'Run `npm ls` and spot native deps in your own projects.', expect: 'At least one (e.g. sharp) — check whether it ships prebuilds and which Node versions they cover.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-5" />

@@ -1,0 +1,70 @@
+---
+title: "V8 from a server dev's view: JIT, hidden classes, GC"
+description: V8 compiles your hot code to machine code, gives same-shaped objects one hidden class, and collects the heap in named spaces — the three behaviors behind every Node latency number.
+domain: 2
+task: "2.1"
+order: 1
+sourceUrl: https://v8.dev/docs
+updated: 2026-10-23
+keywords:
+  - term: JIT
+  - term: hidden class
+  - term: garbage collection
+  - term: young generation
+  - term: old space
+sources:
+  - label: "V8 docs — Ignition and TurboFan"
+    href: https://v8.dev/docs/ignition
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 2</span>
+	<span class="lesson-task">Task 2.1</span>
+</div>
+
+## What you will learn
+
+V8 is not an interpreter — it is a tiering compiler. Your code starts as bytecode (Ignition), and functions that run hot get recompiled to optimized machine code (TurboFan). Optimization decisions are built on **shapes**: objects constructed with the same properties in the same order share one **hidden class**, letting V8 inline property access. Scatter your shapes and every property read falls back to slow lookups. This lesson measures all three facts — shape divergence, inline-cache overflow, and the GC spaces your pauses come from.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Deopt is silent and per-function">
+	<p>
+		TurboFan compiles a function <em>assuming</em> the types it has seen. Feed it a different shape once — `null` where objects always were, a fifth constructor where four ran — and V8 throws away the optimized code (deopt) and recompiles from bytecode. No warning prints; the function just gets slower. The fix is not micro-tuning: keep hot paths monomorphic — one shape, one type, stable arguments.
+	</p>
+</Pitfall>
+
+## Three measurements
+
+Run the demo file for this lesson:
+
+```bash
+node code/2-v8-memory-modules/2-1-v8-server-view/demo.js
+```
+
+It prints: `[1]` one construction order vs `[2]` three orders interleaved — the scattered set reads ~1.7x slower because its hidden classes fork; `[3]` four shapes rotating through one read site — the inline cache overflows to megamorphic lookup; `[4]` the actual V8 heap spaces of the running process, so "young generation" and "old space" stop being vocabulary and become megabytes.
+
+<BuildExercise
+	title="Shape your own hot path"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Explain hidden classes and why construction order matters', 'Name the GC spaces and which pauses each costs']}
+	steps={[
+		{ title: 'Run the demo', why: 'See shape-fork and IC-overflow cost in ns/iter.', expect: 'scattered slower than friendly; four-shape read slower than one-shape.' },
+		{ title: 'Fork a shape mid-stream', why: 'Add a property late to half the objects, re-run [1].', expect: 'Read time rises — the hidden class transitioned, cache invalid.' },
+		{ title: 'Grow each space', why: 'Allocate 400k objects, watch new_space then old_space in [4].', expect: 'new_space stays bounded (scavenger); survivors promote, old_space grows.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="2-1" />
