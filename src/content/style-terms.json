@@ -1,0 +1,22 @@
+{
+  "$comment": "Terminology policy for the Bangla content. `preferred` is enforced by tools/check-terms.mjs: the left side is the variant lesson prose must avoid, the right side is what it should say. `protected` lists strings a checker must never flag even when a `preferred` key is a substring of them -- Bangla is agglutinative, so a naive match can hit a longer, correct word. SCOPE: lesson BODY prose, frontmatter `description`, mermaid node labels and component prose. It does NOT apply to navigation -- lesson titles (frontmatter `title`, and the same strings in src/lib/lessons.ts) and the domain labels in src/lib/domains.ts keep technical terms in English by decision.",
+  "policy": {
+    "phrases-latin": "Multi-word Node.js concept phrases stay Latin: event loop, thread pool, backpressure, worker pool, call stack.",
+    "nouns-bangla": "General technical nouns keep their Bangla transliteration: টুল, সার্ভার, রিকোয়েস্ট, রেসপন্স, ডেভেলপার.",
+    "identifiers-latin": "Code identifiers are never transliterated: worker_threads, SharedArrayBuffer, setImmediate, process.nextTick, child_process."
+  },
+  "preferred": [
+    { "avoid": "ইভেন্ট লুপ", "use": "event loop" },
+    { "avoid": "ইভেন্ট লুপে", "use": "event loop-এ" },
+    { "avoid": "থ্রেড পুল", "use": "thread pool" },
+    { "avoid": "ওয়ার্কার পুল", "use": "worker pool" },
+    { "avoid": "ওয়ার্কার থ্রেড", "use": "worker_threads" },
+    { "avoid": "ব্যাকপ্রেশার", "use": "backpressure" },
+    { "avoid": "কল স্ট্যাক", "use": "call stack" },
+    { "avoid": "শেয়ার্ড মেমরি বাফার", "use": "SharedArrayBuffer" },
+    { "avoid": "চাইল্ড প্রসেস", "use": "child_process" },
+    { "avoid": "ক্লাস্টার মডিউল", "use": "cluster মডিউল" }
+  ],
+  "protected": ["পাঠ", "পাঠানো", "পাঠায়", "পাঠানোর", "পাঠ্য", "পাঠযোগ্য", "পাঠকের"],
+  "knownGaps": []
+}

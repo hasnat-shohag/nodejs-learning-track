@@ -1,0 +1,26 @@
+[
+	{
+		"term": "event loop",
+		"defEn": "The single-threaded cycle that Node runs on: pick queued callbacks, run them to completion, then repeat. All JS code shares it, so one slow callback delays every request.",
+		"defBn": "Node-এর একক-থ্রেড সাইকেল: কিউতে থাকা callback নেয়, সম্পূর্ণ চালায়, আবার পুনরাবৃত্তি করে। সব JS কোড এটি শেয়ার করে, তাই একটি ধীর callback সব রিকোয়েস্ট দেরি করায়।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+		],
+		"domain": 1
+	},
+	{
+		"term": "libuv",
+		"defEn": "The C library under Node that provides the event loop, TCP/UDP sockets, filesystem and thread-pool operations. Node's async I/O is libuv plus OS kernel facilities.",
+		"defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও থ্রেড-পুল অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
+		"refs": ["https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"],
+		"domain": 1
+	},
+	{
+		"term": "worker_threads",
+		"defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
+		"defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",
+		"refs": ["https://nodejs.org/api/worker_threads.html"],
+		"domain": 3
+	}
+]
