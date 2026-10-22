@@ -1,0 +1,122 @@
+---
+import { DOMAINS } from '../../lib/domains';
+import terms from '../../content/glossary-terms.json';
+
+const sorted = [...terms].sort((a, b) => a.term.localeCompare(b.term));
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const t = isBn
+	? {
+			all: 'সব',
+			searchLabel: 'শব্দ খুঁজুন',
+			placeholder: 'যেমন: event loop, worker_threads, libuv',
+			counting: (n: number) => `${n}টি শব্দ দেখানো হচ্ছে`,
+			empty: 'কোনো শব্দ মেলেনি — বানান দেখে নিন বা অন্য ডোমেইন বাছুন।',
+			termHeader: 'শব্দ',
+			defHeader: 'অর্থ',
+			domainHeader: 'ডোমেইন',
+		}
+	: {
+			all: 'All',
+			searchLabel: 'Find a term',
+			placeholder: 'e.g. event loop, worker_threads, libuv',
+			counting: (n: number) => `showing ${n} term${n === 1 ? '' : 's'}`,
+			empty: 'No term matched — check the spelling or pick another domain.',
+			termHeader: 'Term',
+			defHeader: 'Meaning',
+			domainHeader: 'Domain',
+		};
+---
+
+<div class="glossary-toolbar">
+	<div class="glossary-filters" data-glossary-filters>
+		<button type="button" data-glossary-domain="all" aria-pressed="true">{t.all}</button>
+		{
+			DOMAINS.map((domain) => (
+				<button type="button" data-glossary-domain={domain.id} aria-pressed="false">
+					D{domain.id} · {isBn ? domain.labelBn : domain.labelEn}
+				</button>
+			))
+		}
+	</div>
+
+	<label class="glossary-search">
+		<span>{t.searchLabel}</span>
+		<input type="search" data-glossary-search placeholder={t.placeholder} autocomplete="off" />
+	</label>
+</div>
+
+<p class="progress-hint" data-glossary-count>
+	{t.counting(sorted.length)}
+</p>
+
+<div class="table-scroll">
+	<table class="keyword-table">
+		<thead>
+			<tr>
+				<th scope="col">{t.termHeader}</th>
+				<th scope="col">{t.defHeader}</th>
+				<th scope="col">{t.domainHeader}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{
+				sorted.map((entry) => (
+					<tr
+						data-glossary-row
+						data-domain={entry.domain}
+						data-search={`${entry.term} ${entry.defEn} ${entry.defBn}`.toLowerCase()}
+					>
+						<td class="keyword-term">{entry.term}</td>
+						<td>{isBn ? entry.defBn : entry.defEn}</td>
+						<td>D{entry.domain}</td>
+					</tr>
+				))
+			}
+		</tbody>
+	</table>
+</div>
+
+<p class="glossary-empty" data-glossary-empty hidden>
+	{t.empty}
+</p>
+
+<script>
+	const filters = document.querySelector<HTMLElement>('[data-glossary-filters]');
+	const search = document.querySelector<HTMLInputElement>('[data-glossary-search]');
+	const count = document.querySelector<HTMLElement>('[data-glossary-count]');
+	const empty = document.querySelector<HTMLElement>('[data-glossary-empty]');
+	const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-glossary-row]'));
+	let activeDomain = 'all';
+
+	const isBn = document.documentElement.lang.startsWith('bn');
+	const counting = (n: number) =>
+		isBn ? `${n}টি শব্দ দেখানো হচ্ছে` : `showing ${n} term${n === 1 ? '' : 's'}`;
+
+	function apply(): void {
+		const query = search?.value.trim().toLowerCase() ?? '';
+		let visible = 0;
+		rows.forEach((row) => {
+			const matchesDomain = activeDomain === 'all' || row.dataset.domain === activeDomain;
+			const matchesQuery = query.length === 0 || (row.dataset.search ?? '').includes(query);
+			const show = matchesDomain && matchesQuery;
+			row.hidden = !show;
+			if (show) visible += 1;
+		});
+		if (count) count.textContent = counting(visible);
+		if (empty) empty.hidden = visible !== 0;
+	}
+
+	filters?.addEventListener('click', (event) => {
+		const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>('[data-glossary-domain]');
+		if (!button) return;
+		activeDomain = button.dataset.glossaryDomain ?? 'all';
+		filters.querySelectorAll<HTMLButtonElement>('[data-glossary-domain]').forEach((item) => {
+			item.setAttribute('aria-pressed', String(item === button));
+		});
+		apply();
+	});
+
+	search?.addEventListener('input', apply);
+	apply();
+</script>

@@ -1,3 +1,24 @@
 ---
 title: Node.js লার্নিং ট্র্যাক
+description: সার্ভারে Node আসলে কীভাবে কাজ করে — event loop, libuv, worker_threads, আর শূন্য থেকে বানানো HTTP সার্ভার। ইংরেজি/বাংলা দ্বিভাষিক লেসন, প্রতিটিতে রানেবল ডেমো।
+template: splash
+hero:
+  tagline: Node.js-এর ইন্টার্নাল ও সার্ভার-সাইড ফান্ডামেন্টাল, অফিসিয়াল ডকুমেন্টেশন থেকে — প্রতিটি লেসনে রানেবল কোড।
+  actions:
+    - text: শেখা শুরু করুন
+      link: /nodejs-tutorial/learn/
+      icon: right-arrow
+      variant: primary
+    - text: অগ্রগতি ড্যাশবোর্ড
+      link: /nodejs-tutorial/progress/
+      icon: rocket
+      variant: secondary
 ---
+
+import DomainCards from '../../../components/content/DomainCards.astro';
+
+আপনি JavaScript জানেন, ব্রাউজার থেকে V8-ও চেনেন। এই ট্র্যাক সেগুলোর **চারপাশের** সবকিছু নিয়ে: event loop, libuv-এর thread pool, সার্ভারে V8-এর মেমরি মডেল, `worker_threads` ও `cluster`, আর সবশেষে শুধু `node:http` দিয়ে বানানো একটি HTTP সার্ভার — কোনো ফ্রেমওয়ার্ক নেই, যতক্ষণ না বুঝতে পারেন ফ্রেমওয়ার্ক আসলে কী কিনে দেয়।
+
+পাঁচটি ডোমেইন, ত্রিশটি লেসন, প্রতিটি **ইংরেজি ও বাংলায়**, প্রতিটিতে রানেবল ডেমো:
+
+<DomainCards showLessons={false} />

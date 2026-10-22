@@ -1,3 +1,24 @@
 ---
 title: Node.js Learning Track
+description: Learn how Node actually works on the server — the event loop, libuv, worker_threads, and an HTTP server built from scratch. Bilingual English/Bangla lessons with runnable demos.
+template: splash
+hero:
+  tagline: Node.js internals and server-side fundamentals, from the official docs — with runnable code in every lesson.
+  actions:
+    - text: Start learning
+      link: /nodejs-tutorial/learn/
+      icon: right-arrow
+      variant: primary
+    - text: Progress dashboard
+      link: /nodejs-tutorial/progress/
+      icon: rocket
+      variant: secondary
 ---
+
+import DomainCards from '../../components/content/DomainCards.astro';
+
+You know JavaScript. You know V8 from the browser. This track is about everything **around** it: the event loop, libuv's thread pool, V8's memory model on a server, `worker_threads` and `cluster`, and finally an HTTP server built with nothing but `node:http` — no framework, until you understand what a framework would buy you.
+
+Five domains, thirty lessons, each in **English and Bangla**, each with a runnable demo:
+
+<DomainCards showLessons={false} />

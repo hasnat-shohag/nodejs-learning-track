@@ -1,3 +1,11 @@
 ---
 title: ডোমেইন ১ — Node অ্যানাটমি ও event loop
+description: "যে মেন্টাল মডেলের ওপর সার্ভার-সাইডের প্রতিটি সিদ্ধান্ত দাঁড়ায়: Node প্রসেস কী, event loop কীভাবে কাজ সাজায়, আর single-threaded আসলে কী বোঝায়।"
+domain: 1
 ---
+
+import LessonList from '../../../../../components/content/LessonList.astro';
+
+এই ছয়টি লেসন সেই মডেল গড়ে যা বাকি সবখানে ব্যবহার হবে: একটি প্রসেস, তিনটি লেয়ার (V8, libuv, bindings), একটি loop যা I/O ইভেন্টের ফাঁকে JavaScript শেষ পর্যন্ত চালায়, আর যে কাজ কার্নেল async করতে পারে না সেজন্য একটি ছোট thread pool।
+
+<LessonList domain={1} />

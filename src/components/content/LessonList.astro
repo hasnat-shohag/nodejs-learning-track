@@ -1,0 +1,71 @@
+---
+import { DOMAINS, type DomainId } from '../../lib/domains';
+import { domainLessons } from '../../lib/lessons';
+import { siteUrl } from '../../lib/urls';
+
+interface Props {
+	domain: DomainId;
+}
+
+const { domain } = Astro.props;
+const lessons = domainLessons(domain);
+const domainSlug = DOMAINS.find((item) => item.id === domain)?.slug ?? '';
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const pendingTag = isBn ? 'লেখা বাকি' : 'not written yet';
+const doneLabel = isBn ? 'সম্পন্ন' : 'complete';
+const todoLabel = isBn ? 'অসম্পন্ন' : 'not complete';
+const title = (lesson: (typeof lessons)[number]) => (isBn ? lesson.titleBn : lesson.titleEn);
+
+const lessonFiles = new Set(Object.keys(import.meta.glob('/src/content/docs/learn/*/*.mdx')));
+const isAvailable = (slug: string) => lessonFiles.has(`/src/content/docs/learn/${domainSlug}/${slug}.mdx`);
+---
+
+<ol class="lesson-checklist">
+	{
+		lessons.map((lesson) => (
+			<li data-lesson-check={lesson.id}>
+				<span class="lesson-state" aria-hidden="true" />
+				<div class="lesson-content">
+					{isAvailable(lesson.slug) ? (
+						<a href={siteUrl(`learn/${domainSlug}/${lesson.slug}/`)}>
+							{lesson.id} — {title(lesson)}
+						</a>
+					) : (
+						<>
+							<span class="lesson-pending-title">
+								{lesson.id} — {title(lesson)}
+							</span>
+							<span class="lesson-pending-tag">{pendingTag}</span>
+						</>
+					)}
+					<span class="sr-only" data-lesson-state-label>{todoLabel}</span>
+					<span class="lesson-check-en">{isBn ? lesson.titleEn : lesson.titleBn}</span>
+				</div>
+			</li>
+		))
+	}
+</ol>
+
+<script>
+	import { LESSON_EVENT, isComplete, loadState } from '../../lib/progress';
+
+	const isBn = document.documentElement.lang.startsWith('bn');
+	const doneLabel = isBn ? 'সম্পন্ন' : 'complete';
+	const todoLabel = isBn ? 'অসম্পন্ন' : 'not complete';
+
+	function paintChecklist(): void {
+		const state = loadState();
+		document.querySelectorAll<HTMLElement>('[data-lesson-check]').forEach((item) => {
+			const id = item.dataset.lessonCheck;
+			if (!id) return;
+			const done = isComplete(state, id);
+			item.dataset.done = String(done);
+			const stateLabel = item.querySelector<HTMLElement>('[data-lesson-state-label]');
+			if (stateLabel) stateLabel.textContent = done ? doneLabel : todoLabel;
+		});
+	}
+
+	paintChecklist();
+	window.addEventListener(LESSON_EVENT, paintChecklist);
+</script>

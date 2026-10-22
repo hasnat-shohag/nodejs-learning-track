@@ -1,0 +1,88 @@
+---
+import { DOMAINS } from '../../lib/domains';
+import { domainLessons } from '../../lib/lessons';
+import { siteUrl } from '../../lib/urls';
+
+interface Props {
+	showLessons?: boolean;
+}
+
+const { showLessons = true } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const t = isBn
+	? { lessonsUnit: 'টি লেসন', pending: 'লেখা বাকি' }
+	: { lessonsUnit: ' lessons', pending: 'not written yet' };
+
+const docFiles = new Set(Object.keys(import.meta.glob('/src/content/docs/learn/**/*.mdx')));
+const hasDomainIndex = (slug: string) => docFiles.has(`/src/content/docs/learn/${slug}/index.mdx`);
+const hasLesson = (slug: string, lesson: string) =>
+	docFiles.has(`/src/content/docs/learn/${slug}/${lesson}.mdx`);
+const domainTitle = (domain: (typeof DOMAINS)[number]) =>
+	showLessons
+		? `D${domain.id} · ${isBn ? domain.labelBn : domain.labelEn}`
+		: isBn
+			? domain.labelBn
+			: domain.labelEn;
+const crossLabel = (domain: (typeof DOMAINS)[number]) => (isBn ? domain.labelEn : domain.labelBn);
+---
+
+<div class:list={['domain-index', !showLessons && 'domain-index--compact']}>
+	{
+		DOMAINS.map((domain) => (
+			<section
+				class:list={['domain-row', !showLessons && 'domain-row--compact']}
+				aria-labelledby={`domain-${domain.id}-title`}
+				style={`--domain-accent: ${domain.accent};`}
+			>
+				<div class="domain-row-head">
+					{!showLessons && <span class="domain-badge">D{domain.id}</span>}
+					<h3 id={`domain-${domain.id}-title`}>
+						{hasDomainIndex(domain.slug) ? (
+							<a href={siteUrl(`learn/${domain.slug}/`)}>{domainTitle(domain)}</a>
+						) : (
+							<>{domainTitle(domain)}</>
+						)}
+					</h3>
+					{showLessons ? (
+						<p>
+							{domainLessons(domain.id).length}
+							{t.lessonsUnit} · {crossLabel(domain)}
+						</p>
+					) : (
+						<>
+							<p class="domain-label-en">{crossLabel(domain)}</p>
+							<p class="domain-meta">
+								<span>
+									{domainLessons(domain.id).length}
+									{t.lessonsUnit}
+								</span>
+							</p>
+						</>
+					)}
+				</div>
+				{showLessons && (
+					<ol class="domain-lesson-list">
+						{domainLessons(domain.id).map((lesson) => (
+							<li>
+								{hasLesson(domain.slug, lesson.slug) ? (
+									<a href={siteUrl(`learn/${domain.slug}/${lesson.slug}/`)}>
+										{lesson.id} — {isBn ? lesson.titleBn : lesson.titleEn}
+									</a>
+								) : (
+									<span class="domain-lesson-pending">
+										{lesson.id} — {isBn ? lesson.titleBn : lesson.titleEn}{' '}
+										<span class="lesson-pending-tag">{t.pending}</span>
+									</span>
+								)}
+								<span class="domain-lesson-en">
+									{isBn ? lesson.titleEn : lesson.titleBn}
+								</span>
+							</li>
+						))}
+					</ol>
+				)}
+			</section>
+		))
+	}
+</div>

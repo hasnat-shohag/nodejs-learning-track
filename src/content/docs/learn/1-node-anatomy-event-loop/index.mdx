@@ -1,3 +1,11 @@
 ---
 title: Domain 1 — Node anatomy & the event loop
+description: "The mental model every server-side decision rests on: what a Node process is, how the event loop schedules work, and what 'single-threaded' actually means."
+domain: 1
 ---
+
+import LessonList from '../../../../components/content/LessonList.astro';
+
+The six lessons here build the model you will use everywhere else: one process, three layers (V8, libuv, bindings), one loop that runs JavaScript to completion between I/O events, and a small thread pool for work the kernel cannot do asynchronously.
+
+<LessonList domain={1} />
