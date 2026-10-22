@@ -1,0 +1,34 @@
+{
+  "name": "nodejs-learning-track",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js internals and server-side fundamentals — bilingual (English/Bangla) learning track built on the Node.js official docs, with runnable demos and progress tracking.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "check:links": "node tools/check-links.mjs",
+    "check:terms": "node tools/check-terms.mjs",
+    "check:contrast": "node tools/check-contrast.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.0",
+    "@fontsource-variable/inter": "^5.2.5",
+    "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "@fontsource/noto-sans-bengali": "^5.2.5",
+    "astro": "7.3.2",
+    "mermaid": "^11.6.0",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
