@@ -1,0 +1,68 @@
+---
+interface Step {
+	title: string;
+	why?: string;
+	expect?: string;
+}
+
+interface Props {
+	title: string;
+	difficulty?: string;
+	time?: string;
+	objectives?: string[];
+	steps: Step[];
+}
+
+const { title, difficulty, time, objectives, steps } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const t = isBn
+	? {
+			label: 'বিল্ড এক্সারসাইজ',
+			level: 'লেভেল',
+			timeLabel: 'সময়',
+			learn: 'যা শিখবেন:',
+			why: 'কেন',
+			expect: 'যা দেখবেন',
+		}
+	: {
+			label: 'Build exercise',
+			level: 'Level',
+			timeLabel: 'Time',
+			learn: 'You will learn:',
+			why: 'Why',
+			expect: 'Expected',
+		};
+---
+
+<aside class="build-exercise">
+	<span class="callout-label">{t.label}</span>
+	<p><strong>{title}</strong></p>
+	<div class="build-meta">
+		{difficulty && <span>{t.level}: {difficulty}</span>}
+		{time && <span>{t.timeLabel}: {time}</span>}
+	</div>
+	{
+		objectives && objectives.length > 0 && (
+			<>
+				<p>{t.learn}</p>
+				<ul>
+					{objectives.map((objective) => (
+						<li>{objective}</li>
+					))}
+				</ul>
+			</>
+		)
+	}
+	<ol>
+		{
+			steps.map((step) => (
+				<li>
+					<span>{step.title}</span>
+					{step.why && <span class="build-why">{t.why}: {step.why}</span>}
+					{step.expect && <span class="build-expect">{t.expect}: {step.expect}</span>}
+				</li>
+			))
+		}
+	</ol>
+</aside>

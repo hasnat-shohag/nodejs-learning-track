@@ -1,0 +1,53 @@
+---
+interface Props {
+	sourceUrl: string;
+	updated?: string;
+}
+
+const { sourceUrl, updated } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const issueUrl = 'https://github.com/hasnat-shohag/nodejs-learning-track/issues';
+---
+
+<aside class="attribution">
+	{
+		isBn ? (
+			<p>
+				এই লেসনটি Node.js-এর{' '}
+				<a href={sourceUrl} rel="noopener noreferrer" target="_blank">
+					অফিসিয়াল ডকুমেন্টেশনের
+				</a>{' '}
+				ওপর ভিত্তি করে লেখা। মূল ডকুমেন্টেশন OpenJS Foundation-এর, কৃতিত্ব তাদের।
+			</p>
+		) : (
+			<p>
+				This lesson is based on the{' '}
+				<a href={sourceUrl} rel="noopener noreferrer" target="_blank">
+					official Node.js documentation
+				</a>
+				. The original docs belong to the OpenJS Foundation.
+			</p>
+		)
+	}
+	{
+		isBn ? (
+			<p>
+				ভুল পেলে{' '}
+				<a href={issueUrl} rel="noopener noreferrer" target="_blank">
+					issue খুলুন
+				</a>
+				।
+			</p>
+		) : (
+			<p>
+				Found a mistake?{' '}
+				<a href={issueUrl} rel="noopener noreferrer" target="_blank">
+					Open an issue
+				</a>
+				.
+			</p>
+		)
+	}
+	{updated && <p>সর্বশেষ হালনাগাদ / Last updated: {updated}</p>}
+</aside>

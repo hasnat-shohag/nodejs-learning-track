@@ -1,0 +1,85 @@
+---
+interface Props {
+	lessonId: string;
+}
+
+const { lessonId } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+
+const labels = isBn
+	? {
+			action: 'সম্পন্ন হয়েছে বলে চিহ্নিত করুন',
+			done: 'সম্পন্ন হয়েছে — আবার চাপলে চিহ্ন মুছে যাবে',
+			status: 'অগ্রগতি শুধু এই ব্রাউজারে সংরক্ষিত হয়',
+			saved: 'অগ্রগতি সংরক্ষিত হয়েছে',
+		}
+	: {
+			action: 'Mark this lesson complete',
+			done: 'Complete — click again to clear',
+			status: 'Progress is saved only in this browser',
+			saved: 'Progress saved',
+		};
+---
+
+<div class="mark-complete" data-mark-complete data-lesson-id={lessonId} data-complete="false" data-labels={JSON.stringify(labels)}>
+	<button type="button" data-mark-complete-button aria-pressed="false">
+		<span class="mark-state" data-mark-complete-icon aria-hidden="true"></span>
+		<span data-mark-complete-label>{labels.action}</span>
+	</button>
+	<span class="mark-complete-status" data-mark-complete-status>{labels.status}</span>
+</div>
+
+<script>
+	import { LESSON_EVENT, isComplete, loadState, setLessonComplete } from '../../lib/progress';
+
+	interface Labels {
+		action: string;
+		done: string;
+		status: string;
+		saved: string;
+	}
+
+	function labelsFor(root: HTMLElement): Labels {
+		try {
+			const parsed = JSON.parse(root.dataset.labels ?? '') as Partial<Labels>;
+			if (parsed.action && parsed.done && parsed.status && parsed.saved) return parsed as Labels;
+		} catch {
+			/* fall through to English */
+		}
+		return { action: 'Mark this lesson complete', done: 'Complete — click again to clear', status: 'Progress is saved only in this browser', saved: 'Progress saved' };
+	}
+
+	function paint(): void {
+		const state = loadState();
+		document.querySelectorAll<HTMLElement>('[data-mark-complete]').forEach((root) => {
+			const lessonId = root.dataset.lessonId;
+			if (!lessonId) return;
+			const complete = isComplete(state, lessonId);
+			const labels = labelsFor(root);
+			root.dataset.complete = String(complete);
+			const button = root.querySelector<HTMLButtonElement>('[data-mark-complete-button]');
+			const icon = root.querySelector<HTMLElement>('[data-mark-complete-icon]');
+			const label = root.querySelector<HTMLElement>('[data-mark-complete-label]');
+			const status = root.querySelector<HTMLElement>('[data-mark-complete-status]');
+			if (button) button.setAttribute('aria-pressed', String(complete));
+			if (icon) icon.dataset.complete = String(complete);
+			if (label) label.textContent = complete ? labels.done : labels.action;
+			if (status) status.textContent = complete ? labels.saved : labels.status;
+		});
+	}
+
+	document.addEventListener('click', (event) => {
+		const button = (event.target as HTMLElement | null)?.closest('[data-mark-complete-button]');
+		if (!button) return;
+		const root = button.closest<HTMLElement>('[data-mark-complete]');
+		const lessonId = root?.dataset.lessonId;
+		if (!lessonId) return;
+		const complete = isComplete(loadState(), lessonId);
+		setLessonComplete(lessonId, !complete);
+		paint();
+	});
+
+	paint();
+	window.addEventListener(LESSON_EVENT, paint);
+</script>

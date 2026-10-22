@@ -1,0 +1,15 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const label = isBn ? 'পিটফল' : 'Pitfall';
+---
+
+<aside class="pitfall">
+	<span class="callout-label">{label} · {title}</span>
+	<slot />
+</aside>

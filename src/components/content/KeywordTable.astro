@@ -1,0 +1,56 @@
+---
+import glossary from '../../content/glossary-terms.json';
+
+// Definitions live in the glossary so a lesson cannot drift from it. `keywords`
+// carries the terms in the lesson's curated order; we resolve each to its
+// canonical entry and keep that order.
+interface Keyword {
+	term: string;
+}
+
+interface Props {
+	keywords: Keyword[];
+	caption?: string;
+}
+
+const { keywords } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const caption = Astro.props.caption ?? (isBn ? 'মূল শব্দগুলো' : 'Key terms');
+const defHeader = isBn ? 'অর্থ' : 'Meaning';
+
+const byTerm = new Map(glossary.map((entry) => [entry.term, entry]));
+
+const rows = keywords.map((keyword) => {
+	const entry = byTerm.get(keyword.term);
+	if (!entry) {
+		throw new Error(
+			`KeywordTable: "${keyword.term}" is not in src/content/glossary-terms.json. ` +
+				`Add the glossary entry first, or fix the term's spelling.`,
+		);
+	}
+	return entry;
+});
+---
+
+<div class="table-scroll">
+	<table class="keyword-table">
+		<caption>{caption}</caption>
+		<thead>
+			<tr>
+				<th scope="col">{isBn ? 'শব্দ' : 'Term'}</th>
+				<th scope="col">{defHeader}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{
+				rows.map((entry) => (
+					<tr>
+						<td class="keyword-term">{entry.term}</td>
+						<td>{isBn ? entry.defBn : entry.defEn}</td>
+					</tr>
+				))
+			}
+		</tbody>
+	</table>
+</div>
