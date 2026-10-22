@@ -1,0 +1,69 @@
+---
+title: "CPU-bound vs I/O-bound: when a Worker actually helps"
+description: "Three sections, one probe: 300ms of sync CPU starves every callback, the same 300ms in a Worker costs nothing, and I/O-bound work never needed a thread at all — the event loop already is the answer."
+domain: 3
+task: "3.3"
+order: 3
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: CPU-bound
+  - term: I/O-bound
+sources:
+  - label: "Node.js docs — worker_threads: when to use"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "Node.js docs — Event loop: timers, nextTick"
+    href: https://nodejs.org/api/guides/event-loop-timers-and-nexttick.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.3</span>
+</div>
+
+## What you will learn
+
+"Should this go in a Worker?" has a two-word answer: it depends on what the work *waits on*. **CPU-bound** work — hashing, parsing, compression, image processing — holds the thread, and if that thread is the main one it holds the event loop, and every callback, every request, every ping queues up behind it. Move it to a Worker and the main loop stays free: the work still costs the same CPU, but responsiveness is untouched. **I/O-bound** work — file reads, network calls, DB queries — waits on the operating system, not on your JS. The event loop was built for exactly this: it kicks the request to the OS and handles the completion later. Giving it a Worker adds a thread that spends its life *waiting*, which is pure overhead. This lesson measures all three cases with one probe: a 25 ms ping timer whose worst gap is the price of the work's placement.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="A quiet probe proves nothing — timing pings during a block">
+	<p>
+		Measuring event-loop health with a ping timer has a trap: during a synchronous block the probe *cannot fire*, so a naive reading shows nothing wrong. The demo resets the gap list, sleeps 50 ms to let one normal ping land, runs the block, then sleeps again — the first ping *after* the block carries the whole damage in its gap. The pattern to steal: always bracket the thing you are measuring with sleep on both sides, and read the worst gap, not the average.
+	</p>
+</Pitfall>
+
+## One probe, three placements
+
+Run the demo file for this lesson:
+
+```bash
+node code/3-multithreading-processes/3-3-cpu-vs-io/demo.js
+```
+
+It prints: `[1]` 300 ms of sync CPU on the main loop — the worst ping gap spikes to the full burn, the loop was blocked; `[2]` the same 300 ms inside a Worker — pings stay flat at their normal spacing, the loop never noticed; `[3]` I/O-bound load (pbkdf2 on the thread pool) — pings flat again, with zero extra threads: the event loop already handles waiting for free.
+
+<BuildExercise
+	title="Classify your own hot path"
+	difficulty="intermediate"
+	time="20 min"
+	objectives={['Classify work as CPU-bound or I/O-bound by what it waits on', 'Prove main-loop starvation with a bracketed ping probe']}
+	steps={[
+		{ title: 'Run the demo', why: 'See blocked vs flat ping gaps side by side.', expect: '[1] worst gap ≈ block duration; [2] and [3] worst gap ≈ ping interval.' },
+		{ title: 'Find your own blocker', why: 'Wrap any suspicious route in the bracketed probe.', expect: 'If worst gap spikes, you found CPU work on the loop — Worker candidate.' },
+		{ title: 'Break a habit', why: 'Try wrapping an `fs.readFile` in a Worker.', expect: 'Ping gaps identical with and without — a waiting thread bought you nothing.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-3" />

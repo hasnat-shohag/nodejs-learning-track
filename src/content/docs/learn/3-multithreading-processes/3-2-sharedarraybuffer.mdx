@@ -1,0 +1,70 @@
+---
+title: "SharedArrayBuffer + Atomics: shared memory, done safely"
+description: "SharedArrayBuffer hands two threads the same bytes with zero copy — and plain read-modify-write on those bytes loses updates. Atomics is the only correct tool; wait/notify even sleeps at the OS level."
+domain: 3
+task: "3.2"
+order: 2
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: SharedArrayBuffer
+  - term: Atomics
+  - term: data race
+sources:
+  - label: "Node.js docs — Atomics"
+    href: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics
+  - label: "TC39 — SharedArrayBuffer + Atomics proposal"
+    href: https://github.com/tc39/proposal-ecmascript-sharedmem
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.2</span>
+</div>
+
+## What you will learn
+
+`postMessage` copies; sometimes you want two threads on the *same* bytes — an image being processed, a shared counter, a ring buffer. **SharedArrayBuffer** (SAB) is that: raw memory both isolates can map, zero copy on either side. But shared bytes break the single-threaded assumption JS is built on. `view[0] += 1` is three operations — load, add, store — and two threads running it on the same cell can both load the same old value, both add, both store, and one increment vanishes. That is a **data race**, not a rare theory: on a 30 M + 5 M increment load this lesson's demo loses millions of updates. The fix is **Atomics**: `Atomics.add(view, 0, 1)` is one indivisible operation — every increment lands. `Atomics.wait` / `Atomics.notify` complete the toolkit: put a thread to sleep at the OS level, no CPU spin, and wake it from the other side.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="A small symmetric load can look race-free — you tested serial, not concurrent">
+	<p>
+		Run 10k + 10k increments and you will often see exactly 20k — and learn nothing. Both loops may run back-to-back serially, or the window is so short the race never fires. The demo's main side loops 30 M times (~60 ms) so the worker's 5 M provably overlap it; only then does the lost-update gap open. When you benchmark races, size the load for guaranteed overlap — asymmetric, with the main side still hot when the worker joins.
+	</p>
+</Pitfall>
+
+## Lose a race, then win it
+
+Run the demo file for this lesson:
+
+```bash
+node code/3-multithreading-processes/3-2-sharedarraybuffer/demo.js
+```
+
+It prints: `[1]` the race — plain `view[0] += 1` from both sides lands well under the expected 35 M; `[2]` the same load with `Atomics.add` on both sides — exactly 35 M, every increment accounted for; `[3]` `Atomics.wait` parking the main thread at the OS level until the worker's `Atomics.notify` wakes it — sleep without spinning, measured in the wake-up gap.
+
+<BuildExercise
+	title="Prove the race to yourself"
+	difficulty="advanced"
+	time="25 min"
+	objectives={['Explain why plain RMW on shared bytes loses updates', 'Use Atomics.add/wait/notify as the only correct shared-memory tools']}
+	steps={[
+		{ title: 'Run the demo', why: 'Watch the race lose updates, then Atomics land them all.', expect: '[1] under 35M; [2] exactly 35M; [3] main wakes on notify.' },
+		{ title: 'Shrink the race', why: 'Set both sides to 10k and re-run [1].', expect: 'Often exactly 20k — serial or no-overlap. Symmetric small loads hide races.' },
+		{ title: 'Sleep without spinning', why: 'Replace [3] with a `while (Atomics.load(...) !== 1) {}` spin.', expect: 'Same wake-up, but a core is 100% burned — wait/notify costs nothing while asleep.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-2" />

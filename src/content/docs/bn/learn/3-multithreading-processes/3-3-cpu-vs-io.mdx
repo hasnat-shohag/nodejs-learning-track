@@ -1,0 +1,70 @@
+---
+title: "CPU-bound বনাম I/O-bound: কখন Worker আসলেই দরকার"
+titleEn: "CPU-bound vs I/O-bound: when a Worker actually helps"
+description: "তিন সেকশন, এক প্রোব: 300ms sync CPU প্রতিটি কলব্যাককে না খাওয়ায়, Worker-এ ওই 300ms-এর দাম শূন্য, আর I/O-bound কাজের কখনোই থ্রেড লাগেনি — event loop নিজেই উত্তর।"
+domain: 3
+task: "3.3"
+order: 3
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: CPU-bound
+  - term: I/O-bound
+sources:
+  - label: "Node.js docs — worker_threads: কখন ব্যবহার করবেন"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "Node.js docs — Event loop: timers, nextTick"
+    href: https://nodejs.org/api/guides/event-loop-timers-and-nexttick.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.3</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+"এটা Worker-এ যাবে?" — উত্তর দুই শব্দে: কাজটা *কীসের জন্য অপেক্ষা করে* সেটার ওপর নির্ভর করে। **CPU-bound** কাজ — hashing, parsing, compression, ইমেজ প্রসেসিং — থ্রেড ধরে রাখে, আর সেই থ্রেড main হলে event loop ধরে রাখে: প্রতিটি কলব্যাক, প্রতিটি রিকোয়েস্ট, প্রতিটি পিং পেছনে লাইনে। Worker-এ সরালে main লুপ মুক্ত থাকে: কাজের CPU খরচ একইই, কিন্তু responsiveness অক্ষত। **I/O-bound** কাজ — ফাইল রিড, নেটওয়ার্ক কল, DB কোয়েরি — অপেক্ষা করে অপারেটিং সিস্টেমের জন্য, আপনার JS-এর জন্য নয়। Event loop ঠিক এর জন্যই বানানো: রিকোয়েস্ট OS-কে ছুড়ে দেয়, কমপ্লিশন পরে সামলায়। ওটাকে Worker দিলে যোগ হয় এমন একটি থ্রেড যার সারাজীবন অপেক্ষা — খাঁটি ওভারহেড। এই লেসন তিনটি ক্ষেত্রই মাপে এক প্রোব দিয়ে: 25ms-এর পিং টাইমার, যার সবচেয়ে খারাপ gap-ই কাজের বসানোর দাম।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="চুপ প্রোব কিছুই প্রমাণ করে না — ব্লক চলার সময় পিং টাইম করা">
+	<p>
+		পিং টাইমার দিয়ে event loop-এর স্বাস্থ্য মাপার একটা ফাঁদ আছে: sync ব্লক চলার সময় প্রোব *ফায়ারই করতে পারে না*, তাই নাইভ পড়ায় সব ঠিক ঠাক। ডেমো gap লিস্ট রিসেট করে, ৫০ms ঘুমিয়ে একটা স্বাভাবিক পিং বসতে দেয়, ব্লক চালায়, তারপর আবার ঘুমায় — ব্লকের *পরের* প্রথম পিং-ই পুরো ক্ষতিটা gap-এ বইয়ে রাখে। যে প্যাটার্ন নিন: যা মাপছেন তার দুই পাশে sleep দিয়ে ঘিরুন, আর গড় নয়, সবচেয়ে খারাপ gap পড়ুন।
+	</p>
+</Pitfall>
+
+## এক প্রোব, তিন বসানো
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-3-cpu-vs-io/demo.js
+```
+
+ছাপে: `[1]` main লুপে 300ms sync CPU — সবচেয়ে খারাপ পিং gap পুরো বার্ন পর্যন্ত লাফায়, লুপ ব্লকড ছিল; `[2]` একই 300ms CPU Worker-এর ভেতরে — পিং স্বাভাবিক ফাঁকে সমতল, লুপ টেরও পায়নি; `[3]` I/O-bound লোড (thread pool-এ pbkdf2) — পিং আবার সমতল, শূন্য অতিরিক্ত থ্রেডে: অপেক্ষার কাজ event loop বিনামূল্যেই সামলায়।
+
+<BuildExercise
+	title="নিজের হট পাথ শ্রেণীবদ্ধ করুন"
+	difficulty="মাঝারি"
+	time="২০ মিনিট"
+	objectives={['কাজ কীসের জন্য অপেক্ষা করে সেটা দিয়ে CPU-bound না I/O-bound নির্ধারণ করা', 'ঘেরা পিং প্রোব দিয়ে main লুপ starvation প্রমাণ করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'ব্লকড বনাম সমতল পিং gap পাশাপাশি দেখুন।', expect: '[1] সবচেয়ে খারাপ gap ≈ ব্লকের দৈর্ঘ্য; [2] ও [3] ≈ পিং interval।' },
+		{ title: 'নিজের ব্লকার খুঁজুন', why: 'সন্দেহভাজন যেকোনো রুটকে ঘেরা প্রোবে মুড়ে দিন।', expect: 'সবচেয়ে খারাপ gap লাফালে লুপে CPU কাজ পেয়েছেন — Worker প্রার্থী।' },
+		{ title: 'অভ্যাস ভাঙুন', why: 'একটি `fs.readFile`-কে Worker-এ মুড়ে দেখুন।', expect: 'Worker থাকুক বা না থাকুক পিং gap একই — অপেক্ষমান থ্রেড কিছুই কেনেনি।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-3" />

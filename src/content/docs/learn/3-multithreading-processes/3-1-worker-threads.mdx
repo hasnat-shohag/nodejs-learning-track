@@ -1,0 +1,71 @@
+---
+title: "worker_threads: Worker, MessageChannel, transfer vs clone"
+description: "A Worker is a second V8 isolate with its own event loop on its own OS thread in the same process — postMessage copies by default, transfer moves, and knowing which is which is the whole lesson."
+domain: 3
+task: "3.1"
+order: 1
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: Worker
+  - term: MessageChannel
+  - term: structured clone
+  - term: transferable
+sources:
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "HTML spec — Structured clone algorithm"
+    href: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.1</span>
+</div>
+
+## What you will learn
+
+`new Worker(file)` builds a second V8 isolate with its own event loop, running on its own OS thread, inside the same process — one `pid`, two `threadId`s. Nothing is shared between the two isolates by default, which is the feature: no locks on the JS heap, because there is no shared JS heap. Communication goes through `postMessage`, and its two modes are the heart of this lesson. Without a transfer list the message is **structured-cloned** — the runtime walks the value and copies it, so a 64 MB `ArrayBuffer` costs a 64 MB copy and the sender keeps its copy. With the buffer listed in the transfer list, the backing memory is **moved** — the receiver gets the bytes, the sender's view is detached (`byteLength === 0`) the instant `postMessage` returns. Zero copy, and the sender physically cannot touch the data again.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Transfer detaches the buffer immediately — before the worker sees it">
+	<p>
+		`postMessage(msg, [buf])` neuters the sender's `buf` at call time, not when the worker reads it. Code after the call sees `byteLength === 0` — any later `postMessage` of the same buffer throws `DataCloneError`. And **MessageChannel** is the third port pair you will meet: it is how two workers talk *directly*, parent-to-parent relaying skipped. Build a channel, hand one port to each side, and messages flow between them without the main thread in the loop.
+	</p>
+</Pitfall>
+
+## One process, two threads, two postMessage modes
+
+Run the demo file for this lesson:
+
+```bash
+node code/3-multithreading-processes/3-1-worker-threads/demo.js
+```
+
+It prints: `[1]` the main thread's `threadId` and pid; `[2]` the worker's — same pid, different `threadId`, the two-isolate picture made visible. `[3]` a 64 MB buffer sent without a transfer list: worker gets the bytes, main's copy still full — a clone, a full copy. `[4]` the same buffer transferred: main's `byteLength` reads `0` immediately after `postMessage`, worker gets the same memory — moved, not copied.
+
+<BuildExercise
+	title="Move your first 64 megabytes"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Explain isolate-per-worker and why the JS heap is never shared', 'Predict clone vs transfer behavior for ArrayBuffer, and what detaches']}
+	steps={[
+		{ title: 'Run the demo', why: 'Watch pid stay fixed and threadId fork.', expect: 'clone keeps sender bytes; transfer detaches sender immediately.' },
+		{ title: 'Break it on purpose', why: 'After the transfer, read `move[0]` in main.', expect: 'TypedArray on detached buffer: silent zeros or TypeError — the memory is gone.' },
+		{ title: 'Wire a MessageChannel', why: 'Give two workers a port each from one `new MessageChannel()`.', expect: 'Workers exchange messages with zero main-thread hops.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-1" />

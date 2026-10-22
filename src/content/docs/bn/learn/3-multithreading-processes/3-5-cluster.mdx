@@ -1,0 +1,70 @@
+---
+title: "cluster: N প্রসেস, এক পোর্ট, round-robin"
+titleEn: "cluster: N processes, one port, round-robin"
+description: "cluster পুরো প্রসেস fork করে আর শোনার socket ভাগ করে দেয় — primary পোর্টের মালিক, connection একে একে worker-দের হাতে দেয়। মাল্টি-কোর সার্ভিং, মাল্টি-প্রসেস প্লাম্বিং ছাড়াই।"
+domain: 3
+task: "3.5"
+order: 5
+sourceUrl: https://nodejs.org/api/cluster.html
+updated: 2026-10-23
+keywords:
+  - term: cluster
+  - term: round-robin
+sources:
+  - label: "Node.js docs — cluster"
+    href: https://nodejs.org/api/cluster.html
+  - label: "Node.js docs — cluster: কীভাবে কাজ করে"
+    href: https://nodejs.org/api/cluster.html#how-it-works
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.5</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+`worker_threads` দেয় থ্রেড; `cluster` দেয় *প্রসেস*। `cluster.fork()` spawn করে একটি পুরো Node প্রসেস যা primary-র শোনার socket ভাগ করে নেয়: primary connection accept করে আর worker-দের দেয় — POSIX-এ নীতিটা **round-robin**, লাইনের পরের worker-কে এবার একটি connection। থ্রেড থাকতে প্রসেস কেন? হাতুড়ি-সহ isolation: একটা worker মরলে কোনো শেয়ার্ড heap টেনে নামায় না, আর `exit` ফাইাার করা মাত্রই primary replacement fork করতে পারে। ডেমোর ১২ রিকোয়েস্ট ৪ worker-এ 3/3/3/3 নামে — distribution যা বিশ্বাস নয়, চোখে দেখা যায়। হাত বাড়ানোর আগে একটা কথা: Node 12-এর পর থেকে main থ্রেডের event loop নিজেই বেশিরভাগ সার্ভিং লোড সামলায়; cluster আসল লাভ দেয় CPU-ভারী সার্ভিং বা zero-downtime রিস্টার্টে, ডিফল্ট হিসেবে নয়।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="প্রসেস boundary দুই দিকেই কাটে — শেয়ার্ড মেমরি নেই, শেয়ার্ড স্টেটও নেই">
+	<p>
+		cluster worker-রা একে অপরের ভ্যারিয়েবল, সেশন, ক্যাশ পড়তে পারে না: আলাদা প্রসেস, আলাদা মেমরি, মাঝে শুধু IPC channel। Sticky session, মেমরি-তে rate limit, "recently seen" সেট — প্রতিটি worker নিজের কপি রাখে আর আলাদা হয়ে যায়। শেয়ার্ড স্টেট বাইরে সরান (Redis, DB) বা hash করে route করুন যাতে একই ক্লায়েন্ট সবসময় একই worker-এ পড়ে। আর Windows-এ শেয়ারিং মডেল আলাদা — connection পায় যে worker আগে ধরে, তাই distribution কাত হতে পারে।
+	</p>
+</Pitfall>
+
+## এক socket, চার প্রসেস, এক লাশ
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-5-cluster/demo.js
+```
+
+ছাপে: `[1]` primary ৪ worker fork করছে আর সবাই ONE শেয়ার্ড পোর্টে accept করছে; `[2]` ১২ রিকোয়েস্ট ৪টি আলাদা worker pid-তে, spread 3/3/3/3 — round-robin হ্যান্ডঅফ, মাপা; `[3]` এক worker-কে mid-serve `SIGKILL`, replacement fork, পরের ৬ রিকোয়েস্টও সার্ভড — এক worker-এর মৃত্যুর দাম একটা fork, পোর্ট নয়।
+
+<BuildExercise
+	title="মারুন, ফিরে আসতে দেখুন"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['শেয়ার্ড-socket মডেল আর distribution-এ primary-র ভূমিকা ব্যাখ্যা করা', 'exit ইভেন্ট ঘিরে মৃত্যু-ও-রিপ্লেসমেন্ট হ্যান্ডলিং বানানো']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'এক পোর্ট থেকে চার pid-এ সমান সার্ভিং দেখুন।', expect: 'spread 3/3/3/3; মারা worker replaced; রিকোয়েস্ট চলতে থাকে।' },
+		{ title: 'stickiness ভাঙুন', why: 'প্রতি worker-কে মেমরি-তে কাউন্টার দিয়ে একই পাথে ১২ হিট করুন।', expect: 'চারটা ভিন্ন মোট — "একই ক্লায়েন্ট" স্টেট প্রসেস জুড়ে ভাঙল।' },
+		{ title: 'একাধিক মারুন', why: 'একসাথে দুই worker-কে SIGKILL করে রিকোয়েস্ট চালু রাখুন।', expect: 'দুই fork, দুই replacement — রিপ্লেসমেন্ট লজিক worker-প্রতি হতে হবে, একবার-নয়।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-5" />

@@ -1,0 +1,71 @@
+---
+title: "SharedArrayBuffer + Atomics: শেয়ার্ড মেমরি, নিরাপদভাবে"
+titleEn: "SharedArrayBuffer + Atomics: shared memory, done safely"
+description: "SharedArrayBuffer দুই থ্রেডকে শূন্য কপিতে একই বাইট দেয় — আর ওই বাইটে খাঁটি read-modify-write আপডেট হারায়। Atomics-ই একমাত্র সঠিক হাতিয়ার; wait/notify OS লেভেলে ঘুম পর্যন্ত দেয়।"
+domain: 3
+task: "3.2"
+order: 2
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: SharedArrayBuffer
+  - term: Atomics
+  - term: data race
+sources:
+  - label: "MDN — Atomics"
+    href: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics
+  - label: "TC39 — SharedArrayBuffer + Atomics প্রপোজাল"
+    href: https://github.com/tc39/proposal-ecmascript-sharedmem
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.2</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+`postMessage` কপি করে; মাঝে মাঝে চাই দুই থ্রেড *একই* বাইটে — প্রসেস হচ্ছে একটি ইমেজ, একটি শেয়ার্ড কাউন্টার, একটি রিং বাফার। **SharedArrayBuffer** (SAB) ঠিক সেটাই: দুই আইসোলেট যে র মেমরি ম্যাপ করতে পারে, কোনো পাশেই কপি নেই। কিন্তু শেয়ার্ড বাইট ভাঙে সেই একক-থ্রেড অনুমান যার ওপর JS দাঁড়িয়ে। `view[0] += 1` আসলে তিনটি অপারেশন — load, add, store — আর একই সেলে দুই থ্রেড চালালে দুজনেই একই পুরনো মান load করতে পারে, দুজনেই add, দুজনেই store, আর একটি ইনক্রিমেন্ট মিলিয়ে যায়। এটাই **data race**, বিরল তত্ত্ব নয়: ৩০ লাখ + ৫ লাখ ইনক্রিমেন্টের লোডে এই লেসনের ডেমো লাখখানেক আপডেট হারায়। সমাধান **Atomics**: `Atomics.add(view, 0, 1)` একটি অবিভাজ্য অপারেশন — প্রতিটি ইনক্রিমেন্ট জায়গা পায়। `Atomics.wait` / `Atomics.notify` টুলবক্স পূর্ণ করে: থ্রেডকে OS লেভেলে ঘুম পাতায়, CPU স্পিন ছাড়াই, আর ওপাশ থেকে জাগায়।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="ছোট সিমেট্রিক লোড দেখতে রেস-মুক্ত লাগতে পারে — আপনি টেস্ট করলেন serial, concurrent নয়">
+	<p>
+		১০ হাজার + ১০ হাজার ইনক্রিমেন্ট চালালে প্রায়ই ঠিক ২০ হাজার দেখবেন — আর কিছুই শিখবেন না। দুই লুপ পরপর serial চলতে পারে, বা উইন্ডো এত ছোট যে রেসই ধরা পড়ে না। ডেমোর main পাশ ৩০ লাখবার লুপ করে (~60ms), যাতে worker-এর ৫ লাখ নিশ্চিতভাবে ওর ওপর পড়ে; তবেই হারানো-আপডেটের ফাঁক খোলে। রেস বেঞ্চমার্ক করলে লোড সাইজ করুন নিশ্চিত ওভারল্যাপের জন্য — অসিমেট্রিক, এমন যে worker যোগ দেয় এমন সময়ে main পাশ এখনো হট।
+	</p>
+</Pitfall>
+
+## রেস হারান, তারপর জেতান
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-2-sharedarraybuffer/demo.js
+```
+
+ছাপে: `[1]` রেস — দুই পাশ থেকে খাঁটি `view[0] += 1`-এ ফল আসে প্রত্যাশিত ৩৫ লাখের অনেক নিচে; `[2]` একই লোডে দুই পাশেই `Atomics.add` — ঠিক ৩৫ লাখ, প্রতিটি ইনক্রিমেন্ট হিসাবে আছে; `[3]` `Atomics.wait` main থ্রেডকে OS লেভেলে পার্ক করে রাখে worker-এর `Atomics.notify` না ডাকা পর্যন্ত — স্পিন ছাড়া ঘুম, জাগার ফাঁকে মাপা।
+
+<BuildExercise
+	title="রেস নিজে প্রমাণ করুন"
+	difficulty="উঁচু স্তর"
+	time="২৫ মিনিট"
+	objectives={['শেয়ার্ড বাইটে খাঁটি RMW কেন আপডেট হারায় ব্যাখ্যা করা', 'Atomics.add/wait/notify-কে একমাত্র সঠিক শেয়ার্ড-মেমরি হাতিয়ার হিসেবে ব্যবহার করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'রেস আপডেট হারাতে দেখুন, তারপর Atomics সব বসাতে।', expect: '[1] ৩৫ লাখের নিচে; [2] ঠিক ৩৫ লাখ; [3] notify-তে main জাগে।' },
+		{ title: 'রেস ছোট করুন', why: 'দুই পাশ ১০ হাজার করে [1] আবার চালান।', expect: 'প্রায়ই ঠিক ২০ হাজার — serial বা no-overlap। ছোট সিমেট্রিক লোড রেস লুকায়।' },
+		{ title: 'স্পিন ছাড়া ঘুম', why: '[3]-এর জায়গায় `while (Atomics.load(...) !== 1) {}` স্পিন দিন।', expect: 'একই জাগা, কিন্তু একটি কোর ১০০% পোড়ে — ঘুমন্ত অবস্থায় wait/notify-র দাম শূন্য।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-2" />

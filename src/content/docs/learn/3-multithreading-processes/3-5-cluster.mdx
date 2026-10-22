@@ -1,0 +1,69 @@
+---
+title: "cluster: N processes, one port, round-robin"
+description: "cluster forks full processes and shares the listening socket between them — the primary owns the port and hands connections to workers one at a time. Multi-core serving without multi-process plumbing."
+domain: 3
+task: "3.5"
+order: 5
+sourceUrl: https://nodejs.org/api/cluster.html
+updated: 2026-10-23
+keywords:
+  - term: cluster
+  - term: round-robin
+sources:
+  - label: "Node.js docs — cluster"
+    href: https://nodejs.org/api/cluster.html
+  - label: "Node.js docs — cluster: how it works"
+    href: https://nodejs.org/api/cluster.html#how-it-works
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.5</span>
+</div>
+
+## What you will learn
+
+`worker_threads` gives you threads; `cluster` gives you *processes*. `cluster.fork()` spawns a full Node process that shares the primary's listening socket: the primary accepts connections and hands them to workers — on POSIX the policy is **round-robin**, one connection at a time to the next worker in line. Why processes when threads exist? Isolation with a hammer: a worker that dies takes no shared heap down with it, and the primary can fork a replacement the moment `exit` fires. The demo's 12 requests land 3/3/3/3 across four workers — distribution you can see, not trust. One caveat before you reach for it: since Node 12 the main-thread event loop keeps up with most serving loads on its own; cluster earns its keep for CPU-heavy serving or zero-downtime restarts, not as a default.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Process boundaries cut both ways — no shared memory, no shared state">
+	<p>
+		Cluster workers cannot read each other's variables, sessions, or caches: separate processes, separate memory, and only the IPC channel between them. Sticky sessions, in-memory rate limits, a "recently seen" set — each worker holds its own copy and drifts apart. Move shared state out (Redis, DB) or route by hashing so the same client always lands on the same worker. And on Windows the sharing model differs — connections go to whichever worker grabs them first, so distribution can skew.
+	</p>
+</Pitfall>
+
+## One socket, four processes, one corpse
+
+Run the demo file for this lesson:
+
+```bash
+node code/3-multithreading-processes/3-5-cluster/demo.js
+```
+
+It prints: `[1]` the primary forking 4 workers and all of them accepting on ONE shared port; `[2]` 12 requests served by 4 distinct worker pids, spread 3/3/3/3 — the round-robin handoff, measured; `[3]` a worker `SIGKILL`ed mid-serve, the replacement forked, and the next 6 requests still served — death of one worker costs a fork, not the port.
+
+<BuildExercise
+	title="Kill it and watch it come back"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Explain the shared-socket model and what the primary does for distribution', 'Build death-and-replacement handling around the exit event']}
+	steps={[
+		{ title: 'Run the demo', why: 'Watch one port serve from four pids evenly.', expect: 'spread 3/3/3/3; killed worker replaced; requests continue.' },
+		{ title: 'Break stickiness', why: 'Give each worker an in-memory counter and hit the same path 12 times.', expect: 'Four different totals — the "same client" state split across processes.' },
+		{ title: 'Kill more than one', why: 'SIGKILL two workers at once, keep requests flowing.', expect: 'Two forks, two replacements — replacement logic must be per-worker, not once-only.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-5" />

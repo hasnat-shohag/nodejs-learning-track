@@ -253,6 +253,141 @@
 		"domain": 2
 	},
 	{
+		"term": "Atomics",
+		"defEn": "Wait-free atomic ops on SharedArrayBuffer views: Atomics.store/load/add/wait/notify give ordering and a futex-style wait that cannot be interrupted by the event loop.",
+		"defBn": "SharedArrayBuffer ভিউতে ওয়েট-ফ্রি অ্যাটমিক অপ: Atomics.store/load/add/wait/notify অর্ডারিং দেয় আর futex-স্টাইল wait যা event loop ভাঙতে পারে না।",
+		"refs": [
+			"https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
+		],
+		"domain": 3
+	},
+	{
+		"term": "cluster",
+		"defEn": "Node's multi-process module: a supervisor forks N workers, all sharing one listening port via round-robin distribution. Each cluster worker is a full process with its own event loop.",
+		"defBn": "Node-এর মাল্টি-প্রসেস মডিউল: সুপারভাইজর N ওয়ার্কার fork করে, রাউন্ড-রবিনে এক লিসেনিং পোর্ট ভাগ করে। প্রতিটি cluster ওয়ার্কার নিজের event loop-সহ পূর্ণ প্রসেস।",
+		"refs": [
+			"https://nodejs.org/api/cluster.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "CPU-bound",
+		"defEn": "Work whose cost is computation (hashing, image resize, JSON parse of huge payloads), not I/O. Blocks the event loop if done inline — belongs in a Worker.",
+		"defBn": "যে কাজের খরচ হিসাব (হ্যাশিং, ইমেজ রিসাইজ, বিশাল পেলোডের JSON পার্স), I/O নয়। ইনলাইন করলে event loop আটকায় — এর জায়গা Worker-এ।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+		],
+		"domain": 3
+	},
+	{
+		"term": "data race",
+		"defEn": "Two threads read-modify-write the same bytes with no ordering: lost updates, torn reads. On SAB, every compound operation must be an Atomics op, not plain [] access.",
+		"defBn": "দুই থ্রেড অর্ডারিং ছাড়াই একই বাইট read-modify-write করে: আপডেট হারায়, রিড ছিঁড়ে। SAB-তে প্রতিটি যৌগিক অপারেশন প্লেইন [] অ্যাক্সেস নয়, Atomics অপ হতে হবে।",
+		"refs": [
+			"https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
+		],
+		"domain": 3
+	},
+	{
+		"term": "I/O-bound",
+		"defEn": "Work that waits on sockets/disk/timers, not CPU. Node's sweet spot: thousands of concurrent I/O-bound operations on one event loop, zero workers needed.",
+		"defBn": "যে কাজ সকেট/ডিস্ক/টাইমারের অপেক্ষা করে, CPU-তে নয়। Node-এর মাঠ: এক event loop-এ হাজার কনকারেন্ট I/O-bound অপারেশন, কোনো worker লাগে না।",
+		"refs": [
+			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+		],
+		"domain": 3
+	},
+	{
+		"term": "IPC channel",
+		"defEn": "The pipe Node gives fork()-ed child processes: process.send()/message events pass JSON-serialized messages between parent and child; streams/sockets can be sent as handles.",
+		"defBn": "fork() করা চাইল্ড প্রসেসকে Node যে পাইপ দেয়: process.send()/message ইভেন্টে প্যারেন্ট-চাইল্ডের মধ্যে JSON-সিরিয়ালাইজড মেসেজ যায়; স্ট্রিম/সকেট handle হিসেবে পাঠানো যায়।",
+		"refs": [
+			"https://nodejs.org/api/child_process.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "MessageChannel",
+		"defEn": "A pair of MessagePorts (port1/port2) for structured-clone message passing between threads — the transferable way to move data without copying.",
+		"defBn": "থ্রেডের মধ্যে structured-clone মেসেজ পাঠানোর MessagePort-জোড়া (port1/port2) — কপি ছাড়াই ডেটা সরানোর transferable পথ।",
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html#class-messageport"
+		],
+		"domain": 3
+	},
+	{
+		"term": "round-robin",
+		"defEn": "cluster's default load distribution on non-Windows: the master accepts each connection and hands the socket to the next worker in turn, avoiding thundering-herd accept races.",
+		"defBn": "Windows ছাড়া cluster-এর ডিফল্ট লোড বিতরণ: মাস্টার প্রতিটি কানেকশন accept করে পালা করে পরের ওয়ার্কারকে সকেট দেয়, thundering-herd accept-দৌড় এড়ায়।",
+		"refs": [
+			"https://nodejs.org/api/cluster.html#how-it-works"
+		],
+		"domain": 3
+	},
+	{
+		"term": "SharedArrayBuffer",
+		"defEn": "A fixed-length raw byte buffer whose memory is shared with a Worker (no copy, no clone): both sides see the SAME bytes — coordination must go through Atomics.",
+		"defBn": "নির্দিষ্ট-দৈর্ঘ্যের র বাইট বাফার যার মেমরি Worker-এর সাথে শেয়ার হয় (কপি নেই, ক্লোন নেই): দুই পাশ একই বাইট দেখে — সমন্বয় করতে হয় Atomics দিয়ে।",
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "signal",
+		"defEn": "POSIX inter-process interrupts: SIGTERM asks for graceful shutdown, SIGKILL cannot be caught (last resort), SIGINT is Ctrl+C. child.kill() and process.on(\"SIGTERM\") are the two ends.",
+		"defBn": "POSIX ইন্টার-প্রসেস ইন্টারাপ্ট: SIGTERM সৌজন্য-শাটডাউন চায়, SIGKILL ধরা যায় না (শেষ অস্ত্র), SIGINT হলো Ctrl+C। child.kill() আর process.on(\"SIGTERM\") দুই প্রান্ত।",
+		"refs": [
+			"https://nodejs.org/api/process.html#signal-events"
+		],
+		"domain": 3
+	},
+	{
+		"term": "spawn vs fork vs exec",
+		"defEn": "child_process trio: spawn streams a new process stdout/stderr; fork = spawn + IPC channel (Node-to-Node); exec buffers ALL output in memory and shells out — pick per shape of output.",
+		"defBn": "child_process ত্রয়ী: spawn নতুন প্রসেসের stdout/stderr স্ট্রিম করে; fork = spawn + IPC চ্যানেল (Node থেকে Node); exec সব আউটপুট মেমরিতে বাফার করে শেল ডাকে — আউটপুটের গড় অনুযায়ী বাছুন।",
+		"refs": [
+			"https://nodejs.org/api/child_process.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "structured clone",
+		"defEn": "The serialization postMessage uses: most JS values copied recursively; Functions, DOM nodes, and natives like sockets are NOT cloneable. Transferables move the backing store instead of copying.",
+		"defBn": "postMessage-এর সিরিয়ালাইজেশন: বেশিরভাগ JS মান রিকার্সিভলি কপি হয়; Function, DOM নোড, socket-এর মতো নেটিভ ক্লোন-যোগ্য নয়। Transferable কপি না করে ব্যাকিং স্টোর সরায়।",
+		"refs": [
+			"https://developer.mozilla.org/docs/Web/API/Web_Workers_API/Structured_clone_algorithm"
+		],
+		"domain": 3
+	},
+	{
+		"term": "transferable",
+		"defEn": "Objects whose backing memory can MOVE between threads with zero copy in postMessage(transfers): ArrayBuffer, MessagePort. The sender's view becomes detached (byteLength 0).",
+		"defBn": "যে অবজেক্টের ব্যাকিং মেমরি postMessage(transfers)-এ জিরো-কপিতে থ্রেডের মধ্যে সরতে পারে: ArrayBuffer, MessagePort। পাঠানো পাশের ভিউ detached হয়ে যায় (byteLength 0)।",
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "Worker",
+		"defEn": "A worker_threads.Worker: its own V8 isolate + event loop on a real OS thread, running a separate JS entry file, exchanging data by postMessage or SharedArrayBuffer.",
+		"defBn": "একটি worker_threads.Worker: আসল OS থ্রেডে নিজের V8 isolate + event loop, আলাদা JS এন্ট্রি ফাইল চালায়, postMessage বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে।",
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html"
+		],
+		"domain": 3
+	},
+	{
+		"term": "worker pool",
+		"defEn": "A fixed set of Workers reused across jobs (spawn once, hand out work by message): amortizes ~30ms worker startup and caps thread count at CPU cores.",
+		"defBn": "কাজ জুড়ে পুনঃব্যবহৃত নির্দিষ্ট Worker-সেট (একবার spawn, মেসেজে কাজ বিতরণ): ~৩০ms worker স্টার্টআপ ভাগ করে খায় আর থ্রেড-সংখ্যা CPU কোরে সীমিত রাখে।",
+		"refs": [
+			"https://nodejs.org/api/worker_threads.html"
+		],
+		"domain": 3
+	},
+	{
 		"term": "worker_threads",
 		"defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
 		"defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",

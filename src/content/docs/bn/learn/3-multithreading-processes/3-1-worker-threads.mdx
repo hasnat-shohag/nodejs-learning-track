@@ -1,0 +1,72 @@
+---
+title: "worker_threads: Worker, MessageChannel, transfer বনাম clone"
+titleEn: "worker_threads: Worker, MessageChannel, transfer vs clone"
+description: "Worker মানে একই প্রসেসে নিজের event loop-সহ দ্বিতীয় V8 আইসোলেট, নিজের OS থ্রেডে — postMessage ডিফল্টে কপি করে, transfer সরায়; কোনটা কখন, সেটাই পুরো লেসন।"
+domain: 3
+task: "3.1"
+order: 1
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: Worker
+  - term: MessageChannel
+  - term: structured clone
+  - term: transferable
+sources:
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "MDN — Web Workers API"
+    href: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.1</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+`new Worker(file)` বানায় একটি দ্বিতীয় V8 আইসোলেট, নিজের event loop-সহ, নিজের OS থ্রেডে, একই প্রসেসের ভেতরে — এক `pid`, দুই `threadId`। ডিফল্টে দুই আইসোলেটের মাঝে কিছুই শেয়ার হয় না, আর এটাই ফিচার: JS heap-এ লক লাগে না, কারণ শেয়ার করা JS heap নেই। যোগাযোগ হয় `postMessage` দিয়ে, আর এর দুই মোডই এই লেসনের হৃদয়। transfer list ছাড়া পাঠালে মেসেজ **structured clone** হয় — রানটাইম ভ্যালু হাঁটিয়ে কপি করে, তাই 64 MB `ArrayBuffer` মানে 64 MB কপি খরচ, আর প্রেরকের কপি থেকেই যায়। buffer-টা transfer list-এ দিলে ব্যাকিং মেমরি **সরে যায় (transfer)** — রিসিভার বাইট পায়, আর `postMessage` ফেরার সাথে সাথে প্রেরকের ভিউ detach হয় (`byteLength === 0`)। শূন্য কপি, আর প্রেরক আর কোনোদিন ওই ডেটা ছুঁতে পারে না।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Transfer সাথে সাথে buffer detach করে — worker পড়ার আগেই">
+	<p>
+		`postMessage(msg, [buf])` কলের সময়েই প্রেরকের `buf` অচল হয়, worker পড়লে নয়। কলের পরের কোড `byteLength === 0` দেখে — পরে একই buffer আবার পাঠাতে গেলে `DataCloneError` ছোড়ে। আর **MessageChannel** হলো আপনার তৃতীয় পোর্ট-জোড়া: দুই worker সরাসরি কথা বলার রাস্তা, প্যারেন্টকে রিলে করতে হয় না। একটি চ্যানেল বানান, প্রতি পাশে এক পোর্ট ধরিয়ে দিন, আর মেসেজ main থ্রেডকে ঘুরিয়ে না দিয়ে ওদের মাঝেই চলে।
+	</p>
+</Pitfall>
+
+## এক প্রসেস, দুই থ্রেড, দুই postMessage মোড
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-1-worker-threads/demo.js
+```
+
+ছাপে: `[1]` main থ্রেডের `threadId` আর pid; `[2]` worker-এর — একই pid, ভিন্ন `threadId`, দুই-আইসোলেটের ছবি চোখের সামনে। `[3]` transfer list ছাড়া পাঠানো 64 MB buffer: worker বাইট পায়, main-এর কপি পুরোটাই আছে — clone, একটি ফুল কপি। `[4]` একই buffer transfer করলে: `postMessage`-এর পরেই main-এর `byteLength` `0`, worker পায় একই মেমরি — সরানো, কপি নয়।
+
+<BuildExercise
+	title="নিজের প্রথম 64 মেগাবাইট সরান"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['worker-প্রতি আইসোলেট আর JS heap কেন শেয়ার হয় না ব্যাখ্যা করা', 'ArrayBuffer-এ clone বনাম transfer-এর আচরণ আর detach-এর ফল অনুমান করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'pid এক থাকা আর threadId ভাঙা দেখুন।', expect: 'clone-এ প্রেরকের বাইট থাকে; transfer-এ সাথে সাথে detach।' },
+		{ title: 'ইচ্ছা করে ভাঙুন', why: 'transfer-এর পর main-এ `move[0]` পড়ুন।', expect: 'detach হওয়া buffer-এর TypedArray: নিঃশব্দে শূন্য বা TypeError — মেমরি চলে গেছে।' },
+		{ title: 'MessageChannel জোড়া দিন', why: 'এক `new MessageChannel()`-এর এক পোর্ট করে দুই worker-কে দিন।', expect: 'worker-রা main থ্রেডে এক হপও ছাড়া মেসেজ বিনিময় করে।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-1" />

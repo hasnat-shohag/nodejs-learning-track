@@ -1,0 +1,71 @@
+---
+title: "child_process: spawn বনাম fork বনাম exec, IPC, signal"
+titleEn: "child_process: spawn vs fork vs exec, IPC, signals"
+description: "আরেকটি প্রোগ্রাম চালানোর চার রাস্তা, এক লেসনে: spawn স্ট্রিম দেয়, fork IPC channel-এ কথা বলে, exec শেলে এক স্ট্রিং buffer করে, execFile argv আক্ষরিক রাখে — আর signal-এ মরা child-এর code null, error নয়।"
+domain: 3
+task: "3.6"
+order: 6
+sourceUrl: https://nodejs.org/api/child_process.html
+updated: 2026-10-23
+keywords:
+  - term: spawn vs fork vs exec
+  - term: IPC channel
+  - term: signal
+sources:
+  - label: "Node.js docs — child_process"
+    href: https://nodejs.org/api/child_process.html
+  - label: "Node.js docs — Signal events"
+    href: https://nodejs.org/api/process.html#signal-events
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.6</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+`worker_threads` এক প্রসেস ভাগ করে; `child_process` চালায় *অন্য প্রোগ্রাম* — ffmpeg, git, Python স্ক্রিপ্ট, আরেকটি Node বাইনারি। চারটি এন্ট্রি পয়েন্ট আলাদা দুই অক্ষে: buffering আর shell। `spawn` ভিত্তি — stream, shell নেই, আউটপুট child চলার সময়ই আসে; আউটপুট বড় বা চলমান হলে এটাই। `fork` হলো Node-এ বিশেষায়িত `spawn`: **IPC channel** যোগ করে যাতে `child.send(...)` আর `process.send(...)` দুই দিকেই structured-clone মেসেজ চালায় — যে প্রোটোকলের ওপর `cluster` দাঁড়িয়ে, সেটাই। `exec` নেয় এক *shell স্ট্রিং*, stdout/stderr buffer করে `maxBuffer` পর্যন্ত (ডিফল্ট 1 MB — বাড়লে child kill হয়); শুধু ছোট one-liner। `execFile` হলো shell-ছাড়া `exec`: argv array, তাই `&&` আর `$0` আক্ষরিক থাকে — কমান্ড ফিক্সড আর ইনপুট যেন ইন্টারপ্রেট না হয়, সেই নিরাপদ ডিফল্ট।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="signal-এ মৃত্যু error code নয় — দুই ফিল্ডই পড়ুন">
+	<p>
+		`exit` ফায়ার করে `(code, signal)` নিয়ে। স্বাভাবিক মৃত্যু: `code` সেট, `signal` null। `kill('SIGTERM')`-এ মরলে: `code` `null`, `signal` `'SIGTERM'`। যে কোড `if (code !== 0)` লেখে, সে signal-মৃত্যুকে *সাফল্য* ধরে। আগে `signal` দেখুন, তারপর `code`। ওপাশে একই ফাঁদ: ডিপ্লয়ড সার্ভারে `process.on('SIGTERM')` আপনার graceful-shutdown হুক — বসান, নাহলে orchestrator থামতে বললে মাঝ-লেখায় মরবে।
+	</p>
+</Pitfall>
+
+## চার launch, এক মৃত্যু
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-6-child-process/demo.js
+```
+
+ছাপে: `[1]` `spawn` তিনটি chunk পড়ার মত স্ট্রিম করে, exit-এ এক গোছা নয়; `[2]` `fork` IPC channel-এ structured মেসেজ echo করে; `[3]` `exec` শেলে `echo hello && echo $0` চালায় — দুই কমান্ডই — পাশে `execFile` একই স্ট্রিং *আক্ষরিকভাবে* ছাপে; `[4]` `SIGTERM`-এ মরা child-এর exit event: `{ code: null, signal: 'SIGTERM' }` — যে ফিল্ড-জোড়া প্রতিটি child-exit হ্যান্ডলারকে পড়তেই হবে।
+
+<BuildExercise
+	title="সঠিক launcher বাছুন"
+	difficulty="মাঝারি"
+	time="২০ মিনিট"
+	objectives={['আউটপুট সাইজ, shell দরকার, আর ভাষা দিয়ে spawn/fork/exec/execFile বাছাই করা', 'exit-এ code আর signal দুটোই হ্যান্ডল করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'এক রানে streaming বনাম IPC বনাম shell বনাম argv-literal দেখুন।', expect: 'chunk ছড়িয়ে আসে; exec shell-ইন্টারপ্রেট করে; execFile করে না; SIGTERM-এ code null।' },
+		{ title: 'maxBuffer ফাটান', why: '`exec`-এ 2 MB ছাপা কমান্ড দিন।', expect: 'Error: maxBuffer exceeded, child মরে — বড় আউটপুট মানেই spawn, এই জন্য।' },
+		{ title: 'নিরাপদ inject', why: 'argv থেকে filename নিয়ে `execFile`-এ, তারপর `exec`-এ একই দেখুন।', expect: 'execFile এক আক্ষরিক আর্গুমেন্ট দেয়; exec-এ `;` দ্বিতীয় কমান্ড চালাত।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-6" />

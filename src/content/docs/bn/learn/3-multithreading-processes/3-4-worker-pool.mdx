@@ -1,0 +1,71 @@
+---
+title: "Worker pool: একবার spawn, মেসেজে কাজ, কিউতে ওভারফ্লো"
+titleEn: "Worker pool: spawn once, message work, queue overflow"
+description: "প্রতি জবে নতুন Worker spawn মানে প্রতিবার ~30ms আর একটি ফ্রেশ heap। Pool সেই দাম একবার দেয় আর কত জবই আসুক peak worker স্থির রাখে — এই লেসন একটা বানায় আর কত বাঁচে গুনে দেখায়।"
+domain: 3
+task: "3.4"
+order: 4
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: worker pool
+  - term: Worker
+  - term: worker_threads
+sources:
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "Node.js docs — Simple worker pool (গাইড)"
+    href: https://nodejs.org/api/worker_threads.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.4</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+একটি `new Worker` মানে ~30 ms spawn আর একটি পুরো V8 heap — প্রতিবার। প্রতি জবে একটা করে spawn করলে এই খরচ আপনার ট্রাফিকের সাথে বাড়ে — ৮ জব, ৮ spawn, পিকে ৮টি সমান্তরাল heap। **worker pool** প্যাটার্নই সমাধান, আর এটা তিনটি আইডিয়া: নির্দিষ্ট সংখ্যক worker একবার spawn; কাজ spawn নয়, মেসেজে বিতরণ; আর একটি কিউ যাতে বার্স্ট অপেক্ষা করে, spawn-storm নয়। যা কেনেন তা সাধারণত wall-clock নয় — মাল্টি-কোর মেশিনে one-shot worker পাল্লা দিতে পারে — কেনেন *boundedness*: কত জবই আসুক spawn আর peak worker স্থির। সাইজিংয়ে সাধারণ ক্ষেত্রের rule of thumb: CPU-bound কাজে pool = CPU cores, কারণ cores-এর বাইরে জবগুলো শুধু একে অপরের লাইনে পড়ে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Worker thenable নয় — 'await worker' সাথে সাথে resolve হয়">
+	<p>
+		`Worker` অবজেক্টের `then` মেথড নেই। `await worker` সাথে সাথেই resolve হয়, কাজ শুরু হওয়ার আগেই, আর পরের কোড খুশি মনে অর্ধেক-শেষ অবস্থা পড়ে। অপেক্ষা করুন `exit` ইভেন্টে — `new Promise((resolve) => worker.on('exit', resolve))` — বা আরও ভালো, worker-এর রিপ্লাই মেসেজে। একই পরিবারের বাগ: stream বা EventEmitter-কে "শেষ হবে" ভেবে `await` করবেন না; `await` শুধু promise চেনে।
+	</p>
+</Pitfall>
+
+## সময় নয়, গণনা
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/3-multithreading-processes/3-4-worker-pool/demo.js
+```
+
+ছাপে: `[1]` spawn-per-job — ৮ spawn, পিকে ৮ সমান্তরাল worker, spawn খরচ ৮ বার; `[2]` একই ৮ জবে ৪-এর pool — ৪ spawn, প্রতি worker ২টি জব চালায় (`threadId` গণনায় প্রমাণ), reuse চোখে দেখা; `[3]` একই pool-এ ২০-জবের বার্স্ট — spawn আর পিক ৪-এই স্থির যতক্ষণ কিউ 16 → 0 ড্রেন করে, কিছু হারায়নি, spawn-storm নেই। wall-clock লাইনটা সৎভাবে পড়ুন: বড় মেশিনে [1] [2]-কে টেকে দিতে পারে; গণনাই বিশ্বাস করুন।
+
+<BuildExercise
+	title="Pool বানান, তারপর স্ট্রেস দিন"
+	difficulty="উঁচু স্তর"
+	time="৩০ মিনিট"
+	objectives={['pool + queue + মেসেজ-হ্যান্ডঅফ শূন্য থেকে বানানো', 'অভ্যাস নয়, কাজ থেকে pool size বাছাই করা']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'বার্স্টে spawn সংখ্যা আর peak concurrency সমতল দেখুন।', expect: '৮ জবেও spawns=4, peak=4; ২০-জবের বার্স্টেও তা-ই।' },
+		{ title: 'কিউ না খাওয়ান', why: 'worker spawn না করেই জব পাঠান; depth বাড়তে দেখুন।', expect: 'Depth ওঠে, কিছু সার্ভ হয় না, কিছু হারায় না — কিউই আপনার শক-অ্যাবসর্বার।' },
+		{ title: 'সাইজ ভুল করুন ইচ্ছা করে', why: 'pool ১ করুন, তারপর ৩২, [3] আবার চালান।', expect: 'pool ১ বার্স্টকে serial করে; pool ৩২, ২০ জবে ৩২টি heap spawn করে — দুই প্রান্তই cores-এর চেয়ে দামি।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-4" />

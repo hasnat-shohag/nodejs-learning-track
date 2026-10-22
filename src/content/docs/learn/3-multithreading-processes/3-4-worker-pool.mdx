@@ -1,0 +1,70 @@
+---
+title: "Worker pool: spawn once, message work, queue overflow"
+description: "Spawning a Worker per job pays ~30ms plus a fresh heap every time. A pool pays that once and keeps peak workers constant no matter how many jobs arrive — this lesson builds one and counts what it saves."
+domain: 3
+task: "3.4"
+order: 4
+sourceUrl: https://nodejs.org/api/worker_threads.html
+updated: 2026-10-23
+keywords:
+  - term: worker pool
+  - term: Worker
+  - term: worker_threads
+sources:
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+  - label: "Node.js docs — Simple worker pool (guide)"
+    href: https://nodejs.org/api/worker_threads.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 3</span>
+	<span class="lesson-task">Task 3.4</span>
+</div>
+
+## What you will learn
+
+A `new Worker` is ~30 ms of spawn plus a full V8 heap, every time. Spawn one per job and those costs scale with your traffic — 8 jobs, 8 spawns, 8 concurrent heaps at peak. The **worker pool** pattern is the fix, and it is three ideas: spawn a fixed number of workers once; hand work out by message instead of by spawn; keep a queue so a burst waits instead of spawning a storm. What you buy is not usually wall-clock — on a many-core box one-shot workers can keep up — it is *boundedness*: spawns and peak workers stay constant however many jobs arrive. Sizing has a rule of thumb for the common case: pool = CPU cores for CPU-bound work, because beyond cores the jobs only queue against each other.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Worker not thenable — 'await worker' resolves instantly">
+	<p>
+		A `Worker` object has no `then` method. `await worker` resolves on the spot, before the work has even started, and the code after it happily reads half-finished state. Wait on the `exit` event — `new Promise((resolve) => worker.on('exit', resolve))` — or better, on the worker's reply message. Same family of bug: don't `await` a stream or an EventEmitter expecting it to "finish"; `await` only knows promises.
+	</p>
+</Pitfall>
+
+## Counts, not times
+
+Run the demo file for this lesson:
+
+```bash
+node code/3-multithreading-processes/3-4-worker-pool/demo.js
+```
+
+It prints: `[1]` spawn-per-job — 8 spawns, peak 8 concurrent workers, spawn cost paid 8 times; `[2]` a pool of 4 on the same 8 jobs — 4 spawns, each worker runs 2 jobs (proven by `threadId` counts), reuse visible; `[3]` a burst of 20 into the same pool — spawns and peak stay at 4 while the queue drains 16 → 0, nothing lost, no spawn storm. Watch the wall-clock line honestly: on a big machine [1] may match [2]; trust the counts.
+
+<BuildExercise
+	title="Build the pool, then stress it"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Implement pool + queue + message-handoff from scratch', 'Pick pool size from the work, not from habit']}
+	steps={[
+		{ title: 'Run the demo', why: 'See spawn count and peak concurrency stay flat under burst.', expect: 'spawns=4, peak=4 for both 8 jobs and a 20-job burst.' },
+		{ title: 'Starve the queue', why: 'Send jobs with no workers spawned yet; observe depth grow.', expect: 'Depth climbs, nothing served, nothing lost — the queue is your shock absorber.' },
+		{ title: 'Size it wrong on purpose', why: 'Set the pool to 1, then to 32, re-run [3].', expect: 'Pool of 1 serializes the burst; pool of 32 spawns 32 heaps to serve 20 jobs — both extremes cost more than cores.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="3-4" />
