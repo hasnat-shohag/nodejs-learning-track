@@ -1,0 +1,68 @@
+---
+title: "Node প্রসেসের অ্যানাটমি: V8, libuv, bindings, process"
+titleEn: "Node process anatomy: V8, libuv, bindings, process"
+description: প্রতিটি Node প্রসেসের ভেতরের তিনটি লেয়ার — V8, libuv ও এদের মাঝের bindings — এবং সেগুলো দেখানোর `process` অবজেক্ট।
+domain: 1
+task: "1.1"
+order: 1
+sourceUrl: https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+updated: 2026-10-22
+keywords:
+  - term: event loop
+  - term: libuv
+sources:
+  - label: Node.js docs — Introduction to Node.js
+    href: https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.1</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+চলমান প্রতিটি Node প্রোগ্রামই তিনটি লেয়ার মিলে একটি প্রসেস: **V8** আপনার JavaScript চালায়, **libuv** event loop আর async I/O মেশিনারির মালিক, আর Node-এর **bindings** দুটোকে C++ দিয়ে জোড়ে। এই লেসন সেই স্ট্যাকের একটি গাইডেড ট্যুর — প্রতিটি লেয়ারকে চলমান প্রসেস থেকে প্রিন্ট করা কোনো কিছুর সাথে মেলাবেন, যাতে নামগুলো অ্যাবস্ট্রাকশন না থেকে বাস্তব হয়ে ওঠে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Node শুধু JavaScript নয়">
+	<p>
+		V8 আপনি ব্রাউজার থেকেই চেনেন। কিন্তু একটি Node প্রসেস হলো V8 <em>প্লাস</em> libuv প্লাস C++ binding লেয়ার — "Node single-threaded" বলতে মানুষ বোঝায় <strong>আপনার JavaScript</strong> একটি থ্রেডে চলে, প্রসেসটা এক থ্রেডে চলে তা নয়। শুরু থেকেই তিনটি লেয়ার আলাদা রাখুন; পরের প্রতিটি লেসন এই ভাগের ওপর দাঁড়িয়ে।
+	</p>
+</Pitfall>
+
+## তিন লেয়ার, একটি ডেমো
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/1-node-anatomy-event-loop/1-1-process-anatomy/demo.js
+```
+
+আপনার Node বাইনারি যে প্রতিটি লেয়ারের ভার্সন বহন করে — V8, libuv (`process.versions.uv`) ও Node bindings — সেগুলো `process` অবজেক্ট থেকে সরাসরি প্রিন্ট করে।
+
+<BuildExercise
+	title="নিজের স্ট্যাক প্রিন্ট করুন"
+	difficulty="শুরুর স্তর"
+	time="১০ মিনিট"
+	objectives={['`process` অবজেক্ট থেকে Node প্রসেসের লেয়ারগুলো পড়া', 'নিশ্চিত করা যে V8, libuv ও Node আলাদাভাবে ভার্সনড']}
+	steps={[
+		{ title: 'ডেমো চালান', why: 'তিনটি লেয়ারের নিজের ভার্সন রিপোর্ট করা দেখুন।', expect: 'V8, uv ও node-এর ভার্সন আলাদা নম্বরে প্রিন্ট হবে।' },
+		{ title: '`process.execPath` দেখুন', why: 'আপনার কোড চালানো আসল বাইনারিটি খুঁজে বের করুন।', expect: 'আপনার মেশিনে node বাইনারির পাথ।' },
+		{ title: '`process.argv` প্রিন্ট করুন', why: 'আর্গুমেন্ট কীভাবে প্রসেসে পৌঁছায় দেখুন।', expect: 'দ্বিতীয় এলিমেন্ট হিসেবে ডেমো ফাইলের পাথ।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-1" />

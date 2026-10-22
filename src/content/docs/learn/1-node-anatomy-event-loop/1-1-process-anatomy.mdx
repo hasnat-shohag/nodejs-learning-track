@@ -1,0 +1,67 @@
+---
+title: "Node process anatomy: V8, libuv, bindings, process"
+description: The three layers inside every Node process — V8, libuv, and the bindings between them — and the `process` object that exposes them.
+domain: 1
+task: "1.1"
+order: 1
+sourceUrl: https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+updated: 2026-10-22
+keywords:
+  - term: event loop
+  - term: libuv
+sources:
+  - label: Node.js docs — Introduction to Node.js
+    href: https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 1</span>
+	<span class="lesson-task">Task 1.1</span>
+</div>
+
+## What you will learn
+
+Every running Node program is one process built from three cooperating layers: **V8** executes your JavaScript, **libuv** owns the event loop and the async I/O machinery, and Node's **bindings** glue the two together in C++. This lesson is a guided tour of that stack — you will map each layer to something you can print from a running process, so the names stop being abstractions.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Node is not 'just JavaScript'">
+	<p>
+		You already know V8 from the browser. But a Node process is V8 <em>plus</em> libuv plus a C++ binding layer — when people say "Node is single-threaded", they mean <strong>your JavaScript</strong> runs on one thread, not that the process is one thread. Keep the three layers separate in your head from the start; every later lesson builds on that split.
+	</p>
+</Pitfall>
+
+## The three layers, one demo
+
+Run the demo file for this lesson:
+
+```bash
+node code/1-node-anatomy-event-loop/1-1-process-anatomy/demo.js
+```
+
+It prints the version of each layer your own Node binary carries — V8, libuv (`process.versions.uv`), and the Node bindings — straight from the `process` object.
+
+<BuildExercise
+	title="Print your own stack"
+	difficulty="beginner"
+	time="10 min"
+	objectives={['Read the layers of a Node process from the `process` object', 'Confirm that V8, libuv, and Node are versioned independently']}
+	steps={[
+		{ title: 'Run the demo', why: 'See the three layers report their own versions.', expect: 'V8, uv, and node versions printed with different numbers.' },
+		{ title: 'Check `process.execPath`', why: 'Locate the actual binary that is running your code.', expect: 'A path to the node binary on your machine.' },
+		{ title: 'Print `process.argv`', why: 'See how arguments reach your process.', expect: 'The demo file path as the second element.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="1-1" />
