@@ -1,1 +1,1053 @@
-/* Placeholder — the ported stylesheet lands with Task 2. */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource/noto-sans-bengali/400.css';
+@import '@fontsource/noto-sans-bengali/500.css';
+@import '@fontsource/noto-sans-bengali/600.css';
+@import '@fontsource/noto-sans-bengali/700.css';
+
+/* ---------- typography ---------- */
+
+:root {
+	--sl-font:
+		'Inter Variable', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--sl-font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+	--nlt-control-height: 2.5rem;
+	--nlt-control-radius: 0.375rem;
+	--nlt-reading-bar: 3px;
+	--sl-menu-button-size: 2.5rem;
+}
+
+.sl-markdown-content p,
+.sl-markdown-content li {
+	line-height: 1.85;
+}
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+	line-height: 1.5;
+}
+
+.sl-menu-button {
+	align-items: center;
+	justify-content: center;
+}
+
+@media (max-width: 50rem) {
+	site-search .dialog-frame {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-rows: auto minmax(0, 1fr);
+	}
+
+	site-search button[data-close-modal] {
+		position: static;
+		grid-column: 2;
+		grid-row: 1;
+		align-self: center;
+		height: auto;
+		min-height: 2.75rem;
+		padding-inline: 0.25rem;
+		max-width: 40vw;
+		overflow-wrap: anywhere;
+	}
+
+	site-search .search-container {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		min-width: 0;
+	}
+
+	#starlight__search .pagefind-ui__search-input {
+		width: 100%;
+	}
+
+	#starlight__search .pagefind-ui__search-clear {
+		inset-inline-end: 0;
+	}
+}
+
+/* ---------- pagination ---------- */
+
+.pagination-links {
+	gap: 0.75rem;
+}
+
+.pagination-links a {
+	padding: 0.75rem;
+	font-size: var(--sl-text-sm);
+	line-height: 1.5;
+}
+
+.pagination-links .link-title {
+	font-size: var(--sl-text-base);
+	line-height: 1.5;
+}
+
+html[data-has-hero]:not([data-has-sidebar]) {
+	--sl-content-width: 48rem;
+}
+
+@media (max-width: 50rem) {
+	.hero .actions {
+		display: grid;
+		gap: 0.75rem;
+		width: 100%;
+	}
+
+	.hero .actions .sl-link-button {
+		justify-content: center;
+	}
+}
+
+@media (max-width: 50rem) {
+	button[data-open-modal] {
+		min-width: var(--nlt-control-height);
+		padding-inline: 0.25rem;
+		justify-content: center;
+	}
+}
+
+/* ---------- domain accents ---------- */
+
+html[data-domain='1'] {
+	--sl-color-accent: #2563eb;
+	--sl-color-accent-low: #dbeafe;
+	--sl-color-accent-high: #1e40af;
+}
+
+html[data-domain='2'] {
+	--sl-color-accent: #0d9488;
+	--sl-color-accent-low: #ccfbf1;
+	--sl-color-accent-high: #115e59;
+}
+
+html[data-domain='3'] {
+	--sl-color-accent: #d97706;
+	--sl-color-accent-low: #fef3c7;
+	--sl-color-accent-high: #92400e;
+}
+
+html[data-domain='4'] {
+	--sl-color-accent: #7c3aed;
+	--sl-color-accent-low: #ede9fe;
+	--sl-color-accent-high: #5b21b6;
+}
+
+html[data-domain='5'] {
+	--sl-color-accent: #e11d48;
+	--sl-color-accent-low: #ffe4e6;
+	--sl-color-accent-high: #9f1239;
+}
+
+html[data-theme='dark'][data-domain='1'] {
+	--sl-color-accent: #60a5fa;
+	--sl-color-accent-low: #1e3a8a;
+	--sl-color-accent-high: #bfdbfe;
+}
+
+html[data-theme='dark'][data-domain='2'] {
+	--sl-color-accent: #2dd4bf;
+	--sl-color-accent-low: #134e4a;
+	--sl-color-accent-high: #99f6e4;
+}
+
+html[data-theme='dark'][data-domain='3'] {
+	--sl-color-accent: #fbbf24;
+	--sl-color-accent-low: #78350f;
+	--sl-color-accent-high: #fde68a;
+}
+
+html[data-theme='dark'][data-domain='4'] {
+	--sl-color-accent: #a78bfa;
+	--sl-color-accent-low: #4c1d95;
+	--sl-color-accent-high: #ddd6fe;
+}
+
+html[data-theme='dark'][data-domain='5'] {
+	--sl-color-accent: #fb7185;
+	--sl-color-accent-low: #881337;
+	--sl-color-accent-high: #fecdd3;
+}
+
+/* ---------- page grid ---------- */
+
+/*
+ * Starlight splits the leftover width evenly between the article and the table-of-contents
+ * column, so that column keeps growing with the viewport (920px wide at 2560px) while the
+ * reading column stays pinned at `--sl-content-width` — the extra room was empty, because
+ * the TOC's own panel is sized from `--sl-sidebar-width` and never used it. Cap the column
+ * at that token (which is exactly the width the TOC already renders into) and hand the
+ * reclaimed width to the article, whose reading column can then breathe to 48rem.
+ * Below 72rem nothing changes: there the three columns already fill the viewport.
+ */
+@media (min-width: 72rem) {
+	html[data-has-toc] {
+		--sl-content-width: 48rem;
+	}
+
+	html[data-has-toc] .right-sidebar-container {
+		width: var(--sl-sidebar-width);
+	}
+
+	html[data-has-sidebar][data-has-toc] .main-pane {
+		width: calc(100% - var(--sl-sidebar-width));
+		/* centre the article in the wider pane instead of letting the slack pile up on one side */
+		--sl-content-margin-inline: auto;
+	}
+}
+
+/* ---------- accent text contrast ---------- */
+
+/*
+ * Starlight's light theme points `--sl-color-text-accent` at the raw accent. That works for
+ * its own saturated blue, but on white the amber and teal domain accents only reach 3.19:1
+ * and 3.74:1. The token paints content links, the nav title, the social icons, the focused
+ * skip link and the table-of-contents marker, so one change covers all of them — and
+ * `--sl-color-accent-high` is the shade defined to be legible on the page background (dark
+ * in light mode, light in dark), which is what the dark theme already resolves to.
+ */
+html[data-theme='light'] {
+	--sl-color-text-accent: var(--sl-color-accent-high);
+}
+
+/* ---------- reading progress bar ---------- */
+
+.reading-progress {
+	position: fixed;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	height: var(--nlt-reading-bar);
+	width: 100%;
+	background: var(--sl-color-accent);
+	z-index: calc(var(--sl-z-index-navbar) + 1);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 120ms linear;
+	pointer-events: none;
+}
+
+@media print {
+	.reading-progress {
+		display: none;
+	}
+}
+
+/* ---------- mark complete ---------- */
+
+.mark-complete {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin: 1.75rem 0 1.25rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: var(--sl-color-bg-sidebar);
+}
+
+.mark-complete button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: var(--nlt-control-height);
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--sl-color-accent-high);
+	border-radius: var(--nlt-control-radius);
+	background: transparent;
+	color: var(--sl-color-accent-high);
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		color 120ms ease;
+}
+
+.mark-complete button:hover,
+.mark-complete[data-complete='true'] button {
+	background: var(--sl-color-accent-high);
+	border-color: var(--sl-color-accent-high);
+	color: var(--sl-color-black);
+}
+
+.mark-state {
+	width: 1rem;
+	height: 1rem;
+	border: 1.5px solid currentColor;
+	border-radius: 50%;
+	flex-shrink: 0;
+	transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.mark-complete[data-complete='true'] .mark-state {
+	background: currentColor;
+	box-shadow: inset 0 0 0 0.25rem var(--sl-color-accent-high);
+}
+
+.mark-complete .mark-complete-status {
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+/* ---------- sidebar completion marks ---------- */
+
+a[data-lesson-id].is-complete {
+	color: var(--sl-color-gray-3);
+}
+
+/* The completion mark takes the same high-contrast accent as the term columns: the raw accent reads
+ * at 3.19:1 on the light sidebar, and this keeps every accent-coloured glyph on the page
+ * on one token. */
+a[data-lesson-id].is-complete::after {
+	content: '';
+	display: inline-block;
+	width: 0.45rem;
+	height: 0.45rem;
+	margin-inline-start: 0.4rem;
+	border-radius: 50%;
+	background: var(--sl-color-accent-high);
+	vertical-align: 0.12em;
+}
+
+/*
+ * The current sidebar entry is a filled pill: Starlight puts the inverse foreground on
+ * the raw accent fill. Two problems came out of that. Overriding just the text colour
+ * left the accent on the accent (1:1 — the label was invisible), and at the raw accent
+ * the inverse text still only reached 3.19:1 on the amber domain. Fill it with the same
+ * high-contrast shade the term columns use, which is the dark one in light and the light
+ * one in dark, and pair it with the inverse foreground Starlight already ships.
+ */
+.sidebar-content a[aria-current='page'],
+a[data-lesson-id][aria-current='page'] {
+	background-color: var(--sl-color-accent-high);
+	color: var(--sl-color-text-invert);
+}
+
+/* The completion tick sits inside that pill; take the pill's foreground rather than the
+ * raw accent, which reads at ~2.2:1 against the high-contrast fill. */
+a[data-lesson-id][aria-current='page'].is-complete::after {
+	color: inherit;
+}
+
+/* ---------- content blocks ---------- */
+
+.keyword-table {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+	font-size: var(--sl-text-sm);
+}
+
+.table-scroll {
+	margin-block: 1rem;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+}
+
+.table-scroll .keyword-table {
+	min-width: 36rem;
+}
+
+.keyword-table th,
+.keyword-table td {
+	padding: 0.65rem 0.75rem;
+	border-bottom: 1px solid var(--sl-color-hairline);
+	text-align: start;
+	vertical-align: top;
+}
+
+.keyword-table th {
+	background: var(--sl-color-bg-sidebar);
+	font-size: var(--sl-text-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--sl-color-gray-2);
+}
+
+/*
+ * Term columns use the high-contrast accent variant, not `--sl-color-text-accent`:
+ * Starlight resolves that one to the raw accent in the light theme, where the amber
+ * and teal domain accents only reach ~3.2:1 on white. `--sl-color-accent-high` is the
+ * dark shade in light and the light shade in dark, so both themes clear 4.5:1.
+ */
+.keyword-table .keyword-term {
+	white-space: nowrap;
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-accent-high);
+}
+
+.keyword-table caption {
+	margin-block-end: 0.5rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+	text-align: start;
+	caption-side: top;
+}
+
+.pitfall,
+.build-exercise {
+	margin: 1.5rem 0;
+	padding: 1rem 1.1rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.5rem;
+	background: var(--sl-color-bg-sidebar);
+}
+
+.pitfall > .callout-label,
+.build-exercise > .callout-label {
+	display: block;
+	margin-block-end: 0.5rem;
+	color: var(--sl-color-accent-high);
+	font-family: var(--sl-font);
+	font-size: var(--sl-text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.pitfall p,
+.build-exercise p {
+	margin: 0.35rem 0;
+}
+
+.build-exercise .build-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-block-end: 0.75rem;
+	color: var(--sl-color-gray-3);
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.build-exercise ol {
+	margin: 0.5rem 0 0;
+	padding-inline-start: 1.25rem;
+}
+
+.build-exercise ol > li {
+	margin-block-end: 0.6rem;
+}
+
+.build-exercise .build-why,
+.build-exercise .build-expect {
+	display: block;
+	margin-block-start: 0.25rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.attribution {
+	margin-block: 2rem 0;
+	padding-block-start: 1rem;
+	border-block-start: 1px solid var(--sl-color-hairline);
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+}
+
+/* ---------- progress bars ---------- */
+
+.progress-list {
+	display: grid;
+	gap: 0.9rem;
+	margin: 1.25rem 0;
+}
+
+.progress-row {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.progress-row .progress-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	font-size: var(--sl-text-sm);
+}
+
+.progress-row .progress-count {
+	color: var(--sl-color-gray-3);
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+}
+
+.progress-track {
+	position: relative;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--sl-color-gray-5);
+	overflow: hidden;
+}
+
+.progress-fill {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: 0;
+	width: 100%;
+	border-radius: inherit;
+	background: var(--sl-color-accent-high);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform 200ms ease;
+}
+
+.progress-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 1rem;
+	margin-block: 1rem;
+}
+
+.progress-summary strong {
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-2xl);
+	color: var(--sl-color-accent-high);
+	line-height: 1;
+}
+
+.progress-actions {
+	display: flex;
+	gap: 0.75rem;
+	margin-block-start: 1.5rem;
+}
+
+.progress-actions button {
+	min-height: var(--nlt-control-height);
+	padding: 0.5rem 0.9rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: var(--sl-color-bg-sidebar);
+	color: var(--sl-color-text);
+	font-size: var(--sl-text-sm);
+	cursor: pointer;
+	transition: border-color 120ms ease, color 120ms ease;
+}
+
+.progress-actions button:hover {
+	border-color: var(--sl-color-accent-high);
+	color: var(--sl-color-accent-high);
+}
+
+.progress-hint {
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+/* Dimmed hint text still carries bright enough inline code for its own background. */
+.progress-hint code {
+	color: var(--sl-color-text);
+}
+
+/* ---------- mermaid ---------- */
+
+.mermaid-figure {
+	margin: 1.5rem 0;
+	padding: 1rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.5rem;
+	background: var(--sl-color-bg-sidebar);
+	overflow-x: auto;
+}
+
+/*
+ * Fit the complete diagram inside the reading column. Mermaid pins a smaller inline
+ * max-width on some charts, so override it to prevent a centered, under-sized diagram.
+ * The `!important` is required because Mermaid re-applies the cap on theme re-render.
+ */
+.mermaid-figure svg {
+	width: 100%;
+	max-width: 100% !important;
+	height: auto;
+}
+
+.mermaid-figure foreignObject {
+	overflow: visible;
+}
+
+pre.mermaid-source {
+	display: none;
+}
+
+/* ---------- glossary ---------- */
+
+.glossary-toolbar {
+	display: grid;
+	gap: 0.75rem;
+	margin-block: 1.25rem 0;
+}
+
+.glossary-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+}
+
+.glossary-filters button {
+	min-height: 2.25rem;
+	padding: 0.35rem 0.75rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: transparent;
+	color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-xs);
+	cursor: pointer;
+	transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.glossary-filters button[aria-pressed='true'] {
+	border-color: var(--sl-color-accent-high);
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	font-weight: 600;
+}
+
+.glossary-search {
+	display: grid;
+	gap: 0.3rem;
+	margin: 0;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+}
+
+.glossary-search input {
+	min-height: var(--nlt-control-height);
+	padding: 0.5rem 0.7rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: var(--sl-color-bg);
+	color: var(--sl-color-text);
+	font-size: var(--sl-text-sm);
+}
+
+.glossary-empty {
+	margin-block: 1rem;
+	padding: 0.75rem 1rem;
+	border: 1px dashed var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	color: var(--sl-color-gray-3);
+}
+
+.mark-complete button:focus-visible,
+.progress-actions button:focus-visible,
+.glossary-filters button:focus-visible,
+.glossary-search input:focus-visible {
+	outline: 2px solid var(--sl-color-accent-high);
+	outline-offset: 2px;
+}
+
+@media (min-width: 50rem) {
+	.glossary-toolbar {
+		grid-template-columns: minmax(0, 1fr) 18rem;
+		align-items: end;
+	}
+}
+
+/* ---------- lesson header ---------- */
+
+.lesson-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem;
+	margin-block: 0.5rem 1rem;
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.lesson-meta .lesson-badge {
+	padding: 0.2rem 0.5rem;
+	border-radius: 0.2rem;
+	background: var(--sl-color-accent-high);
+	color: var(--sl-color-black);
+}
+
+.lesson-meta .lesson-task,
+.lesson-meta .lesson-source {
+	color: var(--sl-color-gray-3);
+}
+
+.lesson-title-bn {
+	margin-block-start: 0;
+}
+
+.lesson-title-en {
+	display: block;
+	margin-block-start: 0.25rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-lg);
+	font-weight: 500;
+}
+
+/* ---------- domain index ---------- */
+
+.domain-index {
+	margin-block: 1.25rem;
+	border-block-start: 1px solid var(--sl-color-hairline);
+}
+
+.domain-index--compact {
+	display: grid;
+	gap: 1rem;
+	margin-block: 1.5rem 2.25rem;
+	border-block-start: 0;
+}
+
+.domain-row {
+	display: grid;
+	grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+	gap: 1.5rem;
+	padding-block: 1.25rem;
+	border-block-end: 1px solid var(--sl-color-hairline);
+}
+
+.domain-row--compact {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0;
+	padding: 1.15rem 1.25rem 1.35rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.75rem;
+	background: var(--sl-color-bg-sidebar);
+}
+
+.domain-row-head {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.domain-row-head h3 {
+	margin: 0;
+	font-size: var(--sl-text-lg);
+	line-height: 1.45;
+}
+
+.domain-row-head p {
+	margin: 0;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.domain-row--compact .domain-row-head {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.4rem 0.85rem;
+	align-items: start;
+}
+
+.domain-row--compact .domain-row-head > :not(.domain-badge) {
+	grid-column: 2;
+}
+
+.domain-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.35rem;
+	height: 2.35rem;
+	margin-block-start: 0.1rem;
+	border-radius: 0.55rem;
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	font-size: var(--sl-text-sm);
+	font-weight: 700;
+}
+
+.domain-row--compact h3 {
+	font-size: var(--sl-text-xl);
+	line-height: 1.4;
+}
+
+.domain-label-en {
+	margin: 0;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.domain-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1rem;
+	margin: 0;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.domain-weight {
+	height: 0.375rem;
+	margin-block-start: 0.25rem;
+	border-radius: 999px;
+	background: var(--sl-color-hairline);
+	overflow: hidden;
+}
+
+.domain-weight > span {
+	display: block;
+	width: var(--domain-weight);
+	height: 100%;
+	border-radius: inherit;
+	background: var(--domain-accent, var(--sl-color-accent));
+}
+
+.domain-lesson-list {
+	display: grid;
+	gap: 0.55rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.domain-lesson-list > li {
+	display: grid;
+	gap: 0.15rem;
+}
+
+.domain-lesson-list a {
+	font-weight: 600;
+}
+
+.domain-lesson-pending {
+	font-weight: 600;
+}
+
+.domain-lesson-en {
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+@media (max-width: 50rem) {
+	.domain-row {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.9rem;
+	}
+
+	.domain-index--compact {
+		gap: 0.85rem;
+	}
+
+	.domain-row--compact {
+		padding: 1rem 1rem 1.2rem;
+	}
+
+	.domain-row--compact .domain-row-head {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.domain-row--compact .domain-row-head > :not(.domain-badge) {
+		grid-column: 1;
+	}
+
+	.domain-badge {
+		width: 2rem;
+		height: 2rem;
+	}
+}
+
+/* ---------- home study flow ---------- */
+
+.home-steps {
+	margin-block: 1.5rem 2.25rem;
+	padding: 1.35rem 1.4rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.75rem;
+	background: var(--sl-color-bg-sidebar);
+}
+
+.home-step-list {
+	display: grid;
+	gap: 1.15rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: home-step;
+}
+
+.home-step-list > li {
+	display: grid;
+	grid-template-columns: 2.35rem minmax(0, 1fr);
+	gap: 0.9rem;
+	align-items: start;
+	counter-increment: home-step;
+}
+
+.home-step-list > li::before {
+	display: grid;
+	place-items: center;
+	width: 2.35rem;
+	height: 2.35rem;
+	border-radius: 0.55rem;
+	background: var(--sl-color-accent-low);
+	color: var(--sl-color-accent-high);
+	font-size: var(--sl-text-sm);
+	font-weight: 700;
+	content: counter(home-step);
+}
+
+.home-step-list strong {
+	display: block;
+	margin-block-end: 0.15rem;
+}
+
+@media (max-width: 50rem) {
+	.home-steps {
+		padding: 1.1rem 1rem 1.25rem;
+	}
+
+	.home-step-list {
+		gap: 1rem;
+	}
+
+	.home-step-list > li {
+		grid-template-columns: 2rem minmax(0, 1fr);
+		gap: 0.75rem;
+	}
+
+	.home-step-list > li::before {
+		width: 2rem;
+		height: 2rem;
+	}
+}
+
+/* ---------- lesson checklist ---------- */
+
+.lesson-checklist {
+	display: grid;
+	gap: 0.15rem;
+	margin: 1.25rem 0;
+	padding: 0;
+	list-style: none;
+}
+
+.lesson-checklist > li {
+	display: grid;
+	grid-template-columns: 1.15rem minmax(0, 1fr);
+	gap: 0.65rem;
+	padding-block: 0.55rem;
+	border-block-end: 1px solid var(--sl-color-hairline);
+	line-height: 1.65;
+}
+
+.lesson-state {
+	width: 1.15rem;
+	height: 1.15rem;
+	margin-block-start: 0.3rem;
+	border: 1.5px solid var(--sl-color-gray-3);
+	border-radius: 50%;
+}
+
+.lesson-checklist .lesson-content {
+	display: grid;
+	gap: 0.1rem;
+	min-width: 0;
+}
+
+.lesson-checklist > li[data-done='true'] .lesson-state {
+	border-color: var(--sl-color-accent-high);
+	background: var(--sl-color-accent-high);
+	box-shadow: inset 0 0 0 0.25rem var(--sl-color-bg);
+}
+
+.lesson-checklist > li[data-done='true'] a {
+	color: var(--sl-color-gray-3);
+}
+
+.lesson-checklist .lesson-check-en {
+	display: block;
+	margin-block-start: 0.1rem;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-sm);
+}
+
+.lesson-pending-tag {
+	display: inline-block;
+	margin-inline-start: 0.4rem;
+	padding: 0.05rem 0.4rem;
+	border: 1px dashed var(--sl-color-hairline);
+	border-radius: 999px;
+	color: var(--sl-color-gray-3);
+	font-size: var(--sl-text-xs);
+	white-space: nowrap;
+}
+
+.lesson-pending-title {
+	color: var(--sl-color-gray-3);
+}
+
+/* ---------- quick reference sheets ---------- */
+
+.ref-table {
+	margin: 0;
+}
+
+.ref-table td,
+.ref-table tbody th[scope='row'] {
+	line-height: 1.7;
+}
+
+.ref-table tbody th[scope='row'] {
+	background: transparent;
+	color: var(--sl-color-text);
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.ref-table .keyword-term {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.ref-table tbody th[scope='row'].keyword-term {
+	color: var(--sl-color-accent-high);
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+}
+
+.ref-table code {
+	padding: 0.05rem 0.3rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.25rem;
+	background: var(--sl-color-bg-sidebar);
+	color: var(--sl-color-accent-high);
+	font-size: 0.9em;
+	overflow-wrap: anywhere;
+}
+
+@media print {
+	.ref-table {
+		font-size: 10pt;
+	}
+
+	.ref-table thead {
+		display: table-header-group;
+	}
+
+	.ref-table tr {
+		break-inside: avoid;
+	}
+
+	.ref-table th {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	.table-scroll {
+		overflow: visible;
+	}
+
+	.table-scroll .keyword-table {
+		min-width: 0;
+	}
+}
