@@ -10,6 +10,7 @@ interface Props {
 const { showLessons = true } = Astro.props;
 
 const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const locale = Astro.locals.starlightRoute?.locale;
 const t = isBn
 	? { lessonsUnit: 'টি লেসন', pending: 'লেখা বাকি' }
 	: { lessonsUnit: ' lessons', pending: 'not written yet' };
@@ -39,7 +40,7 @@ const crossLabel = (domain: (typeof DOMAINS)[number]) => (isBn ? domain.labelEn 
 					{!showLessons && <span class="domain-badge">D{domain.id}</span>}
 					<h3 id={`domain-${domain.id}-title`}>
 						{hasDomainIndex(domain.slug) ? (
-							<a href={siteUrl(`learn/${domain.slug}/`)}>{domainTitle(domain)}</a>
+							<a href={siteUrl(`learn/${domain.slug}/`, locale)}>{domainTitle(domain)}</a>
 						) : (
 							<>{domainTitle(domain)}</>
 						)}
@@ -66,7 +67,7 @@ const crossLabel = (domain: (typeof DOMAINS)[number]) => (isBn ? domain.labelEn 
 						{domainLessons(domain.id).map((lesson) => (
 							<li>
 								{hasLesson(domain.slug, lesson.slug) ? (
-									<a href={siteUrl(`learn/${domain.slug}/${lesson.slug}/`)}>
+									<a href={siteUrl(`learn/${domain.slug}/${lesson.slug}/`, locale)}>
 										{lesson.id} — {isBn ? lesson.titleBn : lesson.titleEn}
 									</a>
 								) : (

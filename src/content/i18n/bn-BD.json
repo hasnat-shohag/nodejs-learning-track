@@ -26,5 +26,15 @@
   "pagefind.filters_label": "ফিল্টার",
   "pagefind.zero_results": "[SEARCH_TERM] — কিছু পাওয়া যায়নি",
   "pagefind.many_results": "[SEARCH_TERM] — [COUNT]টি ফলাফল",
-  "pagefind.one_result": "[SEARCH_TERM] — ১টি ফলাফল"
+  "pagefind.one_result": "[SEARCH_TERM] — ১টি ফলাফল",
+  "languageSelect.accessibleLabel": "ভাষা বাছুন",
+  "i18n.untranslatedContent": "এই কনটেন্ট এখনো আপনার ভাষায় নেই।",
+  "aside.note": "নোট",
+  "aside.tip": "টিপ",
+  "aside.caution": "সতর্কতা",
+  "aside.danger": "বিপদ",
+  "page.draft": "এই কনটেন্ট ড্রাফট — প্রোডাকশন বিল্ডে থাকবে না।",
+  "404.text": "পাতাটি পাওয়া যায়নি। URL যাচাই করুন বা সার্চ বার ব্যবহার করুন।",
+  "fileTree.directory": "ডিরেক্টরি",
+  "builtWithStarlight.label": "Starlight দিয়ে বানানো"
 }

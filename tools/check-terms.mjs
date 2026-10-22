@@ -136,12 +136,29 @@ for (const entry of glossary) {
 // strings on English pages are correct, not leaks. Only the Bangla pages
 // (dist/bn/) must show no untranslated UI. A raw i18n KEY name, however,
 // is broken anywhere it renders.
+//
+// Starlight's translation system falls back to the DEFAULT LOCALE (English)
+// when bn-BD.json lacks a key, so a missing key renders an English string on
+// the bn page — it never renders its own dotted name. The key-name scan below
+// can therefore only fire on a broken rendering pipeline, not on drift; the
+// coverage assertion below it is what actually catches a missing key.
 
 let newestSource = 0;
 for await (const file of walk(contentDir)) {
 	if (!file.endsWith('.mdx')) continue;
 	const mtime = statSync(file).mtimeMs;
 	if (mtime > newestSource) newestSource = mtime;
+}
+
+const bnTranslations = JSON.parse(await readFile(join(root, 'src/content/i18n/bn-BD.json'), 'utf8'));
+for (const key of STARLIGHT_KEYS) {
+	if (!(key in bnTranslations)) {
+		add(
+			'leaked-ui-key',
+			'src/content/i18n/bn-BD.json',
+			`missing the Starlight key "${key}" — bn pages fall back to its English value`,
+		);
+	}
 }
 
 if (!existsSync(dist)) {

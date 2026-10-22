@@ -1,10 +1,19 @@
 ---
 interface Props {
 	sourceUrl: string;
-	updated?: string;
+	updated?: string | Date;
 }
 
 const { sourceUrl, updated } = Astro.props;
+
+/** The schema allows a plain string or a YAML-parsed Date; either way the
+ * page should show the date as written in the frontmatter, not a raw ISO
+ * timestamp (or a Date object's default locale rendering). */
+const updatedText = updated
+	? updated instanceof Date
+		? updated.toISOString().slice(0, 10)
+		: String(updated).slice(0, 10)
+	: undefined;
 
 const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
 const issueUrl = 'https://github.com/hasnat-shohag/nodejs-learning-track/issues';
@@ -49,5 +58,11 @@ const issueUrl = 'https://github.com/hasnat-shohag/nodejs-learning-track/issues'
 			</p>
 		)
 	}
-	{updated && <p>সর্বশেষ হালনাগাদ / Last updated: {updated}</p>}
+	{
+		updatedText && (
+			<p>
+				{isBn ? 'সর্বশেষ হালনাগাদ' : 'Last updated'}: {updatedText}
+			</p>
+		)
+	}
 </aside>

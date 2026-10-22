@@ -12,8 +12,8 @@ const lessons = domainLessons(domain);
 const domainSlug = DOMAINS.find((item) => item.id === domain)?.slug ?? '';
 
 const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+const locale = Astro.locals.starlightRoute?.locale;
 const pendingTag = isBn ? 'লেখা বাকি' : 'not written yet';
-const doneLabel = isBn ? 'সম্পন্ন' : 'complete';
 const todoLabel = isBn ? 'অসম্পন্ন' : 'not complete';
 const title = (lesson: (typeof lessons)[number]) => (isBn ? lesson.titleBn : lesson.titleEn);
 
@@ -28,7 +28,7 @@ const isAvailable = (slug: string) => lessonFiles.has(`/src/content/docs/learn/$
 				<span class="lesson-state" aria-hidden="true" />
 				<div class="lesson-content">
 					{isAvailable(lesson.slug) ? (
-						<a href={siteUrl(`learn/${domainSlug}/${lesson.slug}/`)}>
+						<a href={siteUrl(`learn/${domainSlug}/${lesson.slug}/`, locale)}>
 							{lesson.id} — {title(lesson)}
 						</a>
 					) : (

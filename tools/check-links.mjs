@@ -52,20 +52,32 @@ function distTarget(pathname) {
 	return join(dist, rest);
 }
 
-/** Is this a lesson/domain page that the roadmap says we will translate later?
- * Locale-prefixed routes (`bn/learn/...`) use the same slugs as the root ones. */
+/** Is this a lesson page that the roadmap says we will write later?
+ * Locale-prefixed routes (`bn/learn/...`) use the same slugs as the root ones.
+ * Domain overview routes are NOT planned-pending: every component that links
+ * one renders it only when the page exists, so a missing overview link is a
+ * real 404, not a pending translation. */
 function isPlanned(pathname) {
 	const rest = (pathname.startsWith(base) ? pathname.slice(base.length) : pathname.slice(1)).replace(
 		/^\/+/,
 		'',
 	);
 	const bare = rest.replace(/^bn\//, '');
-	const domainOnly = bare.match(/^learn\/(\d-[a-z0-9-]+)\/?$/);
-	if (domainOnly) return plannedDomains.has(domainOnly[1]);
-	const match = bare.match(/^learn\/(\d-[a-z0-9-]+)\/([a-z0-9-]+)\/?$/);
+	const match = bare.match(/^learn\/(\d-[a-z0-9-]+)\/([a-z0-99-]+)\/?$/);
 	if (!match) return false;
 	const [, domainSlug, lessonSlug] = match;
 	return plannedSlugs.has(lessonSlug) && plannedDomains.has(domainSlug);
+}
+
+/** Content routes that exist in both locales. A Bangla page linking one of
+ * these without the `bn/` prefix flips the reader to the English page even
+ * though the Bangla counterpart exists. */
+const TRANSLATABLE = /^\/(learn\/|progress\/|glossary\/|about\/)/;
+
+function isLocaleFlip(fromDistRoot, href) {
+	if (!fromDistRoot.startsWith('bn/')) return false;
+	const rest = href.startsWith(base) ? href.slice(base.length) : href.slice(1);
+	return TRANSLATABLE.test(rest);
 }
 
 const broken = [];
@@ -77,10 +89,19 @@ for await (const file of walk(dist)) {
 	if (!file.endsWith('.html')) continue;
 	files += 1;
 	const html = await readFile(file, 'utf8');
+	const fromDistRoot = relative(dist, file).replace(/index\.html$/, '');
 	for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
 		const href = match[1];
 		if (!href.startsWith('/') || href.startsWith('//')) continue;
 		links += 1;
+		// A bn page linking a bilingual content route without the bn/ prefix
+		// works, but silently flips the reader to the English page.
+		if (isLocaleFlip(fromDistRoot, href)) {
+			broken.push(
+				`${fromDistRoot} → ${href} (locale flip: bn page links the English route — pass the locale to siteUrl())`,
+			);
+			continue;
+		}
 		// Astro does not add the site base to links written in Markdown/MDX or in Starlight
 		// hero actions, so a root-relative link that skips the base only resolves when the
 		// site is served from the domain root. Treat those as broken rather than silently
