@@ -1106,7 +1106,7 @@ pre.mermaid-source {
 	align-items: center;
 	gap: 0.5rem;
 	min-height: var(--nlt-control-height);
-	padding: 0.5rem 1rem;
+	padding: 0.5rem 1.05rem;
 	border: 1px solid var(--sl-color-accent-high);
 	border-radius: 999px;
 	background: var(--sl-color-bg);
@@ -1115,16 +1115,24 @@ pre.mermaid-source {
 	font-size: var(--sl-text-sm);
 	line-height: 1.4;
 	cursor: pointer;
-	box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+	box-shadow: 0 4px 16px -2px rgb(0 0 0 / 0.3);
 	transition:
-		background-color 120ms ease,
-		border-color 120ms ease,
-		color 120ms ease;
+		background-color 140ms ease,
+		border-color 140ms ease,
+		color 140ms ease,
+		box-shadow 140ms ease;
 }
 
 .flowchart-button:hover {
-	background: var(--sl-color-accent-high);
+	background: var(--sl-color-accent);
+	border-color: var(--sl-color-accent);
 	color: var(--sl-color-white);
+	box-shadow: 0 6px 20px -4px var(--sl-color-accent-high);
+}
+
+.flowchart-button:focus-visible {
+	outline: var(--sl-color-accent) solid 2px;
+	outline-offset: 2px;
 }
 
 .flowchart-button svg {
@@ -1149,7 +1157,7 @@ pre.mermaid-source {
 	border-radius: 0.75rem;
 	background: var(--sl-color-bg);
 	color: var(--sl-color-text);
-	box-shadow: 0 24px 48px rgb(0 0 0 / 0.35);
+	box-shadow: 0 32px 64px -12px rgb(0 0 0 / 0.5);
 	overflow: hidden;
 }
 
@@ -1186,6 +1194,20 @@ pre.mermaid-source {
 	border-block-end: 1px solid var(--sl-color-hairline);
 }
 
+.flowchart-dialog-head h2 {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	margin: 0;
+	font-size: var(--sl-text-lg);
+	font-weight: 700;
+}
+
+.flowchart-dialog-head h2 svg {
+	color: var(--sl-color-accent);
+	flex-shrink: 0;
+}
+
 .flowchart-dialog-tools {
 	display: flex;
 	align-items: center;
@@ -1205,41 +1227,62 @@ pre.mermaid-source {
 	color: var(--sl-color-text);
 	cursor: pointer;
 	transition:
+		background-color 120ms ease,
 		border-color 120ms ease,
 		color 120ms ease;
 }
 
 .flowchart-tool:hover {
 	border-color: var(--sl-color-accent-high);
+	background: var(--sl-color-accent-low);
 	color: var(--sl-color-accent-high);
 }
 
-.flowchart-dialog-head h2 {
-	margin: 0;
-	font-size: var(--sl-text-lg);
-	font-weight: 700;
+.flowchart-tool:focus-visible,
+.flowchart-dialog-close:focus-visible {
+	outline: var(--sl-color-accent) solid 2px;
+	outline-offset: 2px;
+}
+
+.flowchart-zoom-level {
+	display: inline-block;
+	min-width: 3.25rem;
+	text-align: center;
+	font-size: var(--sl-text-xs);
+	font-variant-numeric: tabular-nums;
+	color: var(--sl-color-gray-3);
+	user-select: none;
+}
+
+.flowchart-tools-sep {
+	width: 1px;
+	height: 1.4rem;
+	margin-inline: 0.2rem;
+	background: var(--sl-color-hairline);
 }
 
 .flowchart-dialog-close {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.4rem;
+	justify-content: center;
 	min-height: var(--nlt-control-height);
-	padding: 0.4rem 0.85rem;
+	min-width: var(--nlt-control-height);
+	padding: 0.35rem;
 	border: 1px solid var(--sl-color-hairline);
 	border-radius: var(--nlt-control-radius);
 	background: transparent;
 	color: var(--sl-color-text);
-	font-size: var(--sl-text-sm);
 	cursor: pointer;
 	transition:
 		background-color 120ms ease,
-		border-color 120ms ease;
+		border-color 120ms ease,
+		color 120ms ease;
 }
 
 .flowchart-dialog-close:hover {
-	border-color: var(--sl-color-accent-high);
-	color: var(--sl-color-accent-high);
+	border-color: var(--sl-color-red-high);
+	background: var(--sl-color-red-low);
+	color: var(--sl-color-red-high);
 }
 
 .flowchart-dialog-body {
@@ -1247,6 +1290,10 @@ pre.mermaid-source {
 	height: min(70vh, 40rem);
 	padding: 1.25rem;
 	touch-action: none;
+	/* faint dot grid gives the pan/pan canvas a surface without competing
+	   with the diagram */
+	background-image: radial-gradient(var(--sl-color-gray-5) 1px, transparent 1px);
+	background-size: 1.25rem 1.25rem;
 }
 
 .flowchart-dialog-body pre.mermaid-source {
@@ -1280,6 +1327,7 @@ pre.mermaid-source {
 	max-width: 100% !important;
 	/* minus the body's vertical padding so the chart never clips */
 	max-height: calc(min(70vh, 40rem) - 2.5rem);
+	border-radius: 0.375rem;
 }
 
 @media (max-width: 49.99rem) {
@@ -1296,6 +1344,15 @@ pre.mermaid-source {
 	.flowchart-dialog {
 		width: calc(100vw - 1rem);
 		max-height: calc(100vh - 2rem);
+	}
+
+	.flowchart-dialog-head {
+		padding: 0.65rem 0.85rem;
+		gap: 0.5rem;
+	}
+
+	.flowchart-dialog-head h2 {
+		font-size: var(--sl-text-base);
 	}
 
 	.flowchart-dialog-body {

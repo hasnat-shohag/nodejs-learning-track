@@ -49,16 +49,23 @@ const labels = isBn
 				</svg>
 				{labels.open}
 			</button>
-			<dialog class="flowchart-dialog" data-flowchart-dialog aria-label={labels.title}>
+			<dialog class="flowchart-dialog" data-flowchart-dialog aria-labelledby="flowchart-dialog-title">
 				<div class="flowchart-dialog-frame">
 					<div class="flowchart-dialog-head">
-						<h2>{labels.title}</h2>
+						<h2 id="flowchart-dialog-title">
+							<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<rect x="3" y="3" width="18" height="18" rx="2" />
+								<path d="M7 8h10M7 12h10M7 16h4" />
+							</svg>
+							<span>{labels.title}</span>
+						</h2>
 						<div class="flowchart-dialog-tools">
 							<button type="button" class="flowchart-tool" data-flowchart-zoom-out aria-label={labels.zoomOut} title={labels.zoomOut}>
 								<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 									<path d="M5 12h14" />
 								</svg>
 							</button>
+							<span class="flowchart-zoom-level" data-flowchart-zoom-level aria-live="polite">100%</span>
 							<button type="button" class="flowchart-tool" data-flowchart-zoom-in aria-label={labels.zoomIn} title={labels.zoomIn}>
 								<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 									<path d="M12 5v14M5 12h14" />
@@ -70,7 +77,8 @@ const labels = isBn
 									<path d="M3 4v5h5" />
 								</svg>
 							</button>
-							<button type="button" class="flowchart-dialog-close" data-flowchart-close aria-label={labels.close}>
+							<span class="flowchart-tools-sep" aria-hidden="true"></span>
+							<button type="button" class="flowchart-dialog-close" data-flowchart-close aria-label={labels.close} title={labels.close}>
 								<svg
 									aria-hidden="true"
 									width="16"
@@ -84,7 +92,6 @@ const labels = isBn
 								>
 									<path d="M18 6 6 18M6 6l12 12" />
 								</svg>
-								{labels.close}
 							</button>
 						</div>
 					</div>
@@ -154,15 +161,28 @@ const labels = isBn
 				}
 			}
 
+			const closeButton = root.querySelector<HTMLButtonElement>('[data-flowchart-close]');
+
 			openButton.addEventListener('click', () => {
 				void renderChart(body);
 				if (typeof dialog.showModal === 'function') dialog.showModal();
 				else dialog.setAttribute('open', '');
 			});
 
+			closeButton?.addEventListener('click', () => {
+				if (typeof dialog.close === 'function') dialog.close();
+				else dialog.removeAttribute('open');
+			});
+
 			dialog.addEventListener('click', (event) => {
 				/* click on backdrop (dialog itself, not frame) closes */
 				if (event.target === dialog) dialog.close();
+			});
+
+			dialog.addEventListener('cancel', () => {
+				/* modal Esc close fires the `close` event on its own; only the
+				   non-modal fallback needs manual open-attribute cleanup */
+				if (typeof dialog.close !== 'function') dialog.removeAttribute('open');
 			});
 
 			/* ---- zoom + pan on the rendered chart ---- */
@@ -174,8 +194,11 @@ const labels = isBn
 			const MAX_SCALE = 4;
 			const STEP = 1.25;
 
+			const zoomLevel = root.querySelector<HTMLElement>('[data-flowchart-zoom-level]');
+
 			function applyTransform(): void {
 				viewport.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+				if (zoomLevel) zoomLevel.textContent = `${Math.round(scale * 100)}%`;
 			}
 
 			function zoomTo(next: number): void {
@@ -235,8 +258,13 @@ const labels = isBn
 			body.addEventListener('pointerup', stopDrag);
 			body.addEventListener('pointercancel', stopDrag);
 
-			/* reset pan/zoom each time the modal reopens */
-			dialog.addEventListener('close', resetView);
+			/* reset pan/zoom each time the modal reopens; return focus to the opener */
+			dialog.addEventListener('close', () => {
+				resetView();
+				if (document.activeElement === dialog || dialog.contains(document.activeElement)) {
+					openButton.focus();
+				}
+			});
 
 			/* re-render on theme switch so colors match */
 			new MutationObserver(() => {
