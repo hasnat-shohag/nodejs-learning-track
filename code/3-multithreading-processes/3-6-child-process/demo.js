@@ -5,7 +5,7 @@
 //   [1] spawn: streams — stdout/stderr arrive as Readable streams,
 //       data flows while the child runs (no waiting for exit)
 //   [2] fork = spawn + Node + IPC channel: parent.send ↔ child
-//       process.send, structured clone each way
+//       process.send, JSON-serialized messages each way (the fork default)
 //   [3] exec: ONE shell string, buffered, maxBuffer cap;
 //       execFile: argv array, no shell — "&&" stays literal
 //   [4] signals: kill(SIGTERM) → exit event fires with
@@ -50,7 +50,7 @@ console.log('[2] fork = spawn + Node + IPC channel:');
 	const child = fork(childFile, { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
 	const reply = await new Promise((r) => { child.once('message', r); child.send({ kind: 'ping', n: 42 }); });
 	console.log(`  parent sent { kind: 'ping', n: 42 } → child replied ${JSON.stringify(reply)}`);
-	console.log('  channel = structured-clone messages both ways — same protocol fork is built on');
+	console.log('  channel = JSON-serialized messages both ways (fork default; serialization: advanced opts into structured clone)');
 	child.kill();
 	await new Promise((r) => child.on('exit', r));
 	rmSync(childFile, { force: true });

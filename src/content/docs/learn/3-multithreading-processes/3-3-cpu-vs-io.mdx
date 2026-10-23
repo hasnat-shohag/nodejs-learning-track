@@ -50,7 +50,7 @@ Run the demo file for this lesson:
 node code/3-multithreading-processes/3-3-cpu-vs-io/demo.js
 ```
 
-It prints: `[1]` 300 ms of sync CPU on the main loop — the worst ping gap spikes to the full burn, the loop was blocked; `[2]` the same 300 ms inside a Worker — pings stay flat at their normal spacing, the loop never noticed; `[3]` I/O-bound load (pbkdf2 on the thread pool) — pings flat again, with zero extra threads: the event loop already handles waiting for free.
+It prints: `[1]` 300 ms of sync CPU on the main loop — the worst ping gap spikes to the full burn, the loop was blocked; `[2]` the same 300 ms inside a Worker — pings stay flat at their normal spacing, the loop never noticed; `[3]` CPU-bound work Node already offloads — pbkdf2 hashing on the libuv thread pool — pings flat again: the burn runs on pool threads, not this one, and the loop is free the moment the call is queued.
 
 <BuildExercise
 	title="Classify your own hot path"

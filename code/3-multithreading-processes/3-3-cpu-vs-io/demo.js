@@ -15,7 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { pbkdf2 } from 'node:crypto';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -55,6 +55,7 @@ await sleep(50);
 	await pbkdf2Async('k', 's', 3_000_000, 32, 'sha256'); // ~300ms of CPU
 	`;
 	const f = join(tmpdir(), `cpu-worker-${process.pid}.mjs`);
+	process.on('exit', () => rmSync(f, { force: true }));
 	writeFileSync(f, workerSrc);
 	const w = new Worker(f);
 	await new Promise((r) => w.on('exit', r));

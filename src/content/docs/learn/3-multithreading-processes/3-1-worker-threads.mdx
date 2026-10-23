@@ -14,7 +14,7 @@ keywords:
 sources:
   - label: "Node.js docs — worker_threads"
     href: https://nodejs.org/api/worker_threads.html
-  - label: "HTML spec — Structured clone algorithm"
+  - label: "MDN — Web Workers API"
     href: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API
 ---
 
@@ -40,7 +40,7 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 <Pitfall title="Transfer detaches the buffer immediately — before the worker sees it">
 	<p>
-		`postMessage(msg, [buf])` neuters the sender's `buf` at call time, not when the worker reads it. Code after the call sees `byteLength === 0` — any later `postMessage` of the same buffer throws `DataCloneError`. And **MessageChannel** is the third port pair you will meet: it is how two workers talk *directly*, parent-to-parent relaying skipped. Build a channel, hand one port to each side, and messages flow between them without the main thread in the loop.
+		`postMessage(msg, [buf])` neuters the sender's `buf` at call time, not when the worker reads it. Code after the call sees `byteLength === 0` — any later `postMessage` of the same buffer throws `DataCloneError`. And **MessageChannel** is the third port pair you will meet: it is how two workers talk *directly*, without the parent relaying. Build a channel, hand one port to each side, and messages flow between them without the main thread in the loop.
 	</p>
 </Pitfall>
 
@@ -61,7 +61,7 @@ It prints: `[1]` the main thread's `threadId` and pid; `[2]` the worker's — sa
 	objectives={['Explain isolate-per-worker and why the JS heap is never shared', 'Predict clone vs transfer behavior for ArrayBuffer, and what detaches']}
 	steps={[
 		{ title: 'Run the demo', why: 'Watch pid stay fixed and threadId fork.', expect: 'clone keeps sender bytes; transfer detaches sender immediately.' },
-		{ title: 'Break it on purpose', why: 'After the transfer, read `move[0]` in main.', expect: 'TypedArray on detached buffer: silent zeros or TypeError — the memory is gone.' },
+		{ title: 'Break it on purpose', why: 'After the transfer, read `move[0]` in main.', expect: 'TypedArray on detached buffer: reads return undefined, writes silently dropped; new Uint8Array(buf) throws TypeError — the memory is gone.' },
 		{ title: 'Wire a MessageChannel', why: 'Give two workers a port each from one `new MessageChannel()`.', expect: 'Workers exchange messages with zero main-thread hops.' },
 	]}
 />

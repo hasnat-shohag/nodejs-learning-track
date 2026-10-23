@@ -61,7 +61,7 @@ node code/3-multithreading-processes/3-4-worker-pool/demo.js
 	objectives={['pool + queue + মেসেজ-হ্যান্ডঅফ শূন্য থেকে বানানো', 'অভ্যাস নয়, কাজ থেকে pool size বাছাই করা']}
 	steps={[
 		{ title: 'ডেমো চালান', why: 'বার্স্টে spawn সংখ্যা আর peak concurrency সমতল দেখুন।', expect: '৮ জবেও spawns=4, peak=4; ২০-জবের বার্স্টেও তা-ই।' },
-		{ title: 'কিউ না খাওয়ান', why: 'worker spawn না করেই জব পাঠান; depth বাড়তে দেখুন।', expect: 'Depth ওঠে, কিছু সার্ভ হয় না, কিছু হারায় না — কিউই আপনার শক-অ্যাবসর্বার।' },
+		{ title: 'কিউ না খাওয়ান', why: 'worker spawn না করেই জব পাঠান; depth বাড়তে দেখুন।', expect: 'Depth ওঠে, কিছু সার্ভ হয় না, কিছু হারায় না — কিউই আপনার shock absorber।' },
 		{ title: 'সাইজ ভুল করুন ইচ্ছা করে', why: 'pool ১ করুন, তারপর ৩২, [3] আবার চালান।', expect: 'pool ১ বার্স্টকে serial করে; pool ৩২, ২০ জবে ৩২টি heap spawn করে — দুই প্রান্তই cores-এর চেয়ে দামি।' },
 	]}
 />

@@ -33,13 +33,13 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-`worker_threads` shares one process; `child_process` runs *other programs* — ffmpeg, git, a Python script, another Node binary. The four entry points differ on two axes: buffering and shell. `spawn` is the base — streams, no shell, output arrives while the child runs; reach for it when output is big or ongoing. `fork` is `spawn` specialized to Node: it wires an **IPC channel** so `child.send(...)` and `process.send(...)` pass structured-clone messages both ways — the same protocol `cluster` is built on. `exec` takes one *shell string* and buffers stdout/stderr up to `maxBuffer` (1 MB default — beyond it, the child is killed); quick one-liners only. `execFile` is `exec` without the shell: an argv array, so `&&` and `$0` stay literal — the safe default when the command is fixed and input must not be interpreted.
+`worker_threads` shares one process; `child_process` runs *other programs* — ffmpeg, git, a Python script, another Node binary. The four entry points differ on two axes: buffering and shell. `spawn` is the base — streams, no shell, output arrives while the child runs; reach for it when output is big or ongoing. `fork` is `spawn` specialized to Node: it wires an **IPC channel** so `child.send(...)` and `process.send(...)` pass JSON-serialized messages both ways by default (structured clone only with `serialization: 'advanced'`) — the same channel `cluster` is built on. `exec` takes one *shell string* and buffers stdout/stderr up to `maxBuffer` (1 MB default — beyond it, the child is killed); quick one-liners only. `execFile` is `exec` without the shell: an argv array, so `&&` and `$0` stay literal — the safe default when the command is fixed and input must not be interpreted.
 
 <KeywordTable keywords={frontmatter.keywords} />
 
 <Pitfall title="A signaled death is not an error code — read both fields">
 	<p>
-		`exit` fires with `(code, signal)`. Normal death: `code` set, `signal` null. Killed by `kill('SIGTERM')`: `code` is `null` and `signal` is `'SIGTERM'`. Code that checks `if (code !== 0)` treats a signaled death as *success*. Check `signal` first, then `code`. The same trap on the other side: in a deployed server, `process.on('SIGTERM')` is your graceful-shutdown hook — install it, or the process dies mid-write when the orchestrator asks it to stop.
+		`exit` fires with `(code, signal)`. Normal death: `code` set, `signal` null. Killed by `kill('SIGTERM')`: `code` is `null` and `signal` is `'SIGTERM'`. Code that checks `if (!code)` treats a signaled death as *success* — `null` is falsy, so the `!code` branch fires. `if (code !== 0)` happens to be safe here, but it still says nothing about *how* the child died. Check `signal` first, then `code`. The same trap on the other side: in a deployed server, `process.on('SIGTERM')` is your graceful-shutdown hook — install it, or the process dies mid-write when the orchestrator asks it to stop.
 	</p>
 </Pitfall>
 

@@ -34,13 +34,13 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-`worker_threads` এক প্রসেস ভাগ করে; `child_process` চালায় *অন্য প্রোগ্রাম* — ffmpeg, git, Python স্ক্রিপ্ট, আরেকটি Node বাইনারি। চারটি এন্ট্রি পয়েন্ট আলাদা দুই অক্ষে: buffering আর shell। `spawn` ভিত্তি — stream, shell নেই, আউটপুট child চলার সময়ই আসে; আউটপুট বড় বা চলমান হলে এটাই। `fork` হলো Node-এ বিশেষায়িত `spawn`: **IPC channel** যোগ করে যাতে `child.send(...)` আর `process.send(...)` দুই দিকেই structured-clone মেসেজ চালায় — যে প্রোটোকলের ওপর `cluster` দাঁড়িয়ে, সেটাই। `exec` নেয় এক *shell স্ট্রিং*, stdout/stderr buffer করে `maxBuffer` পর্যন্ত (ডিফল্ট 1 MB — বাড়লে child kill হয়); শুধু ছোট one-liner। `execFile` হলো shell-ছাড়া `exec`: argv array, তাই `&&` আর `$0` আক্ষরিক থাকে — কমান্ড ফিক্সড আর ইনপুট যেন ইন্টারপ্রেট না হয়, সেই নিরাপদ ডিফল্ট।
+`worker_threads` এক প্রসেস ভাগ করে; `child_process` চালায় *অন্য প্রোগ্রাম* — ffmpeg, git, Python স্ক্রিপ্ট, আরেকটি Node বাইনারি। চারটি এন্ট্রি পয়েন্ট আলাদা দুই অক্ষে: buffering আর shell। `spawn` ভিত্তি — stream, shell নেই, আউটপুট child চলার সময়ই আসে; আউটপুট বড় বা চলমান হলে এটাই। `fork` হলো Node-এ বিশেষায়িত `spawn`: **IPC channel** যোগ করে যাতে `child.send(...)` আর `process.send(...)` দুই দিকেই JSON-serialized মেসেজ চালায় (ডিফল্ট; structured clone চাইলে `serialization: 'advanced'`) — যে চ্যানেলের ওপর `cluster` দাঁড়িয়ে, সেটাই। `exec` নেয় এক *shell স্ট্রিং*, stdout/stderr buffer করে `maxBuffer` পর্যন্ত (ডিফল্ট 1 MB — বাড়লে child kill হয়); শুধু ছোট one-liner। `execFile` হলো shell-ছাড়া `exec`: argv array, তাই `&&` আর `$0` আক্ষরিক থাকে — কমান্ড ফিক্সড আর ইনপুট যেন ইন্টারপ্রেট না হয়, সেই নিরাপদ ডিফল্ট।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
 <Pitfall title="signal-এ মৃত্যু error code নয় — দুই ফিল্ডই পড়ুন">
 	<p>
-		`exit` ফায়ার করে `(code, signal)` নিয়ে। স্বাভাবিক মৃত্যু: `code` সেট, `signal` null। `kill('SIGTERM')`-এ মরলে: `code` `null`, `signal` `'SIGTERM'`। যে কোড `if (code !== 0)` লেখে, সে signal-মৃত্যুকে *সাফল্য* ধরে। আগে `signal` দেখুন, তারপর `code`। ওপাশে একই ফাঁদ: ডিপ্লয়ড সার্ভারে `process.on('SIGTERM')` আপনার graceful-shutdown হুক — বসান, নাহলে orchestrator থামতে বললে মাঝ-লেখায় মরবে।
+		`exit` ফায়ার করে `(code, signal)` নিয়ে। স্বাভাবিক মৃত্যু: `code` সেট, `signal` null। `kill('SIGTERM')`-এ মরলে: `code` `null`, `signal` `'SIGTERM'`। যে কোড `if (!code)` লেখে, সে signal-মৃত্যুকে *সাফল্য* ধরে — `null` falsy, তাই `!code` ব্রাঞ্চ ফায়ার করে। `if (code !== 0)` এখানে কাকতালীয়ভাবে নিরাপদ, কিন্তু child *কীভাবে* মরল সেটা বলে না। আগে `signal` দেখুন, তারপর `code`। ওপাশে একই ফাঁদ: ডিপ্লয়ড সার্ভারে `process.on('SIGTERM')` আপনার graceful-shutdown হুক — বসান, নাহলে orchestrator থামতে বললে লেখার মাঝে থেমে যায়।
 	</p>
 </Pitfall>
 
@@ -52,7 +52,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 node code/3-multithreading-processes/3-6-child-process/demo.js
 ```
 
-ছাপে: `[1]` `spawn` তিনটি chunk পড়ার মত স্ট্রিম করে, exit-এ এক গোছা নয়; `[2]` `fork` IPC channel-এ structured মেসেজ echo করে; `[3]` `exec` শেলে `echo hello && echo $0` চালায় — দুই কমান্ডই — পাশে `execFile` একই স্ট্রিং *আক্ষরিকভাবে* ছাপে; `[4]` `SIGTERM`-এ মরা child-এর exit event: `{ code: null, signal: 'SIGTERM' }` — যে ফিল্ড-জোড়া প্রতিটি child-exit হ্যান্ডলারকে পড়তেই হবে।
+ছাপে: `[1]` `spawn` তিনটি chunk স্ট্রিম হয়ে একে একে আসে, exit-এ এক গোছা নয়; `[2]` `fork` IPC channel-এ structured মেসেজ echo করে; `[3]` `exec` শেলে `echo hello && echo $0` চালায় — দুই কমান্ডই — পাশে `execFile` একই স্ট্রিং *আক্ষরিকভাবে* ছাপে; `[4]` `SIGTERM`-এ মরা child-এর exit event: `{ code: null, signal: 'SIGTERM' }` — যে ফিল্ড-জোড়া প্রতিটি child-exit হ্যান্ডলারকে পড়তেই হবে।
 
 <BuildExercise
 	title="সঠিক launcher বাছুন"

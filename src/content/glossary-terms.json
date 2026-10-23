@@ -1,508 +1,608 @@
 [
-	{
-		"term": "blocking",
-		"defEn": "JS code that hogs the single thread — synchronous fs/crypto/CPU loops — so no other callback can run until it returns.",
-		"defBn": "JS কোড যা একক থ্রেড দখলে রাখে — sync fs/crypto/CPU লুপ — ফলে ফেরার আগে আর কোনো callback চলতে পারে না।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
-		],
-		"domain": 1
-	},
-	{
-		"term": "event loop",
-		"defEn": "The single-threaded cycle that Node runs on: pick queued callbacks, run them to completion, then repeat. All JS code shares it, so one slow callback delays every request.",
-		"defBn": "Node-এর একক-থ্রেড সাইকেল: কিউতে থাকা callback নেয়, সম্পূর্ণ চালায়, আবার পুনরাবৃত্তি করে। সব JS কোড এটি শেয়ার করে, তাই একটি ধীর callback সব রিকোয়েস্ট দেরি করায়।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
-			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
-		],
-		"domain": 1
-	},
-	{
-		"term": "event loop phases",
-		"defEn": "The ordered stages libuv cycles through: timers → pending → idle/prepare → poll → check → close. Each phase drains its own callback queue before moving on.",
-		"defBn": "libuv যে ক্রমিক ধাপগুলো ঘুরে আসে: timers → pending → idle/prepare → poll → check → close। প্রতিটি ফেজ পরের ফেজে যাওয়ার আগে নিজের callback কিউ খালি করে।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
-		],
-		"domain": 1
-	},
-	{
-		"term": "event-loop lag",
-		"defEn": "Delay between when a callback was due and when it ran — measurable with monitorEventLoopDelay or a self-ping. The number blocking costs you.",
-		"defBn": "callback কখন চলা উচিত ছিল আর কখন সত্যিই চলল — monitorEventLoopDelay বা self-ping দিয়ে মাপা যায়। ব্লকিংয়ের প্রকৃত খরচ এই সংখ্যা।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
-		],
-		"domain": 1
-	},
-	{
-		"term": "libuv",
-		"defEn": "The C library under Node that provides the event loop, TCP/UDP sockets, filesystem and thread-pool operations. Node's async I/O is libuv plus OS kernel facilities.",
-		"defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও থ্রেড-পুল অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
-		],
-		"domain": 1
-	},
-	{
-		"term": "microtask",
-		"defEn": "A callback that runs between event-loop phases rather than in one: process.nextTick queue and the Promise (V8) queue. Drained fully after each callback.",
-		"defBn": "ফেজের ভেতরে নয়, দুই ফেজের মাঝে চলা callback: process.nextTick কিউ ও Promise (V8) কিউ। প্রতিটি callback-এর পরে সম্পূর্ণ নিষ্কাশিত হয়।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
-		],
-		"domain": 1
-	},
-	{
-		"term": "poll phase",
-		"defEn": "The event-loop phase that waits for I/O events, computes how long to block, and processes incoming connections/data — the loop's center of gravity.",
-		"defBn": "event loop-এর সেই ফেজ যা I/O ইভেন্টের জন্য অপেক্ষা করে, কতক্ষণ ব্লক করবে হিসাব করে, নতুন কানেকশন ও ডেটা প্রসেস করে — লুপের ভারকেন্দ্র।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
-		],
-		"domain": 1
-	},
-	{
-		"term": "process.nextTick",
-		"defEn": "Queues a callback on the microtask queue that runs after the current operation completes, before the event loop continues — starves I/O if abused.",
-		"defBn": "মাইক্রোটাস্ক কিউতে callback রাখে, বর্তমান অপারেশন শেষ হলে event loop চালু হওয়ার আগেই চলে — অতিরিক্ত ব্যবহারে I/O অনাহারিত করে।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
-		],
-		"domain": 1
-	},
-	{
-		"term": "ref/unref",
-		"defEn": "Timers/handles keep the process alive while referenced; .unref() lets the process exit with them pending, .ref() restores the default keep-alive.",
-		"defBn": "রেফারেন্সড থাকা টাইমার/হ্যান্ডেল প্রসেসকে বাঁচিয়ে রাখে; .unref() করলে সেগুলো ঝুলে থাকলেও প্রসেস বেরিয়ে যেতে পারে, .ref() আবার ডিফল্ট ফিরিয়ে আনে।",
-		"refs": [
-			"https://nodejs.org/api/timers.html"
-		],
-		"domain": 1
-	},
-	{
-		"term": "setImmediate",
-		"defEn": "Schedules a callback in the check phase, after the current poll phase — the I/O-friendly alternative to nextTick for post-phase work.",
-		"defBn": "check ফেজে callback নির্ধারণ করে, চলমান poll ফেজের পরে — ফেজ-পরবর্তী কাজের জন্য nextTick-এর I/O-বান্ধব বিকল্প।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
-		],
-		"domain": 1
-	},
-	{
-		"term": "thread pool",
-		"defEn": "libuv's pool of worker threads (default 4, tunable via UV_THREADPOOL_SIZE) that runs fs, DNS, crypto.pbkdf2 and other blocking ops off the main thread.",
-		"defBn": "libuv-এর ওয়ার্কার থ্রেডের পুল (ডিফল্ট ৪, UV_THREADPOOL_SIZE দিয়ে বদলানো যায়) যা fs, DNS, crypto.pbkdf2 ইত্যাদি ব্লকিং কাজ মেইন থ্রেডের বাইরে চালায়।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
-		],
-		"domain": 1
-	},
-	{
-		"term": "timer drift",
-		"defEn": "setInterval callbacks fire relative to when the previous one ran (blocking included), so a 100ms interval under load becomes slower and slower.",
-		"defBn": "setInterval-এর callback চলে আগেরটা কখন শেষ হলো তার থেকে (ব্লকিংসহ), তাই লোডের নিচে ১০০ms-এর ইন্টারভাল ক্রমশ ধীর হয়ে যায়。",
-		"refs": [
-			"https://nodejs.org/api/timers.html"
-		],
-		"domain": 1
-	},
-	{
-		"term": "UV_THREADPOOL_SIZE",
-		"defEn": "Environment variable setting libuv thread-pool size. Must be set before the process starts; default 4, max useful ≈ 128.",
-		"defBn": "libuv থ্রেড-পুলের সাইজ নির্ধারণকারী environment variable। প্রসেস শুরুর আগে সেট করতে হয়; ডিফল্ট ৪, কার্যকর সর্বোচ্চ প্রায় ১২৮।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
-		],
-		"domain": 1
-	},
-	{
-		"term": "--max-old-space-size",
-		"defEn": "Node flag capping V8 old-space heap (default ~2-4GB by arch). When the heap cannot grow past it and GC cannot free memory, the process dies with \"JavaScript heap out of memory\".",
-		"defBn": "V8 পুরনো-স্পেস heap সীমিত করার Node ফ্ল্যাগ (আর্কিটেকচার অনুযায়ী ডিফল্ট প্রায় ২-৪GB)। heap এর পর বাড়তে না পারলে আর GC মেমরি মুক্ত না করতে পারলে প্রসেস \"JavaScript heap out of memory\" বলে মরে।",
-		"refs": [
-			"https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
-		],
-		"domain": 2
-	},
-	{
-		"term": "addon",
-		"defEn": "A native (C/C++/Rust) module loaded into Node via N-API/node-gyp: JS calls C++ through the bindings layer, e.g. node-sass or sharp.",
-		"defBn": "N-API/node-gyp দিয়ে Node-এ লোড হওয়া নেটিভ (C/C++/Rust) মডিউল: bindings লেয়ার দিয়ে JS থেকে C++ কল হয়, যেমন node-sass বা sharp।",
-		"refs": [
-			"https://nodejs.org/api/addons.html"
-		],
-		"domain": 2
-	},
-	{
-		"term": "circular import",
-		"defEn": "Two modules requiring each other: CJS returns the partial exports object built so far (may miss later exports); ESM hoisted live bindings avoid the truncation but still need care at module-eval time.",
-		"defBn": "একে অপরকে require করা দুটি মডিউল: CJS তখন পর্যন্ত বানানো আংশিক exports অবজেক্ট ফেরায় (পরের exports মিস হতে পারে); ESM-এর হোয়েস্টেড লাইভ বাইন্ডিং সেই কাটা এড়ায়, তবে মডিউল-ইভাল সময়ে সতর্কতা তবু লাগে।",
-		"refs": [
-			"https://nodejs.org/api/modules.html#cycles"
-		],
-		"domain": 2
-	},
-	{
-		"term": "ESM loader",
-		"defEn": "Node's ES module pipeline: resolve (extensions/folders per --experimental-specifier-resolution), load, parse, then link before any module body runs; top-level await supported.",
-		"defBn": "Node-এর ES মডিউল পাইপলাইন: resolve (extensions/folders), load, parse, তারপর যেকোনো মডিউল বডি চলার আগে link; top-level await সমর্থিত।",
-		"refs": [
-			"https://nodejs.org/api/esm.html"
-		],
-		"domain": 2
-	},
-	{
-		"term": "garbage collection",
-		"defEn": "V8's automatic memory reclaim: scavenger (minor) collects the young generation; mark-sweep/mark-compact (major) collects old space. GC runs on the main thread (plus concurrent helpers) and pauses your JS.",
-		"defBn": "V8-এর স্বয়ংক্রিয় মেমরি ফেরত আনা: scavenger (minor) যুবক জেনারেশন কালেক্ট করে; mark-sweep/mark-compact (major) পুরনো স্পেস কালেক্ট করে। GC মেইন থ্রেডে চলে (সাথে কনকারেন্ট হেল্পার) আর আপনার JS থামায়।",
-		"refs": [
-			"https://nodejs.org/en/learn/diagnostics/memory"
-		],
-		"domain": 2
-	},
-	{
-		"term": "heap snapshot",
-		"defEn": "A full dump of the JS heap (nodes + edges) taken via inspector/heapdump, compared in Chrome DevTools to find what retains leaked objects.",
-		"defBn": "inspector/heapdump দিয়ে নেওয়া JS heap-এর পূর্ণ ডাম্প (নোড + এজ), Chrome DevTools-এ তুলনা করে লিকড অবজেক্ট কী ধরে রেখেছে তা খুঁজতে হয়।",
-		"refs": [
-			"https://nodejs.org/en/learn/diagnostics/memory"
-		],
-		"domain": 2
-	},
-	{
-		"term": "hidden class",
-		"defEn": "V8's internal shape-tracking for objects: objects built in the same property order share one hidden class, enabling inline caches. Adding properties in different orders forks the class and deoptimizes access.",
-		"defBn": "V8-এর অবজেক্টের গড়-ট্র্যাকিং: একই ক্রমে প্রপার্টি বসানো অবজেক্টগুলো একটি hidden class শেয়ার করে, যা inline cache চালু করে। ভিন্ন ক্রমে প্রপার্টি যোগ করলে ক্লাস ভাগ হয় আর অ্যাক্সেস ডিঅপটিমাইজ হয়।",
-		"refs": [
-			"https://v8.dev/blog/fast-properties"
-		],
-		"domain": 2
-	},
-	{
-		"term": "JIT",
-		"defEn": "Just-in-time compilation: V8 runs your JS first as bytecode (ignition), then promotes hot functions to optimized machine code (turbofan). Deopt happens when live input breaks an optimization assumption.",
-		"defBn": "জাস্ট-ইন-টাইম কম্পাইলেশন: V8 প্রথমে JS চালায় বাইটকোড হিসেবে (ignition), পরে হট ফাংশনগুলো অপটিমাইজড মেশিন কোডে উন্নীত করে (turbofan)। লাইভ ইনপুট কোনো অপটিমাইজেশন অনুমান ভাঙলে deopt ঘটে।",
-		"refs": [
-			"https://v8.dev/docs"
-		],
-		"domain": 2
-	},
-	{
-		"term": "memory leak",
-		"defEn": "Objects the app will never use again but GC can still reach: growing caches, timers capturing scope, un-removed listeners, closures pinned in module state.",
-		"defBn": "অ্যাপ আর কখনো ব্যবহার করবে না কিন্তু GC এখনো পৌঁছাতে পারে এমন অবজেক্ট: বাড়ন্ত ক্যাশ, স্কোপ ধরে রাখা টাইমার, না-সরানো লিসেনার, মডিউল স্টেটে পিন করা ক্লোজার।",
-		"refs": [
-			"https://nodejs.org/en/learn/diagnostics/memory"
-		],
-		"domain": 2
-	},
-	{
-		"term": "module cache",
-		"defEn": "CommonJS cache: require() stores loaded modules in require.cache keyed by resolved filename, so a second require returns the same exports object — circular imports get a partial exports.",
-		"defBn": "CommonJS ক্যাশ: require() লোড করা মডিউল require.cache-এ রাখে, রিজলভড ফাইলনেম দিয়ে চাবি করে — দ্বিতীয় require একই exports অবজেক্ট ফেরায়, আর সার্কুলার ইমপোর্ট আংশিক exports পায়।",
-		"refs": [
-			"https://nodejs.org/api/modules.html#modulecacheprobing"
-		],
-		"domain": 2
-	},
-	{
-		"term": "N-API",
-		"defEn": "Node's stable C ABI for native addons: compiled addons keep working across Node versions without rebuild because the ABI, not V8 internals, is the contract.",
-		"defBn": "নেটিভ অ্যাডনের জন্য Node-এর স্থির C ABI: কন্ট্র্যাক্ট V8-এর অভ্যন্তর নয়, ABI — তাই কম্পাইলড অ্যাডন Node ভার্সন বদলালেও রিবিল্ড ছাড়াই চলে।",
-		"refs": [
-			"https://nodejs.org/api/n-api.html"
-		],
-		"domain": 2
-	},
-	{
-		"term": "node-gyp",
-		"defEn": "The build tool that compiles native addons against the installed Node headers; triggered automatically by npm install for packages shipping .cc/.cpp sources.",
-		"defBn": "ইনস্টল করা Node হেডারের সাথে নেটিভ অ্যাডন কম্পাইল করার বিল্ড টুল; .cc/.cpp সোর্সসহ প্যাকেজ npm install করলে স্বয়ংক্রিয়ভাবে চালু হয়।",
-		"refs": [
-			"https://github.com/nodejs/node-gyp"
-		],
-		"domain": 2
-	},
-	{
-		"term": "old space",
-		"defEn": "The V8 heap region for long-lived objects and code; major GC (mark-sweep/compact) reclaims it. --max-old-space-size caps it.",
-		"defBn": "দীর্ঘস্থায়ী অবজেক্ট ও কোডের V8 heap অঞ্চল; major GC (mark-sweep/compact) এটি ফেরত আনে। --max-old-space-size এর সীমা ধরে।",
-		"refs": [
-			"https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
-		],
-		"domain": 2
-	},
-	{
-		"term": "retainer",
-		"defEn": "In a heap snapshot, the object path keeping a target alive — DevTools' Retainers panel answers 'who is holding this', which is the leak, not the target itself.",
-		"defBn": "heap snapshot-এ কোনো টার্গেটকে বাঁচিয়ে রাখা অবজেক্ট-পাথ — DevTools-এর Retainers প্যানেল উত্তর দেয় \"এটা কে ধরে আছে\", লিক হলো ওই ধরনে রাখা, টার্গেট নিজে নয়।",
-		"refs": [
-			"https://nodejs.org/en/learn/diagnostics/memory"
-		],
-		"domain": 2
-	},
-	{
-		"term": "young generation",
-		"defEn": "V8 heap region for short-lived objects, split into from/to semispaces; survivors of two scavenger collections get promoted to old space.",
-		"defBn": "স্বল্পস্থায়ী অবজেক্টের V8 heap অঞ্চল, from/to সেমিস্পেসে ভাগ করা; দুটি scavenger কালেকশন টিকে থাকলে অবজেক্ট পুরনো স্পেসে উন্নীত হয়।",
-		"refs": [
-			"https://v8.dev/blog/orinoco-parallel-scavenger"
-		],
-		"domain": 2
-	},
-	{
-		"term": "Atomics",
-		"defEn": "Wait-free atomic ops on SharedArrayBuffer views: Atomics.store/load/add/wait/notify give ordering and a futex-style wait that cannot be interrupted by the event loop.",
-		"defBn": "SharedArrayBuffer ভিউতে ওয়েট-ফ্রি অ্যাটমিক অপ: Atomics.store/load/add/wait/notify অর্ডারিং দেয় আর futex-স্টাইল wait যা event loop ভাঙতে পারে না।",
-		"refs": [
-			"https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
-		],
-		"domain": 3
-	},
-	{
-		"term": "cluster",
-		"defEn": "Node's multi-process module: a supervisor forks N workers, all sharing one listening port via round-robin distribution. Each cluster worker is a full process with its own event loop.",
-		"defBn": "Node-এর মাল্টি-প্রসেস মডিউল: সুপারভাইজর N ওয়ার্কার fork করে, রাউন্ড-রবিনে এক লিসেনিং পোর্ট ভাগ করে। প্রতিটি cluster ওয়ার্কার নিজের event loop-সহ পূর্ণ প্রসেস।",
-		"refs": [
-			"https://nodejs.org/api/cluster.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "CPU-bound",
-		"defEn": "Work whose cost is computation (hashing, image resize, JSON parse of huge payloads), not I/O. Blocks the event loop if done inline — belongs in a Worker.",
-		"defBn": "যে কাজের খরচ হিসাব (হ্যাশিং, ইমেজ রিসাইজ, বিশাল পেলোডের JSON পার্স), I/O নয়। ইনলাইন করলে event loop আটকায় — এর জায়গা Worker-এ।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
-		],
-		"domain": 3
-	},
-	{
-		"term": "data race",
-		"defEn": "Two threads read-modify-write the same bytes with no ordering: lost updates, torn reads. On SAB, every compound operation must be an Atomics op, not plain [] access.",
-		"defBn": "দুই থ্রেড অর্ডারিং ছাড়াই একই বাইট read-modify-write করে: আপডেট হারায়, রিড ছিঁড়ে। SAB-তে প্রতিটি যৌগিক অপারেশন প্লেইন [] অ্যাক্সেস নয়, Atomics অপ হতে হবে।",
-		"refs": [
-			"https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
-		],
-		"domain": 3
-	},
-	{
-		"term": "I/O-bound",
-		"defEn": "Work that waits on sockets/disk/timers, not CPU. Node's sweet spot: thousands of concurrent I/O-bound operations on one event loop, zero workers needed.",
-		"defBn": "যে কাজ সকেট/ডিস্ক/টাইমারের অপেক্ষা করে, CPU-তে নয়। Node-এর মাঠ: এক event loop-এ হাজার কনকারেন্ট I/O-bound অপারেশন, কোনো worker লাগে না।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
-		],
-		"domain": 3
-	},
-	{
-		"term": "IPC channel",
-		"defEn": "The pipe Node gives fork()-ed child processes: process.send()/message events pass JSON-serialized messages between parent and child; streams/sockets can be sent as handles.",
-		"defBn": "fork() করা চাইল্ড প্রসেসকে Node যে পাইপ দেয়: process.send()/message ইভেন্টে প্যারেন্ট-চাইল্ডের মধ্যে JSON-সিরিয়ালাইজড মেসেজ যায়; স্ট্রিম/সকেট handle হিসেবে পাঠানো যায়।",
-		"refs": [
-			"https://nodejs.org/api/child_process.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "MessageChannel",
-		"defEn": "A pair of MessagePorts (port1/port2) for structured-clone message passing between threads — the transferable way to move data without copying.",
-		"defBn": "থ্রেডের মধ্যে structured-clone মেসেজ পাঠানোর MessagePort-জোড়া (port1/port2) — কপি ছাড়াই ডেটা সরানোর transferable পথ।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html#class-messageport"
-		],
-		"domain": 3
-	},
-	{
-		"term": "round-robin",
-		"defEn": "cluster's default load distribution on non-Windows: the master accepts each connection and hands the socket to the next worker in turn, avoiding thundering-herd accept races.",
-		"defBn": "Windows ছাড়া cluster-এর ডিফল্ট লোড বিতরণ: মাস্টার প্রতিটি কানেকশন accept করে পালা করে পরের ওয়ার্কারকে সকেট দেয়, thundering-herd accept-দৌড় এড়ায়।",
-		"refs": [
-			"https://nodejs.org/api/cluster.html#how-it-works"
-		],
-		"domain": 3
-	},
-	{
-		"term": "SharedArrayBuffer",
-		"defEn": "A fixed-length raw byte buffer whose memory is shared with a Worker (no copy, no clone): both sides see the SAME bytes — coordination must go through Atomics.",
-		"defBn": "নির্দিষ্ট-দৈর্ঘ্যের র বাইট বাফার যার মেমরি Worker-এর সাথে শেয়ার হয় (কপি নেই, ক্লোন নেই): দুই পাশ একই বাইট দেখে — সমন্বয় করতে হয় Atomics দিয়ে।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "signal",
-		"defEn": "POSIX inter-process interrupts: SIGTERM asks for graceful shutdown, SIGKILL cannot be caught (last resort), SIGINT is Ctrl+C. child.kill() and process.on(\"SIGTERM\") are the two ends.",
-		"defBn": "POSIX ইন্টার-প্রসেস ইন্টারাপ্ট: SIGTERM সৌজন্য-শাটডাউন চায়, SIGKILL ধরা যায় না (শেষ অস্ত্র), SIGINT হলো Ctrl+C। child.kill() আর process.on(\"SIGTERM\") দুই প্রান্ত।",
-		"refs": [
-			"https://nodejs.org/api/process.html#signal-events"
-		],
-		"domain": 3
-	},
-	{
-		"term": "spawn vs fork vs exec",
-		"defEn": "child_process trio: spawn streams a new process stdout/stderr; fork = spawn + IPC channel (Node-to-Node); exec buffers ALL output in memory and shells out — pick per shape of output.",
-		"defBn": "child_process ত্রয়ী: spawn নতুন প্রসেসের stdout/stderr স্ট্রিম করে; fork = spawn + IPC চ্যানেল (Node থেকে Node); exec সব আউটপুট মেমরিতে বাফার করে শেল ডাকে — আউটপুটের গড় অনুযায়ী বাছুন।",
-		"refs": [
-			"https://nodejs.org/api/child_process.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "structured clone",
-		"defEn": "The serialization postMessage uses: most JS values copied recursively; Functions, DOM nodes, and natives like sockets are NOT cloneable. Transferables move the backing store instead of copying.",
-		"defBn": "postMessage-এর সিরিয়ালাইজেশন: বেশিরভাগ JS মান রিকার্সিভলি কপি হয়; Function, DOM নোড, socket-এর মতো নেটিভ ক্লোন-যোগ্য নয়। Transferable কপি না করে ব্যাকিং স্টোর সরায়।",
-		"refs": [
-			"https://developer.mozilla.org/docs/Web/API/Web_Workers_API/Structured_clone_algorithm"
-		],
-		"domain": 3
-	},
-	{
-		"term": "transferable",
-		"defEn": "Objects whose backing memory can MOVE between threads with zero copy in postMessage(transfers): ArrayBuffer, MessagePort. The sender's view becomes detached (byteLength 0).",
-		"defBn": "যে অবজেক্টের ব্যাকিং মেমরি postMessage(transfers)-এ জিরো-কপিতে থ্রেডের মধ্যে সরতে পারে: ArrayBuffer, MessagePort। পাঠানো পাশের ভিউ detached হয়ে যায় (byteLength 0)।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "Worker",
-		"defEn": "A worker_threads.Worker: its own V8 isolate + event loop on a real OS thread, running a separate JS entry file, exchanging data by postMessage or SharedArrayBuffer.",
-		"defBn": "একটি worker_threads.Worker: আসল OS থ্রেডে নিজের V8 isolate + event loop, আলাদা JS এন্ট্রি ফাইল চালায়, postMessage বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "worker pool",
-		"defEn": "A fixed set of Workers reused across jobs (spawn once, hand out work by message): amortizes ~30ms worker startup and caps thread count at CPU cores.",
-		"defBn": "কাজ জুড়ে পুনঃব্যবহৃত নির্দিষ্ট Worker-সেট (একবার spawn, মেসেজে কাজ বিতরণ): ~৩০ms worker স্টার্টআপ ভাগ করে খায় আর থ্রেড-সংখ্যা CPU কোরে সীমিত রাখে।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "worker_threads",
-		"defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
-		"defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",
-		"refs": [
-			"https://nodejs.org/api/worker_threads.html"
-		],
-		"domain": 3
-	},
-	{
-		"term": "backpressure",
-		"defEn": "The writable side's buffer is full and the readable side must slow down. In Node the signal is write() returning false — and honoring it is the difference between a server that streams forever and one that buffers every upload in RAM.",
-		"defBn": "writable পাশের বাফার ভরে গেছে আর readable পাশকে ধীর হতে হবে। Node-এ সংকেত হলো write() false ফেরানো — এটা সম্মান করাই বাড়িয়ে-চলা streaming server আর সব upload RAM-এ জমে-রাখা server-এর পার্থক্য।",
-		"refs": [
-			"https://nodejs.org/api/stream.html#buffering",
-			"https://nodejs.org/api/stream.html#writablewritethunk-callback"
-		],
-		"domain": 4
-	},
-	{
-		"term": "server lifecycle",
-		"defEn": "What happens between createServer() and the server emitting 'listening': Node binds, the kernel assigns the socket, and every 'connection' hands you a net.Socket with 'request' events on top.",
-		"defBn": "createServer() থেকে server-এর 'listening' emit হওয়া পর্যন্ত যা ঘটে: Node bind করে, kernel socket বরাদ্দ করে, আর প্রতিটি 'connection' আপনাকে একটি net.Socket দেয় যার ওপরে 'request' ইভেন্ট বসে।",
-		"refs": [
-			"https://nodejs.org/api/http.html"
-		],
-		"domain": 4
-	},
-	{
-		"term": "IncomingMessage",
-		"defEn": "The request object http hands your handler: a readable stream of the body, plus method, url, headers, and the raw socket. Parsing is already done for you.",
-		"defBn": "http আপনার হ্যান্ডলারকে যে request অবজেক্ট দেয়: body-র একটি readable stream, সাথে method, url, headers আর খোলা socket। parsing আগেই আপনার হয়ে হয়ে গেছে।",
-		"refs": [
-			"https://nodejs.org/api/http.html#class-httpincomingmessage"
-		],
-		"domain": 4
-	},
-	{
-		"term": "ServerResponse",
-		"defEn": "The response object: a writable stream plus writeHead(), setHeader(), and end(). You stream the body chunk by chunk; Node does the framing and flushing.",
-		"defBn": "response অবজেক্ট: একটি writable stream সাথে writeHead(), setHeader(), end()। body chunk ধরে ধরে stream করুন; framing আর flushing Node করে।",
-		"refs": [
-			"https://nodejs.org/api/http.html#class-httpserverresponse"
-		],
-		"domain": 4
-	},
-	{
-		"term": "router",
-		"defEn": "Code that maps method + path to a handler. Either you get one from a framework or write a match table yourself — either way it runs after parsing, before the handler.",
-		"defBn": "method + path থেকে handler-এ ম্যাপ করা কোড। ফ্রেমওয়ার্ক থেকে পান বা নিজে ম্যাচ টেবিল লেখেন — দুই ক্ষেত্রেই parsing-এর পরে, handler-এর আগে চলে।",
-		"refs": [
-			"https://nodejs.org/api/http.html"
-		],
-		"domain": 4
-	},
-	{
-		"term": "middleware",
-		"defEn": "A function that sees the request and either finishes early or calls next() to pass it on. Logging, body parsing, auth — cross-cutting concerns composed as a chain.",
-		"defBn": "এমন ফাংশন যে request দেখে, আগেই শেষ করে বা next() ডেকে পাস করে দেয়। logging, body parsing, auth — cross-cutting কাজগুলো চেইন হিসেবে জোড়া।",
-		"refs": [
-			"https://nodejs.org/api/http.html"
-		],
-		"domain": 4
-	},
-	{
-		"term": "error-first callback",
-		"defEn": "Node's convention: the callback's first argument is an error or null, the rest are results. The foundation of every fs/net/crypto callback you have met.",
-		"defBn": "Node-এর রীতি: callback-এর প্রথম আর্গুমেন্ট error অথবা null, বাকিগুলো ফলাফল। আপনার দেখা প্রতিটি fs/net/crypto callback-এর ভিত্তি এটাই।",
-		"refs": [
-			"https://nodejs.org/en/learn/asynchronous-work/error-handling-in-nodejs"
-		],
-		"domain": 4
-	},
-	{
-		"term": "uncaught exception",
-		"defEn": "An exception with no try/catch or handler anywhere above it. The process emits 'uncaughtException', then exits unless you attach a listener — but the listener is for logging, not for continuing.",
-		"defBn": "এমন exception যার ওপরে কোথাও try/catch বা handler নেই। প্রসেস 'uncaughtException' emit করে, তারপর বেরিয়ে যায় যদি না listener বসান — কিন্তু listener-টা logging-এর জন্য, চালিয়ে যাওয়ার জন্য নয়।",
-		"refs": [
-			"https://nodejs.org/api/process.html#event-uncaughtexception"
-		],
-		"domain": 4
-	},
-	{
-		"term": "four stream classes",
-		"defEn": "Readable, Writable, Duplex, Transform. Everything in Node that moves data is one of these four — files, sockets, zlib, crypto, process stdio.",
-		"defBn": "Readable, Writable, Duplex, Transform। Node-এ যা কিছু ডেটা নড়ায় সে এই চারটির একটি — ফাইল, socket, zlib, crypto, process stdio।",
-		"refs": [
-			"https://nodejs.org/api/stream.html"
-		],
-		"domain": 4
-	},
-	{
-		"term": "highWaterMark",
-		"defEn": "The buffer size limit inside every stream: write() returns false once the internal buffer exceeds it — your signal to stop pushing and let the reader catch up.",
-		"defBn": "প্রতিটি stream-এর ভেতরের বাফার সাইজ সীমা: internal buffer এটা ছাড়ালেই write() false ফেরায় — ঠেলা থামিয়ে reader-কে ধরতে দেওয়ার সংকেত।",
-		"refs": [
-			"https://nodejs.org/api/stream.html#buffering"
-		],
-		"domain": 4
-	},
-	{
-		"term": "pipe",
-		"defEn": "Readable.pipe(writable): connects a readable to a writable and handles backpressure for you — pauses the readable when the writable's buffer fills, resumes when it drains.",
-		"defBn": "Readable.pipe(writable): readable-কে writable-এ জোড়ে আর backpressure সামলে দেয় — writable-এর বাফার ভরলে readable pause করে, খালি হলে resume করে।",
-		"refs": [
-			"https://nodejs.org/api/stream.html#readablepipedestination-options"
-		],
-		"domain": 4
-	},
-	{
-		"term": "content-length",
-		"defEn": "The header that tells the client how many body bytes are coming. Without it Node uses chunked transfer encoding and the client cannot know the total size up front.",
-		"defBn": "যে header ক্লায়েন্টকে বলে কত body বাইট আসছে। এটা ছাড়া Node chunked transfer encoding ব্যবহার করে, আর ক্লায়েন্ট আগাম মোট সাইজ জানতে পারে না।",
-		"refs": [
-			"https://nodejs.org/api/http.html#responsewriteheadstatus-statusmessage-headers"
-		],
-		"domain": 4
-	}
+  {
+    "term": "blocking",
+    "defEn": "JS code that hogs the single thread — synchronous fs/crypto/CPU loops — so no other callback can run until it returns.",
+    "defBn": "JS কোড যা একক থ্রেড দখলে রাখে — sync fs/crypto/CPU লুপ — ফলে ফেরার আগে আর কোনো callback চলতে পারে না।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "event loop",
+    "defEn": "The single-threaded cycle that Node runs on: pick queued callbacks, run them to completion, then repeat. All JS code shares it, so one slow callback delays every request.",
+    "defBn": "Node-এর একক-থ্রেড সাইকেল: কিউতে থাকা callback নেয়, সম্পূর্ণ চালায়, আবার পুনরাবৃত্তি করে। সব JS কোড এটি শেয়ার করে, তাই একটি ধীর callback সব রিকোয়েস্ট দেরি করায়।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+      "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "event loop phases",
+    "defEn": "The ordered stages libuv cycles through: timers → pending → idle/prepare → poll → check → close. Each phase drains its own callback queue before moving on.",
+    "defBn": "libuv যে ক্রমিক ধাপগুলো ঘুরে আসে: timers → pending → idle/prepare → poll → check → close। প্রতিটি ফেজ পরের ফেজে যাওয়ার আগে নিজের callback কিউ খালি করে।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "event-loop lag",
+    "defEn": "Delay between when a callback was due and when it ran — measurable with monitorEventLoopDelay or a self-ping. The number blocking costs you.",
+    "defBn": "callback কখন চলা উচিত ছিল আর কখন সত্যিই চলল — monitorEventLoopDelay বা self-ping দিয়ে মাপা যায়। ব্লকিংয়ের প্রকৃত খরচ এই সংখ্যা।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "libuv",
+    "defEn": "The C library under Node that provides the event loop, TCP/UDP sockets, filesystem and thread-pool operations. Node's async I/O is libuv plus OS kernel facilities.",
+    "defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও থ্রেড-পুল অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "microtask",
+    "defEn": "A callback that runs between event-loop phases rather than in one: process.nextTick queue and the Promise (V8) queue. Drained fully after each callback.",
+    "defBn": "ফেজের ভেতরে নয়, দুই ফেজের মাঝে চলা callback: process.nextTick কিউ ও Promise (V8) কিউ। প্রতিটি callback-এর পরে সম্পূর্ণ নিষ্কাশিত হয়।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "poll phase",
+    "defEn": "The event-loop phase that waits for I/O events, computes how long to block, and processes incoming connections/data — the loop's center of gravity.",
+    "defBn": "event loop-এর সেই ফেজ যা I/O ইভেন্টের জন্য অপেক্ষা করে, কতক্ষণ ব্লক করবে হিসাব করে, নতুন কানেকশন ও ডেটা প্রসেস করে — লুপের ভারকেন্দ্র।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "process.nextTick",
+    "defEn": "Queues a callback on the microtask queue that runs after the current operation completes, before the event loop continues — starves I/O if abused.",
+    "defBn": "মাইক্রোটাস্ক কিউতে callback রাখে, বর্তমান অপারেশন শেষ হলে event loop চালু হওয়ার আগেই চলে — অতিরিক্ত ব্যবহারে I/O অনাহারিত করে।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "ref/unref",
+    "defEn": "Timers/handles keep the process alive while referenced; .unref() lets the process exit with them pending, .ref() restores the default keep-alive.",
+    "defBn": "রেফারেন্সড থাকা টাইমার/হ্যান্ডেল প্রসেসকে বাঁচিয়ে রাখে; .unref() করলে সেগুলো ঝুলে থাকলেও প্রসেস বেরিয়ে যেতে পারে, .ref() আবার ডিফল্ট ফিরিয়ে আনে।",
+    "refs": [
+      "https://nodejs.org/api/timers.html"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "setImmediate",
+    "defEn": "Schedules a callback in the check phase, after the current poll phase — the I/O-friendly alternative to nextTick for post-phase work.",
+    "defBn": "check ফেজে callback নির্ধারণ করে, চলমান poll ফেজের পরে — ফেজ-পরবর্তী কাজের জন্য nextTick-এর I/O-বান্ধব বিকল্প।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "thread pool",
+    "defEn": "libuv's pool of worker threads (default 4, tunable via UV_THREADPOOL_SIZE) that runs fs, DNS, crypto.pbkdf2 and other blocking ops off the main thread.",
+    "defBn": "libuv-এর ওয়ার্কার থ্রেডের পুল (ডিফল্ট ৪, UV_THREADPOOL_SIZE দিয়ে বদলানো যায়) যা fs, DNS, crypto.pbkdf2 ইত্যাদি ব্লকিং কাজ মেইন থ্রেডের বাইরে চালায়।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "timer drift",
+    "defEn": "setInterval callbacks fire relative to when the previous one ran (blocking included), so a 100ms interval under load becomes slower and slower.",
+    "defBn": "setInterval-এর callback চলে আগেরটা কখন শেষ হলো তার থেকে (ব্লকিংসহ), তাই লোডের নিচে ১০০ms-এর ইন্টারভাল ক্রমশ ধীর হয়ে যায়。",
+    "refs": [
+      "https://nodejs.org/api/timers.html"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "UV_THREADPOOL_SIZE",
+    "defEn": "Environment variable setting libuv thread-pool size. Must be set before the process starts; default 4, max useful ≈ 128.",
+    "defBn": "libuv থ্রেড-পুলের সাইজ নির্ধারণকারী environment variable। প্রসেস শুরুর আগে সেট করতে হয়; ডিফল্ট ৪, কার্যকর সর্বোচ্চ প্রায় ১২৮।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
+    ],
+    "domain": 1
+  },
+  {
+    "term": "--max-old-space-size",
+    "defEn": "Node flag capping V8 old-space heap (default ~2-4GB by arch). When the heap cannot grow past it and GC cannot free memory, the process dies with \"JavaScript heap out of memory\".",
+    "defBn": "V8 পুরনো-স্পেস heap সীমিত করার Node ফ্ল্যাগ (আর্কিটেকচার অনুযায়ী ডিফল্ট প্রায় ২-৪GB)। heap এর পর বাড়তে না পারলে আর GC মেমরি মুক্ত না করতে পারলে প্রসেস \"JavaScript heap out of memory\" বলে মরে।",
+    "refs": [
+      "https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "addon",
+    "defEn": "A native (C/C++/Rust) module loaded into Node via N-API/node-gyp: JS calls C++ through the bindings layer, e.g. node-sass or sharp.",
+    "defBn": "N-API/node-gyp দিয়ে Node-এ লোড হওয়া নেটিভ (C/C++/Rust) মডিউল: bindings লেয়ার দিয়ে JS থেকে C++ কল হয়, যেমন node-sass বা sharp।",
+    "refs": [
+      "https://nodejs.org/api/addons.html"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "circular import",
+    "defEn": "Two modules requiring each other: CJS returns the partial exports object built so far (may miss later exports); ESM hoisted live bindings avoid the truncation but still need care at module-eval time.",
+    "defBn": "একে অপরকে require করা দুটি মডিউল: CJS তখন পর্যন্ত বানানো আংশিক exports অবজেক্ট ফেরায় (পরের exports মিস হতে পারে); ESM-এর হোয়েস্টেড লাইভ বাইন্ডিং সেই কাটা এড়ায়, তবে মডিউল-ইভাল সময়ে সতর্কতা তবু লাগে।",
+    "refs": [
+      "https://nodejs.org/api/modules.html#cycles"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "ESM loader",
+    "defEn": "Node's ES module pipeline: resolve (extensions/folders per --experimental-specifier-resolution), load, parse, then link before any module body runs; top-level await supported.",
+    "defBn": "Node-এর ES মডিউল পাইপলাইন: resolve (extensions/folders), load, parse, তারপর যেকোনো মডিউল বডি চলার আগে link; top-level await সমর্থিত।",
+    "refs": [
+      "https://nodejs.org/api/esm.html"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "garbage collection",
+    "defEn": "V8's automatic memory reclaim: scavenger (minor) collects the young generation; mark-sweep/mark-compact (major) collects old space. GC runs on the main thread (plus concurrent helpers) and pauses your JS.",
+    "defBn": "V8-এর স্বয়ংক্রিয় মেমরি ফেরত আনা: scavenger (minor) যুবক জেনারেশন কালেক্ট করে; mark-sweep/mark-compact (major) পুরনো স্পেস কালেক্ট করে। GC মেইন থ্রেডে চলে (সাথে কনকারেন্ট হেল্পার) আর আপনার JS থামায়।",
+    "refs": [
+      "https://nodejs.org/en/learn/diagnostics/memory"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "heap snapshot",
+    "defEn": "A full dump of the JS heap (nodes + edges) taken via inspector/heapdump, compared in Chrome DevTools to find what retains leaked objects.",
+    "defBn": "inspector/heapdump দিয়ে নেওয়া JS heap-এর পূর্ণ ডাম্প (নোড + এজ), Chrome DevTools-এ তুলনা করে লিকড অবজেক্ট কী ধরে রেখেছে তা খুঁজতে হয়।",
+    "refs": [
+      "https://nodejs.org/en/learn/diagnostics/memory"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "hidden class",
+    "defEn": "V8's internal shape-tracking for objects: objects built in the same property order share one hidden class, enabling inline caches. Adding properties in different orders forks the class and deoptimizes access.",
+    "defBn": "V8-এর অবজেক্টের গড়-ট্র্যাকিং: একই ক্রমে প্রপার্টি বসানো অবজেক্টগুলো একটি hidden class শেয়ার করে, যা inline cache চালু করে। ভিন্ন ক্রমে প্রপার্টি যোগ করলে ক্লাস ভাগ হয় আর অ্যাক্সেস ডিঅপটিমাইজ হয়।",
+    "refs": [
+      "https://v8.dev/blog/fast-properties"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "JIT",
+    "defEn": "Just-in-time compilation: V8 runs your JS first as bytecode (ignition), then promotes hot functions to optimized machine code (turbofan). Deopt happens when live input breaks an optimization assumption.",
+    "defBn": "জাস্ট-ইন-টাইম কম্পাইলেশন: V8 প্রথমে JS চালায় বাইটকোড হিসেবে (ignition), পরে হট ফাংশনগুলো অপটিমাইজড মেশিন কোডে উন্নীত করে (turbofan)। লাইভ ইনপুট কোনো অপটিমাইজেশন অনুমান ভাঙলে deopt ঘটে।",
+    "refs": [
+      "https://v8.dev/docs"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "memory leak",
+    "defEn": "Objects the app will never use again but GC can still reach: growing caches, timers capturing scope, un-removed listeners, closures pinned in module state.",
+    "defBn": "অ্যাপ আর কখনো ব্যবহার করবে না কিন্তু GC এখনো পৌঁছাতে পারে এমন অবজেক্ট: বাড়ন্ত ক্যাশ, স্কোপ ধরে রাখা টাইমার, না-সরানো লিসেনার, মডিউল স্টেটে পিন করা ক্লোজার।",
+    "refs": [
+      "https://nodejs.org/en/learn/diagnostics/memory"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "module cache",
+    "defEn": "CommonJS cache: require() stores loaded modules in require.cache keyed by resolved filename, so a second require returns the same exports object — circular imports get a partial exports.",
+    "defBn": "CommonJS ক্যাশ: require() লোড করা মডিউল require.cache-এ রাখে, রিজলভড ফাইলনেম দিয়ে চাবি করে — দ্বিতীয় require একই exports অবজেক্ট ফেরায়, আর সার্কুলার ইমপোর্ট আংশিক exports পায়।",
+    "refs": [
+      "https://nodejs.org/api/modules.html#modulecacheprobing"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "N-API",
+    "defEn": "Node's stable C ABI for native addons: compiled addons keep working across Node versions without rebuild because the ABI, not V8 internals, is the contract.",
+    "defBn": "নেটিভ অ্যাডনের জন্য Node-এর স্থির C ABI: কন্ট্র্যাক্ট V8-এর অভ্যন্তর নয়, ABI — তাই কম্পাইলড অ্যাডন Node ভার্সন বদলালেও রিবিল্ড ছাড়াই চলে।",
+    "refs": [
+      "https://nodejs.org/api/n-api.html"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "node-gyp",
+    "defEn": "The build tool that compiles native addons against the installed Node headers; triggered automatically by npm install for packages shipping .cc/.cpp sources.",
+    "defBn": "ইনস্টল করা Node হেডারের সাথে নেটিভ অ্যাডন কম্পাইল করার বিল্ড টুল; .cc/.cpp সোর্সসহ প্যাকেজ npm install করলে স্বয়ংক্রিয়ভাবে চালু হয়।",
+    "refs": [
+      "https://github.com/nodejs/node-gyp"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "old space",
+    "defEn": "The V8 heap region for long-lived objects and code; major GC (mark-sweep/compact) reclaims it. --max-old-space-size caps it.",
+    "defBn": "দীর্ঘস্থায়ী অবজেক্ট ও কোডের V8 heap অঞ্চল; major GC (mark-sweep/compact) এটি ফেরত আনে। --max-old-space-size এর সীমা ধরে।",
+    "refs": [
+      "https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "retainer",
+    "defEn": "In a heap snapshot, the object path keeping a target alive — DevTools' Retainers panel answers 'who is holding this', which is the leak, not the target itself.",
+    "defBn": "heap snapshot-এ কোনো টার্গেটকে বাঁচিয়ে রাখা অবজেক্ট-পাথ — DevTools-এর Retainers প্যানেল উত্তর দেয় \"এটা কে ধরে আছে\", লিক হলো ওই ধরনে রাখা, টার্গেট নিজে নয়।",
+    "refs": [
+      "https://nodejs.org/en/learn/diagnostics/memory"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "young generation",
+    "defEn": "V8 heap region for short-lived objects, split into from/to semispaces; survivors of two scavenger collections get promoted to old space.",
+    "defBn": "স্বল্পস্থায়ী অবজেক্টের V8 heap অঞ্চল, from/to সেমিস্পেসে ভাগ করা; দুটি scavenger কালেকশন টিকে থাকলে অবজেক্ট পুরনো স্পেসে উন্নীত হয়।",
+    "refs": [
+      "https://v8.dev/blog/orinoco-parallel-scavenger"
+    ],
+    "domain": 2
+  },
+  {
+    "term": "Atomics",
+    "defEn": "Wait-free atomic ops on SharedArrayBuffer views: Atomics.store/load/add/wait/notify give ordering and a futex-style wait that cannot be interrupted by the event loop.",
+    "defBn": "SharedArrayBuffer ভিউতে ওয়েট-ফ্রি অ্যাটমিক অপ: Atomics.store/load/add/wait/notify অর্ডারিং দেয় আর futex-স্টাইল wait যা event loop ভাঙতে পারে না।",
+    "refs": [
+      "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "cluster",
+    "defEn": "Node's multi-process module: a supervisor forks N workers, all sharing one listening port via round-robin distribution. Each cluster worker is a full process with its own event loop.",
+    "defBn": "Node-এর মাল্টি-প্রসেস মডিউল: সুপারভাইজর N ওয়ার্কার fork করে, রাউন্ড-রবিনে এক লিসেনিং পোর্ট ভাগ করে। প্রতিটি cluster ওয়ার্কার নিজের event loop-সহ পূর্ণ প্রসেস।",
+    "refs": [
+      "https://nodejs.org/api/cluster.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "CPU-bound",
+    "defEn": "Work whose cost is computation (hashing, image resize, JSON parse of huge payloads), not I/O. Blocks the event loop if done inline — belongs in a Worker.",
+    "defBn": "যে কাজের খরচ হিসাব (হ্যাশিং, ইমেজ রিসাইজ, বিশাল পেলোডের JSON পার্স), I/O নয়। ইনলাইন করলে event loop আটকায় — এর জায়গা Worker-এ।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "data race",
+    "defEn": "Two threads read-modify-write the same bytes with no ordering: lost updates, torn reads. On SAB, every compound operation must be an Atomics op, not plain [] access.",
+    "defBn": "দুই থ্রেড অর্ডারিং ছাড়াই একই বাইট read-modify-write করে: আপডেট হারায়, রিড ছিঁড়ে। SAB-তে প্রতিটি যৌগিক অপারেশন প্লেইন [] অ্যাক্সেস নয়, Atomics অপ হতে হবে।",
+    "refs": [
+      "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "I/O-bound",
+    "defEn": "Work that waits on sockets/disk/timers, not CPU. Node's sweet spot: thousands of concurrent I/O-bound operations on one event loop, zero workers needed.",
+    "defBn": "যে কাজ সকেট/ডিস্ক/টাইমারের অপেক্ষা করে, CPU-তে নয়। Node-এর মাঠ: এক event loop-এ হাজার কনকারেন্ট I/O-bound অপারেশন, কোনো worker লাগে না।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "IPC channel",
+    "defEn": "The pipe Node gives fork()-ed child processes: process.send()/message events pass JSON-serialized messages between parent and child; streams/sockets can be sent as handles.",
+    "defBn": "fork() করা চাইল্ড প্রসেসকে Node যে পাইপ দেয়: process.send()/message ইভেন্টে প্যারেন্ট-চাইল্ডের মধ্যে JSON-সিরিয়ালাইজড মেসেজ যায়; স্ট্রিম/সকেট handle হিসেবে পাঠানো যায়।",
+    "refs": [
+      "https://nodejs.org/api/child_process.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "MessageChannel",
+    "defEn": "A pair of MessagePorts (port1/port2) for structured-clone message passing between threads — the transferable way to move data without copying.",
+    "defBn": "থ্রেডের মধ্যে structured-clone মেসেজ পাঠানোর MessagePort-জোড়া (port1/port2) — কপি ছাড়াই ডেটা সরানোর transferable পথ।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html#class-messageport"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "round-robin",
+    "defEn": "cluster's default load distribution on non-Windows: the master accepts each connection and hands the socket to the next worker in turn, avoiding thundering-herd accept races.",
+    "defBn": "Windows ছাড়া cluster-এর ডিফল্ট লোড বিতরণ: মাস্টার প্রতিটি কানেকশন accept করে পালা করে পরের ওয়ার্কারকে সকেট দেয়, thundering-herd accept-দৌড় এড়ায়।",
+    "refs": [
+      "https://nodejs.org/api/cluster.html#how-it-works"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "SharedArrayBuffer",
+    "defEn": "A fixed-length raw byte buffer whose memory is shared with a Worker (no copy, no clone): both sides see the SAME bytes — coordination must go through Atomics.",
+    "defBn": "নির্দিষ্ট-দৈর্ঘ্যের বাইট বাফার যার মেমরি Worker-এর সাথে শেয়ার হয় (কপি নেই, ক্লোন নেই): দুই পাশ একই বাইট দেখে — সমন্বয় করতে হয় Atomics দিয়ে।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "signal",
+    "defEn": "POSIX inter-process interrupts: SIGTERM asks for graceful shutdown, SIGKILL cannot be caught (last resort), SIGINT is Ctrl+C. child.kill() and process.on(\"SIGTERM\") are the two ends.",
+    "defBn": "POSIX ইন্টার-প্রসেস ইন্টারাপ্ট: SIGTERM সৌজন্য-শাটডাউন চায়, SIGKILL ধরা যায় না (শেষ অস্ত্র), SIGINT হলো Ctrl+C। child.kill() আর process.on(\"SIGTERM\") দুই প্রান্ত।",
+    "refs": [
+      "https://nodejs.org/api/process.html#signal-events"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "spawn vs fork vs exec",
+    "defEn": "child_process trio: spawn streams a new process stdout/stderr; fork = spawn + IPC channel (Node-to-Node); exec buffers ALL output in memory and shells out — pick per shape of output.",
+    "defBn": "child_process ত্রয়ী: spawn নতুন প্রসেসের stdout/stderr স্ট্রিম করে; fork = spawn + IPC চ্যানেল (Node থেকে Node); exec সব আউটপুট মেমরিতে বাফার করে শেল ডাকে — আউটপুটের গড় অনুযায়ী বাছুন।",
+    "refs": [
+      "https://nodejs.org/api/child_process.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "structured clone",
+    "defEn": "The serialization postMessage uses: most JS values copied recursively; Functions, DOM nodes, and natives like sockets are NOT cloneable. Transferables move the backing store instead of copying.",
+    "defBn": "postMessage-এর সিরিয়ালাইজেশন: বেশিরভাগ JS মান রিকার্সিভলি কপি হয়; Function, DOM নোড, socket-এর মতো নেটিভ ক্লোন-যোগ্য নয়। Transferable কপি না করে ব্যাকিং স্টোর সরায়।",
+    "refs": [
+      "https://developer.mozilla.org/docs/Web/API/Web_Workers_API/Structured_clone_algorithm"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "transferable",
+    "defEn": "Objects whose backing memory can MOVE between threads with zero copy in postMessage(transfers): ArrayBuffer, MessagePort. The sender's view becomes detached (byteLength 0).",
+    "defBn": "যে অবজেক্টের ব্যাকিং মেমরি postMessage(transfers)-এ জিরো-কপিতে থ্রেডের মধ্যে সরতে পারে: ArrayBuffer, MessagePort। পাঠানো পাশের ভিউ detached হয়ে যায় (byteLength 0)।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "Worker",
+    "defEn": "A worker_threads.Worker: its own V8 isolate + event loop on a real OS thread, running a separate JS entry file, exchanging data by postMessage or SharedArrayBuffer.",
+    "defBn": "একটি worker_threads.Worker: আসল OS থ্রেডে নিজের V8 isolate + event loop, আলাদা JS এন্ট্রি ফাইল চালায়, postMessage বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "worker pool",
+    "defEn": "A fixed set of Workers reused across jobs (spawn once, hand out work by message): amortizes ~30ms worker startup and caps thread count at CPU cores.",
+    "defBn": "কাজ জুড়ে পুনঃব্যবহৃত নির্দিষ্ট Worker-সেট (একবার spawn, মেসেজে কাজ বিতরণ): ~৩০ms worker স্টার্টআপ ভাগ করে খায় আর থ্রেড-সংখ্যা CPU কোরে সীমিত রাখে।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "worker_threads",
+    "defEn": "Node's built-in module for real OS threads: a Worker runs JS on its own event loop, exchanging data by message passing or SharedArrayBuffer. The tool for CPU-bound work.",
+    "defBn": "Node-এর বিল্ট-ইন মডিউল, আসল OS থ্রেডের জন্য: একটি Worker নিজের event loop-এ JS চালায়, মেসেজ বা SharedArrayBuffer দিয়ে ডেটা বিনিময় করে। CPU-বাউন্ড কাজের টুল।",
+    "refs": [
+      "https://nodejs.org/api/worker_threads.html"
+    ],
+    "domain": 3
+  },
+  {
+    "term": "backpressure",
+    "defEn": "The writable side's buffer is full and the readable side must slow down. In Node the signal is write() returning false — and honoring it is the difference between a server that streams forever and one that buffers every upload in RAM.",
+    "defBn": "writable পাশের বাফার ভরে গেছে আর readable পাশকে ধীর হতে হবে। Node-এ সংকেত হলো write() false ফেরানো — এটা সম্মান করাই বাড়িয়ে-চলা streaming server আর সব upload RAM-এ জমে-রাখা server-এর পার্থক্য।",
+    "refs": [
+      "https://nodejs.org/api/stream.html#buffering",
+      "https://nodejs.org/api/stream.html#writablewritethunk-callback"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "server lifecycle",
+    "defEn": "What happens between createServer() and the server emitting 'listening': Node binds, the kernel assigns the socket, and every 'connection' hands you a net.Socket with 'request' events on top.",
+    "defBn": "createServer() থেকে server-এর 'listening' emit হওয়া পর্যন্ত যা ঘটে: Node bind করে, kernel socket বরাদ্দ করে, আর প্রতিটি 'connection' আপনাকে একটি net.Socket দেয় যার ওপরে 'request' ইভেন্ট বসে।",
+    "refs": [
+      "https://nodejs.org/api/http.html"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "IncomingMessage",
+    "defEn": "The request object http hands your handler: a readable stream of the body, plus method, url, headers, and the raw socket. Parsing is already done for you.",
+    "defBn": "http আপনার হ্যান্ডলারকে যে request অবজেক্ট দেয়: body-র একটি readable stream, সাথে method, url, headers আর খোলা socket। parsing আগেই আপনার হয়ে হয়ে গেছে।",
+    "refs": [
+      "https://nodejs.org/api/http.html#class-httpincomingmessage"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "ServerResponse",
+    "defEn": "The response object: a writable stream plus writeHead(), setHeader(), and end(). You stream the body chunk by chunk; Node does the framing and flushing.",
+    "defBn": "response অবজেক্ট: একটি writable stream সাথে writeHead(), setHeader(), end()। body chunk ধরে ধরে stream করুন; framing আর flushing Node করে।",
+    "refs": [
+      "https://nodejs.org/api/http.html#class-httpserverresponse"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "router",
+    "defEn": "Code that maps method + path to a handler. Either you get one from a framework or write a match table yourself — either way it runs after parsing, before the handler.",
+    "defBn": "method + path থেকে handler-এ ম্যাপ করা কোড। ফ্রেমওয়ার্ক থেকে পান বা নিজে ম্যাচ টেবিল লেখেন — দুই ক্ষেত্রেই parsing-এর পরে, handler-এর আগে চলে।",
+    "refs": [
+      "https://nodejs.org/api/http.html"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "middleware",
+    "defEn": "A function that sees the request and either finishes early or calls next() to pass it on. Logging, body parsing, auth — cross-cutting concerns composed as a chain.",
+    "defBn": "এমন ফাংশন যে request দেখে, আগেই শেষ করে বা next() ডেকে পাস করে দেয়। logging, body parsing, auth — cross-cutting কাজগুলো চেইন হিসেবে জোড়া।",
+    "refs": [
+      "https://nodejs.org/api/http.html"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "error-first callback",
+    "defEn": "Node's convention: the callback's first argument is an error or null, the rest are results. The foundation of every fs/net/crypto callback you have met.",
+    "defBn": "Node-এর রীতি: callback-এর প্রথম আর্গুমেন্ট error অথবা null, বাকিগুলো ফলাফল। আপনার দেখা প্রতিটি fs/net/crypto callback-এর ভিত্তি এটাই।",
+    "refs": [
+      "https://nodejs.org/en/learn/asynchronous-work/error-handling-in-nodejs"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "uncaught exception",
+    "defEn": "An exception with no try/catch or handler anywhere above it. The process emits 'uncaughtException', then exits unless you attach a listener — but the listener is for logging, not for continuing.",
+    "defBn": "এমন exception যার ওপরে কোথাও try/catch বা handler নেই। প্রসেস 'uncaughtException' emit করে, তারপর বেরিয়ে যায় যদি না listener বসান — কিন্তু listener-টা logging-এর জন্য, চালিয়ে যাওয়ার জন্য নয়।",
+    "refs": [
+      "https://nodejs.org/api/process.html#event-uncaughtexception"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "four stream classes",
+    "defEn": "Readable, Writable, Duplex, Transform. Everything in Node that moves data is one of these four — files, sockets, zlib, crypto, process stdio.",
+    "defBn": "Readable, Writable, Duplex, Transform। Node-এ যা কিছু ডেটা নড়ায় সে এই চারটির একটি — ফাইল, socket, zlib, crypto, process stdio।",
+    "refs": [
+      "https://nodejs.org/api/stream.html"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "highWaterMark",
+    "defEn": "The buffer size limit inside every stream: write() returns false once the internal buffer exceeds it — your signal to stop pushing and let the reader catch up.",
+    "defBn": "প্রতিটি stream-এর ভেতরের বাফার সাইজ সীমা: internal buffer এটা ছাড়ালেই write() false ফেরায় — ঠেলা থামিয়ে reader-কে ধরতে দেওয়ার সংকেত।",
+    "refs": [
+      "https://nodejs.org/api/stream.html#buffering"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "pipe",
+    "defEn": "Readable.pipe(writable): connects a readable to a writable and handles backpressure for you — pauses the readable when the writable's buffer fills, resumes when it drains.",
+    "defBn": "Readable.pipe(writable): readable-কে writable-এ জোড়ে আর backpressure সামলে দেয় — writable-এর বাফার ভরলে readable pause করে, খালি হলে resume করে।",
+    "refs": [
+      "https://nodejs.org/api/stream.html#readablepipedestination-options"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "content-length",
+    "defEn": "The header that tells the client how many body bytes are coming. Without it Node uses chunked transfer encoding and the client cannot know the total size up front.",
+    "defBn": "যে header ক্লায়েন্টকে বলে কত body বাইট আসছে। এটা ছাড়া Node chunked transfer encoding ব্যবহার করে, আর ক্লায়েন্ট আগাম মোট সাইজ জানতে পারে না।",
+    "refs": [
+      "https://nodejs.org/api/http.html#responsewriteheadstatus-statusmessage-headers"
+    ],
+    "domain": 4
+  },
+  {
+    "term": "Buffer",
+    "defEn": "Node's fixed-length byte array — a view over an ArrayBuffer plus encoding helpers. Every binary API in Node (fs, net, crypto) speaks Buffer, and UTF-8 is its default encoding.",
+    "defBn": "Node-এর নির্দিষ্ট-দৈর্ঘ্যের byte array — একটি ArrayBuffer-এর ওপর ভিউ সাথে encoding হেল্পার। Node-এর প্রতিটি binary API (fs, net, crypto) Buffer-ই বলে, আর UTF-8 তার ডিফল্ট encoding।",
+    "refs": [
+      "https://nodejs.org/api/buffer.html"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "TypedArray",
+    "defEn": "The JS family (Uint8Array, Float64Array, ...) giving an ArrayBuffer a numeric type and length. Buffer is a Uint8Array subclass with extras; TypedArray is the standard-JS layer both come from.",
+    "defBn": "JS-এর পরিবার (Uint8Array, Float64Array, ...) যারা ArrayBuffer-কে সংখ্যার টাইপ আর দৈর্ঘ্য দেয়। Buffer হলো Uint8Array-এর subclass, কিছু extra নিয়ে; TypedArray হলো দুজনেরই উপরের standard-JS লেয়ার।",
+    "refs": [
+      "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "ETag",
+    "defEn": "A hash-stamped version ID for a response body: client sends it back as If-None-Match, server compares, and 304 Not Modified means 'reuse your copy' — saving bandwidth, not just latency.",
+    "defBn": "Response body-র hash-সহ ভার্সন ID: ক্লায়েন্ট সেটা If-None-Match হয়ে ফেরত পাঠায়, server মেলায়, আর 304 Not Modified মানে 'আপনার কপি ব্যবহার করুন' — সাশ্রয় হয় bandwidth, শুধু latency নয়।",
+    "refs": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "Cache-Control",
+    "defEn": "The response header that sets the browser's caching policy in one line: max-age for freshness lifetime, no-cache for revalidate-always, no-store for never-persist. The server, not the client, owns this decision.",
+    "defBn": "এক লাইনে ব্রাউজারের caching নীতি বসানো response header: max-age মানে freshness-এর আয়ু, no-cache মানে সবসময় revalidate, no-store মানে কখনোই জমা নয়। এই সিদ্ধান্ত ক্লায়েন্টের নয়, server-এর।",
+    "refs": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "TLS",
+    "defEn": "The crypto layer under HTTPS: certificate proves identity, keys negotiate a shared secret, traffic gets encrypted. node:https is node:http plus this handshake.",
+    "defBn": "HTTPS-এর নিচের crypto লেয়ার: certificate প্রমাণ করে পরিচয়, key-রা শেয়ার্ড সিক্রেট বসায়, ট্রাফিক এনক্রিপ্ট হয়। node:https মানে node:http এই handshake-সহ।",
+    "refs": [
+      "https://nodejs.org/api/https.html",
+      "https://nodejs.org/api/tls.html"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "timing-safe compare",
+    "defEn": "Comparing secrets so the time taken does not leak where the bytes differed. Buffer.timingSafeEqual does constant-time comparison; === on attacker-controlled strings is a side channel.",
+    "defBn": "এমনভাবে secret মেলানো যেন সময় থেকে কোথায় byte আলাদা ছিল সেটা লিক না হয়। Buffer.timingSafeEqual constant-time তুলনা করে; attacker-নিয়ন্ত্রিত string-এ === মানে side channel।",
+    "refs": [
+      "https://nodejs.org/api/buffer.html#buffertimingsafeequala-b"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "security headers",
+    "defEn": "The small set of response headers that turn browser defenses on: X-Content-Type-Options nosniff, X-Frame-Options/frame-ancestors, Strict-Transport-Security, Content-Security-Policy. Cheap to send, expensive to retrofit.",
+    "defBn": "ছোট একগোছা response header যারা ব্রাউজারের ডিফেন্স চালু করে: X-Content-Type-Options nosniff, X-Frame-Options/frame-ancestors, Strict-Transport-Security, Content-Security-Policy। পাঠাতে সস্তা, পরে বসাতে দামি।",
+    "refs": [
+      "https://owasp.org/www-project-secure-headers/"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "--inspect",
+    "defEn": "The flag that starts the Chrome DevTools protocol server on a port, so DevTools or VS Code can attach: breakpoints, profiling, heap snapshots — live, on a real server process.",
+    "defBn": "যে ফ্ল্যাগ একটি পোর্টে Chrome DevTools protocol server চালু করে, যাতে DevTools বা VS Code জোড়া দিতে পারে: breakpoint, profiling, heap snapshot — চলমান, আসল server প্রসেসে।",
+    "refs": [
+      "https://nodejs.org/en/learn/get-started/debugging"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "perf_hooks",
+    "defEn": "The module Node exposes its own clocks through: monitorEventLoopDelay for lag, performance.now/measure for spans, PerformanceObserver for marks. The same data dashboards chart later.",
+    "defBn": "Node নিজের ঘড়ি যে মডিউলে বের করে: monitorEventLoopDelay lag-এর জন্য, performance.now/measure span-এর জন্য, PerformanceObserver mark-এর জন্য। পরে ড্যাশবোর্ডে যেই ডেটা চার্ট হয়, একই।",
+    "refs": [
+      "https://nodejs.org/api/perf_hooks.html"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "multipart upload",
+    "defEn": "The multipart/form-data encoding browsers use for file uploads: boundaries split parts, each part carries its own headers, and the server must slice the body stream on those boundaries — never buffer the whole thing.",
+    "defBn": "ফাইল upload-এ ব্রাউজার যে multipart/form-data encoding ব্যবহার করে: boundary অংশ ভাগ করে, প্রতিটি অংশ নিজের header বহন করে, আর server-কে সেই boundary-তে body stream কাটতে হয় — কখনোই পুরোটা বাফার নয়।",
+    "refs": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types#multipartform-data"
+    ],
+    "domain": 5
+  },
+  {
+    "term": "X-Forwarded-For",
+    "defEn": "The de-facto header chain a reverse proxy appends client IPs to. Behind a proxy, req.socket.remoteAddress is the proxy — the real client list lives here, and trusting it is a config decision, not a given.",
+    "defBn": "Reverse proxy যে de-facto header-চেইনে ক্লায়েন্ট IP জুড়ে দেয়। Proxy-এর পেছনে req.socket.remoteAddress মানে proxy — আসল ক্লায়েন্ট তালিকা এখানে, আর এটা বিশ্বাস করা একটা config-সিদ্ধান্ত, জন্মগত নয়।",
+    "refs": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For"
+    ],
+    "domain": 5
+  }
 ]

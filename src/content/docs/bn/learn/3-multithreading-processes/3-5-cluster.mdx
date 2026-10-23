@@ -33,7 +33,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-`worker_threads` দেয় থ্রেড; `cluster` দেয় *প্রসেস*। `cluster.fork()` spawn করে একটি পুরো Node প্রসেস যা primary-র শোনার socket ভাগ করে নেয়: primary connection accept করে আর worker-দের দেয় — POSIX-এ নীতিটা **round-robin**, লাইনের পরের worker-কে এবার একটি connection। থ্রেড থাকতে প্রসেস কেন? হাতুড়ি-সহ isolation: একটা worker মরলে কোনো শেয়ার্ড heap টেনে নামায় না, আর `exit` ফাইাার করা মাত্রই primary replacement fork করতে পারে। ডেমোর ১২ রিকোয়েস্ট ৪ worker-এ 3/3/3/3 নামে — distribution যা বিশ্বাস নয়, চোখে দেখা যায়। হাত বাড়ানোর আগে একটা কথা: Node 12-এর পর থেকে main থ্রেডের event loop নিজেই বেশিরভাগ সার্ভিং লোড সামলায়; cluster আসল লাভ দেয় CPU-ভারী সার্ভিং বা zero-downtime রিস্টার্টে, ডিফল্ট হিসেবে নয়।
+`worker_threads` দেয় থ্রেড; `cluster` দেয় *প্রসেস*। `cluster.fork()` spawn করে একটি পুরো Node প্রসেস যা primary-র শোনার socket ভাগ করে নেয়: primary connection accept করে আর worker-দের দেয় — POSIX-এ নীতিটা **round-robin**, লাইনের পরের worker-কে এবার একটি connection। থ্রেড থাকতে প্রসেস কেন? হাতুড়ি-সহ isolation: একটা worker মরলে কোনো শেয়ার্ড heap টেনে নামায় না, আর `exit` ফায়ার করা মাত্রই primary replacement fork করতে পারে। ডেমোর ১২ রিকোয়েস্ট ৪ worker-এ 3/3/3/3 নামে — distribution যা বিশ্বাস নয়, চোখে দেখা যায়। হাত বাড়ানোর আগে একটা কথা: Node 12-এর পর থেকে main থ্রেডের event loop নিজেই বেশিরভাগ সার্ভিং লোড সামলায়; cluster আসল লাভ দেয় CPU-ভারী সার্ভিং বা zero-downtime রিস্টার্টে, ডিফল্ট হিসেবে নয়।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 node code/3-multithreading-processes/3-5-cluster/demo.js
 ```
 
-ছাপে: `[1]` primary ৪ worker fork করছে আর সবাই ONE শেয়ার্ড পোর্টে accept করছে; `[2]` ১২ রিকোয়েস্ট ৪টি আলাদা worker pid-তে, spread 3/3/3/3 — round-robin হ্যান্ডঅফ, মাপা; `[3]` এক worker-কে mid-serve `SIGKILL`, replacement fork, পরের ৬ রিকোয়েস্টও সার্ভড — এক worker-এর মৃত্যুর দাম একটা fork, পোর্ট নয়।
+ছাপে: `[1]` primary ৪ worker fork করছে আর সবাই ONE শেয়ার্ড পোর্টে accept করছে; `[2]` ১২ রিকোয়েস্ট ৪টি আলাদা worker pid-তে, spread 3/3/3/3 — round-robin হ্যান্ডঅফ, মাপা; `[3]` এক worker-কে রিকোয়েস্টের ফাঁকে `SIGKILL`, replacement fork, পরের ৬ রিকোয়েস্টও সার্ভড — এক worker-এর মৃত্যুর দাম একটা fork, পোর্ট নয়।
 
 <BuildExercise
 	title="মারুন, ফিরে আসতে দেখুন"
