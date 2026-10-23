@@ -1051,3 +1051,28 @@ pre.mermaid-source {
 		min-width: 0;
 	}
 }
+
+/* ---------- mobile language switcher on splash pages ---------- */
+
+/* Starlight hides the header's right group on mobile and only offers the
+   language select inside the sidebar's mobile drawer — but splash pages
+   (home, 404) render no sidebar, leaving no way to switch language on a
+   phone. On sidebar-less pages, show the right group on mobile with only
+   the language select visible. Unlayered rules here win over the layered
+   starlight.utils .sl-hidden{display:none}. */
+
+@media (max-width: 49.99rem) {
+	html:not([data-has-sidebar]) .header .right-group {
+		display: flex;
+	}
+
+	/* Keep everything else out of the narrow mobile header. */
+	html:not([data-has-sidebar]) .header .right-group .social-icons,
+	html:not([data-has-sidebar]) .header .right-group starlight-theme-select {
+		display: none;
+	}
+
+	html:not([data-has-sidebar]) .header .right-group starlight-lang-select {
+		display: block;
+	}
+}
