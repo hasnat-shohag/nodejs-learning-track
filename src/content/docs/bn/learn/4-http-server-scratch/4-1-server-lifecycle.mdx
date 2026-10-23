@@ -1,7 +1,7 @@
 ---
 title: "node:http লাইফসাইকেল: createServer, listen, connection, request"
 titleEn: "node:http lifecycle: createServer, listen, connection, request"
-description: "Node server মানে TCP socket-এর ওপর একটি EventEmitter — listen একবার bind করে, প্রতিটি connection একটি খোলা socket দেয়, আর parsed প্রতিটি request বসে ওপরে। keep-alive-ই এটাকে দ্রুত লাগায়।"
+description: "Node server মানে TCP socket-এর ওপর একটি EventEmitter — listen একবার bind করে, প্রতিটি connection একটি খাঁটি socket দেয়, আর প্রতিটি parsed request ওপরে বসে ওপরে। keep-alive-ই এটাকে দ্রুত লাগায়।"
 domain: 4
 task: "4.1"
 order: 1
@@ -34,13 +34,13 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-`http.createServer(handler)`-এর দাম শূন্য — একটি অবজেক্ট বানিয়ে ফেরায়। Server আসল হয় `.listen()`-এ: Node bind করে, kernel socket বরাদ্দ করে, আর `'listening'` ইভেন্ট ফায়ার করে — `server.address()`-এ ঠিকানা। তারপর দুই ইভেন্ট লেয়ার চলে: `'connection'` দেয় খোলা একটি `net.Socket` (TCP লেয়ার), আর `'request'` বসে প্রতিটি socket-এর ওপর **parsed** HTTP হয়ে — একটি **IncomingMessage** (method, url, headers, আর body হিসেবে readable stream) আর একটি **ServerResponse** (writable stream সাথে `writeHead`/`end`)। লেয়ারিংটাই performance-এর গল্পও: HTTP/1.1 keep-alive মানে একটি TCP connection অনেক request বয়ে আনে, তাই দামি অংশটা (connection setup) একবার দেওয়া, ভাগ করে খরচ। ডেমোর তিন request এক connection-এই চলে — `connection` একবারই ফায়ার করে।
+`http.createServer(handler)`-এর দাম শূন্য — একটি অবজেক্ট বানিয়ে ফেরায়। Server আসল হয় `.listen()`-এ: Node socket বানিয়ে bind করে, kernel পোর্ট বরাদ্দ দেয়, আর `'listening'` ইভেন্ট ফায়ার করে — `server.address()`-এ ঠিকানা। তারপর দুই ইভেন্ট লেয়ার চলে: `'connection'` দেয় খাঁটি একটি `net.Socket` (TCP লেয়ার), আর প্রতিটি socket-এর ওপর `'request'` বসে **parsed** HTTP হয়ে — একটি **IncomingMessage** (method, url, headers, আর body হিসেবে readable stream) আর একটি **ServerResponse** (writable stream সাথে `writeHead`/`end`)। লেয়ারিংটাই performance-এর গল্পও: HTTP/1.1 keep-alive মানে একটি TCP connection অনেক request বয়ে আনে, তাই দামি অংশটা (connection setup) খরচ একবারই, ভাগ হয়ে যায়। ডেমোর তিন request এক connection-এই চলে — `connection` একবারই ফায়ার করে।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
-<Pitfall title="server.close() keep-alive socket-এর জন্য অপেক্ষা করে — প্রসেস ঝুলে থাকে">
+<Pitfall title="server.close() চলমান request-এর জন্য অপেক্ষা করে — আটকে থাকলে shutdown ঝুলে থাকে">
 	<p>
-		`server.close()` *নতুন* connection বন্ধ করে কিন্তু চালু keep-alive socket খোলাই থাকে, তাই যে স্ক্রিপ্ট `close()` ডেকে callback-এর জন্য অপেক্ষা করে সে চিরদিন ঝুলে থাকতে পারে — idle ক্লায়েন্ট socket ধরে রেখেছে। সমাধান `server.closeAllConnections()` (Node 18.2+), নাহলে ক্লায়েন্ট পাশ থেকে বন্ধ করুন। একই পরিবার: পোর্ট `0` দিয়ে `server.listen(port)` করলে kernel বরাদ্দ দেয় — আসল পোর্ট `'listening'` callback-এ `server.address().port` থেকে পড়ুন, অনুমান কখনো নয়।
+		`server.close()` *নতুন* connection বন্ধ করে আর — Node 19 থেকে — callback-এর আগে *idle* keep-alive socket বন্ধ করে, তাই idle ক্লায়েন্ট আর shutdown আটকায় না। যা এখনো আটকায়: কখনো শেষ না হওয়া *in-flight* request — close callback তার জন্য অনির্দিষ্টকাল অপেক্ষা করে। `server.closeAllConnections()` (Node 18.2+) সেগুলোও কাটে — graceful shutdown-এর হাতুড়ি; `closeIdleConnections()` নরম অর্ধেক। একই পরিবার: পোর্ট `0` দিয়ে `server.listen(port)` করলে kernel বরাদ্দ দেয় — আসল পোর্ট `'listening'` callback-এ `server.address().port` থেকে পড়ুন, অনুমান কখনো নয়।
 	</p>
 </Pitfall>
 
@@ -62,7 +62,7 @@ node code/4-http-server-scratch/4-1-server-lifecycle/demo.js
 	steps={[
 		{ title: 'ডেমো চালান', why: 'ক্রমান্বয়ে প্রতিটি ইভেন্ট লেয়ার ফায়ার দেখুন।', expect: 'listening=false → পোর্ট পাওয়া → parsed request → ৩ request/১ connection।' },
 		{ title: 'দুই লেয়ারই গুনুন', why: 'যেকোনো server-এ request আর connection কাউন্টার দিন।', expect: 'keep-alive ক্লায়েন্টে request ওঠে, connection সমতল থাকে।' },
-		{ title: 'close ভাঙুন', why: 'keep-alive ক্লায়েন্ট জুড়ে থাকা অবস্থায় server.close(), closeAllConnections ছাড়া।', expect: 'প্রসেস ঝুলে থাকে — তারপর closeAllConnections() দিলে বেরিয়ে আসে।' },
+		{ title: 'close ভাঙুন', why: 'এমন request শুরু করুন যার response কখনো শেষ হয় না, তারপর server.close() ডেকে callback-এর অপেক্ষা করুন।', expect: 'Callback আর আসে না — idle socket Node 19 থেকে কাটা পড়ে, in-flight request নয়; closeAllConnections() শেষ করে।' },
 	]}
 />
 

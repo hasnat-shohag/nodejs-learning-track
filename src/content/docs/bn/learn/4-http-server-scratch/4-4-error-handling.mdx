@@ -33,13 +33,13 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-Error আপনার server-এ পৌঁছায় দুই চ্যানেলে, দুটোর জন্যই জাল লাগবে। **Sync** throw handler-এর ভেতরে catch করা যায়: handler body-কে `try/catch`-এ মুড়ুন, 500 পাঠান, stack log করুন, সার্ভিং চালু রাখুন। **Async** ব্যর্থতা — rejected promise, stream-এর `error` ইভেন্ট — `try/catch`-এর চোখেই পড়ে না; শুধু `.catch()` (বা `async handler` + `.catch` র‍্যাপার) দেখে। আর ঝুঁকিটা আসল: Node 15 থেকে **unhandled rejection ডিফল্টে প্রসেস মারে** — এক route-এ একটা `.catch` না থাকলে পুরো server নিচে। ডেমো দেখায় দুই জালই আর প্রসেস-লেভেল শেষ উপায়: `process.on('uncaughtException')` ফায়ার করে, কিন্তু তখন প্রসেসের অবস্থা অজানা — handler-টা *logging আর পরিষ্কার বেরানোর* জন্য, সার্ভিং চালিয়ে যাওয়ার জন্য নয়। Domain 1-এ দেখা error-first callback রীতি (`(err, result) => ...`) তৃতীয় জাল, আর 404 বনাম 500 নিয়ম — অজানা route মানে ক্লায়েন্টের সমস্যা, handler-এর throw মানে আপনার — ক্লায়েন্টকে অর্থ পাঠায়, log-কে stack।
+Error আপনার server-এ পৌঁছায় দুই চ্যানেলে, দুটোর জন্যই জাল লাগবে। **Sync** throw handler-এর ভেতরে catch করা যায়: handler body-কে `try/catch`-এ মুড়ুন, 500 পাঠান, stack log করুন, সার্ভার চালু রাখুন। **Async** ব্যর্থতা — rejected promise, stream-এর `error` ইভেন্ট — `try/catch`-এর চোখেই পড়ে না; শুধু `.catch()` (বা `async handler` + `.catch` র‍্যাপার) দেখে। আর ঝুঁকিটা আসল: Node 15 থেকে **unhandled rejection ডিফল্টে প্রসেস মারে** — এক route-এ একটা `.catch` না থাকলে পুরো server নিচে। ডেমো দেখায় দুই জালই আর প্রসেস-লেভেল শেষ উপায়: `process.on('uncaughtException')` ফায়ার করে, কিন্তু তখন প্রসেসের অবস্থা অজানা — handler-টা *logging আর পরিষ্কার exit-এর* জন্য, সার্ভার চালিয়ে যাওয়ার জন্য নয়। Node-এর fs/net/crypto জুড়ে থাকা error-first callback রীতি (`(err, result) => ...`) তৃতীয় জাল, আর 404 বনাম 500 নিয়ম — অজানা route মানে ক্লায়েন্টের সমস্যা, handler-এর throw মানে আপনার — ক্লায়েন্টকে অর্থ পাঠায়, log-কে stack।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
-<Pitfall title="uncaughtException handler বেরানোর জন্য, বীরত্বের জন্য নয়">
+<Pitfall title="uncaughtException handler বেরিয়ে যাওয়ার জন্য, বীরত্বের জন্য নয়">
 	<p>
-		Uncaught exception-এর পরে V8 heap-এ থাকতে পারে অর্ধেক-শেষ mutation — এমন state যার আর কিছু অনুমান করা যায় না। Handler-এর কাজ: stack-সহ log করা, log flush, `process.exit(1)`, আর orchestrator-এর (PM2, Docker, Kubernetes) ছেড়ে দেওয়া যেন পরিষ্কার প্রসেস restart করে। নষ্ট প্রসেসে সার্ভিং চালিয়ে গেলে চারদিকে আবর্জনা লেখার ঝুঁকি। `unhandledRejection`-এও একই নিয়ম — log, তারপর ইচ্ছাকৃত exit।
+		Uncaught exception-এর পরে V8 heap-এ থাকতে পারে অর্ধেক-শেষ mutation — এমন state যার আর কিছু অনুমান করা যায় না। Handler-এর কাজ: stack-সহ log করা, log flush, `process.exit(1)`, আর orchestrator-এর (PM2, Docker, Kubernetes) ছেড়ে দেওয়া যেন পরিষ্কার প্রসেস restart করে। নষ্ট প্রসেসে সার্ভার চালিয়ে গেলে চারদিকে আবর্জনা লেখার ঝুঁকি। `unhandledRejection`-এও একই নিয়ম — log, তারপর ইচ্ছাকৃত exit।
 	</p>
 </Pitfall>
 

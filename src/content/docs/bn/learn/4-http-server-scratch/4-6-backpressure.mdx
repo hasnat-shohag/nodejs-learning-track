@@ -34,7 +34,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-**Backpressure** মানে নিচের প্রান্ত বলছে "ধীর হও": writable-এর internal buffer **highWaterMark** পার করেছে, `write()` `false` ফিরিয়েছে, আর বেশি ঠেললে শুধু মেমরি বাড়ে। শৃঙ্খলাবদ্ধ জবাব দুই লাইনের loop — `false` পেলে লেখা থামিয়ে `'drain`-এর জন্য অপেক্ষা; `drain`-এ আবার লেখা। তাতে sink যত ধীরই হোক, source যত দ্রুতই হোক, মেমরি highWaterMark-এর কাছেই আটকে থাকে। সংকেত উপেক্ষা করা কোনো স্টাইল-পছন্দ নয়: প্রতি write-এ ১০ms লাগে এমন sink-এ ডেমোর ৩৯৯টা উপেক্ষিত false রেখে গেল ১৫ KB বাফারে — আর আসল server-এ সেটা *একটি ধীর ক্লায়েন্টের response*, প্রতিটি ধীর ক্লায়েন্টে গুণ করে ফুলে ওঠা। Loop বোঝার পুরস্কার হলো বোঝা যে এটা আপনাকে আসলে লিখতেই হয় না: `pipe()` readable আর writable-এর মাঝে ঠিক এই pause/resume নাচই চালায়, আর `pipeline()` (stream/promises) একই কাজ করে error propagation-সহ শেষ পর্যন্ত। `pipe`-এ পাঠানো ফাইল কখনো ক্লায়েন্টকে টপকে যেতে পারে না — জাদু নয়, আপনার লেখা সেই loop-ই।
+**Backpressure** মানে নিচের প্রান্ত বলছে "ধীর হও": writable-এর internal buffer **highWaterMark** পার করেছে, `write()` `false` ফিরিয়েছে, আর বেশি ঠেললে শুধু মেমরি বাড়ে। শৃঙ্খলাবদ্ধ জবাব দুই লাইনের loop — `false` পেলে লেখা থামিয়ে `'drain'`-এর জন্য অপেক্ষা; `drain`-এ আবার লেখা। তাতে sink যত ধীরই হোক, source যত দ্রুতই হোক, মেমরি highWaterMark-এর কাছেই আটকে থাকে। সংকেত উপেক্ষা করা কোনো স্টাইল-পছন্দ নয়: প্রতি write-এ ১০ms লাগে এমন sink-এ ডেমোর ৩৯৯টা উপেক্ষিত false রেখে গেল ~১৪ KB (`writableLength`-এ মাপা) বাফারে — আর আসল server-এ সেটা *একটি ধীর ক্লায়েন্টের response*, প্রতিটি ধীর ক্লায়েন্টে গুণ করে ফুলে ওঠা। Loop বোঝার পুরস্কার হলো বোঝা যে এটা আপনাকে আসলে লিখতেই হয় না: `pipe()` readable আর writable-এর মাঝে ঠিক এই pause/resume নাচই চালায়, আর `pipeline()` (stream/promises) একই কাজ করে error propagation-সহ শেষ পর্যন্ত। `pipe`-এ পাঠানো ফাইল কখনো ক্লায়েন্টকে টপকে যেতে পারে না — জাদু নয়, আপনার লেখা সেই loop-ই।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -52,7 +52,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 node code/4-http-server-scratch/4-6-backpressure/demo.js
 ```
 
-ছাপে: `[1]` দ্রুত source ধীর sink-এ — ২০ write, ১৩টা false: সংকেত আসছে; `[2]` একই জোড়া সংকেত সম্মান করে — ৩০ chunk, ৩টা drain cycle, মেমরি ট্রান্সফার সাইজের বদলে highWaterMark-এর কাছে; `[3]` একই জোড়া উপেক্ষা করে — ৪০০ write, ৩৯৯ false উপেক্ষিত, ১৫ KB sink-এর বাফারে বসে; `[4]` `pipe()` একই ৩০ chunk সরাল, drain-কোড শূন্য লাইন লিখে — loop, আপনার হয়ে লেখাই আছে।
+ছাপে: `[1]` দ্রুত source ধীর sink-এ — ২০ write, ১৩টা false: সংকেত আসছে; `[2]` একই জোড়া সংকেত সম্মান করে — ৩০ chunk, ৩টা drain cycle, মেমরি ট্রান্সফার সাইজের বদলে highWaterMark-এর কাছে; `[3]` একই জোড়া উপেক্ষা করে — ৪০০ write, ৩৯৯ false উপেক্ষিত, ~১৪ KB sink-এর বাফারে বসে; `[4]` `pipe()` একই ৩০ chunk সরাল, drain-কোড শূন্য লাইন লিখে — loop, আপনার হয়ে লেখাই আছে; `[5]` মাঝের ধাপ fail করা `pipeline()` — promise reject, প্রতিটি স্টেজ destroyed, যেখানে `pipe` লিক করত।
 
 <BuildExercise
 	title="না মরে ফাইল stream করুন"
@@ -60,7 +60,7 @@ node code/4-http-server-scratch/4-6-backpressure/demo.js
 	time="৩০ মিনিট"
 	objectives={['Drain loop একবার হাতে লেখা, তারপর pipe/pipeline দিয়ে বদলানো', 'write() false উপেক্ষার দাম ধীর ক্লায়েন্টের নিচে server-এ ব্যাখ্যা করা']}
 	steps={[
-		{ title: 'ডেমো চালান', why: 'False আসা, drain loop-এ মেমরি সমতল, pipe-এ ফ্রি — সব দেখুন।', expect: 'false দেখা, ৩ drain cycle, উপেক্ষায় ১৫KB বাফার, pipe নিঃশব্দ।' },
+		{ title: 'ডেমো চালান', why: 'False আসা, drain loop-এ মেমরি সমতল, pipe-এ ফ্রি — সব দেখুন।', expect: 'false দেখা, ৩ drain cycle, উপেক্ষায় ~১৪KB বাফার, pipe নিঃশব্দ।' },
 		{ title: 'ধীরে ফাইল দিন', why: 'বড় ফাইল createReadStream করে response-এ pipe, ক্লায়েন্ট ধীর করুন।', expect: 'Server মেমরি সমতল — pipe read থামায়, loop নয়।' },
 		{ title: 'pipeline-এ যান', why: 'pipe-এর জায়গায় pipeline() দিয়ে মাঝের ধাপে throw করুন।', expect: 'প্রতিটি ধাপ destroy, promise reject — কোনো অর্ধেক-খোলা stream নেই।' },
 	]}

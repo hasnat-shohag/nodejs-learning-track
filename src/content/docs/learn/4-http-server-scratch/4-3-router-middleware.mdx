@@ -50,7 +50,7 @@ Run the demo file for this lesson:
 node code/4-http-server-scratch/4-3-router-middleware/demo.js
 ```
 
-It prints: `[1]` the route table working — `/health` matching exactly, `/users/42` extracting the param, `/users/a%20b` decoding to `a b`; `[2]` the middleware chain — a log line per request, auth rejecting a tokenless request with 401 (chain stopped early, handler never ran), the same route with a good token passing log → auth → handler; `[3]` the 404: `/nope` matched no row, and "no route matched" *is* the 404.
+It prints: `[1]` the route table working — `/health` matching exactly, `/users/42` extracting the param, `/users/a%20b` decoding to `a b`; `[2]` the middleware chain — a log line per routed request, auth rejecting a tokenless request with 401 (chain stopped early, handler never ran), the same route with a good token passing log → auth → handler; `[3]` the 404: `/nope` matched no row, and "no route matched" *is* the 404. `[4]` a malformed percent-encoding (`/users/%ZZ`) — the guard in the decode hands the raw value through instead of throwing, so the process stays alive where the ungated version would have crashed.
 
 <BuildExercise
 	title="Extend the router you just built"

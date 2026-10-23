@@ -70,7 +70,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 	const reads = [];
 	both.on('data', (c) => reads.push(c.toString()));
 	const readDone = new Promise((r) => both.on('end', r));
-	for (let i = 0; i < 20; i++) both.write('w'); // fill the write side past ITS buffer
+	for (let i = 0; i < 20; i++) both.write('w'); // 20 writes into the write side's OWN buffer — read side unaffected
 	await new Promise((r) => both.end(r));       // write side drained
 	await readDone;                               // read side finished too
 	console.log(`  read side delivered ${reads.length} chunks (${reads.join(',')}) while write side took 20 writes`);

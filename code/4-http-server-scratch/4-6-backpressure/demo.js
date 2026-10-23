@@ -78,7 +78,7 @@ const slowSink = () => new Writable({
 		if (!ok) falses++;
 		buffered += 40;
 	}
-	console.log(`  400 writes × 40B = ${buffered / 1024 | 0}KB pushed, ${falses} falses ignored — all of it sits in the sink's internal buffer`);
+	console.log(`  400 writes pushed, ${falses} falses ignored — ${sink.writableLength} bytes sit in the sink's internal buffer`);
 	console.log('  in a real server this is the slow-client response ballooning in RAM');
 	await new Promise((r) => sink.end(r));
 }
@@ -92,7 +92,18 @@ const slowSink = () => new Writable({
 	src.pipe(sink);
 	await new Promise((r) => sink.on('finish', r));
 	console.log(`  same pair, pipe() moved all 30 chunks in ${Math.round(performance.now() - t0)}ms — pause/resume handled, zero drain code written`);
-	console.log('  pipeline() (promises) is the modern form: same wiring + error propagation end-to-end');
+}
+
+// [5] pipeline(): the modern form, with error propagation end-to-end
+{
+	console.log('[5] pipeline():');
+	const { Transform } = await import('node:stream');
+	const badMiddle = new Transform({ transform(c, enc, cb) { cb(new Error('middle stage died')); } });
+	try {
+		await pipeline(Readable.from(['a', 'b', 'c']), badMiddle, slowSink());
+	} catch (e) {
+		console.log(`  middle stage threw → promise rejected (${e.message}), every stage destroyed — pipe() would have leaked these`);
+	}
 }
 
 console.log('--- key idea ---');

@@ -33,7 +33,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-প্রথম handler লেখার সময় তিনটা তথ্য সবাইকে হোঁচট খাওয়ায়। এক: `req.url` কোনো ফুল URL **নয়** — scheme নেই, host নেই, শুধু path আর query (`/items?name=x`); host থাকে `req.headers.host`-এ, আর `new URL(req.url, base)` path-query ভাগ করে, `searchParams` decode করে দেয়। দুই: headers **ছোট হাতের অক্ষরে** আসে (`req.headers['content-type']`, কখনোই `contentType` নয়), বেশিরভাগ string — কিন্তু বারবার আসা header যেমন `set-cookie` আসে **array** হয়ে। তিন: body আপনার হয়ে parsed হয় না। `req` একটি readable stream, "body পড়া" মানে chunk জোড়া, concat, তারপর parse — সাথে একটা size guard, কারণ ২ GB upload-এ পাহারাহীন `JSON.parse` মানেই server মৃত্যু। ডেমো byte-বনাম-char বোঝাতে একটা বাংলা শব্দ মাপে: `হাই` মানে ৩টি character আর **৯টি UTF-8 byte**, আর `content-length` গোনে byte, char নয়।
+প্রথম handler লেখার সময় তিনটা তথ্য সবাইকে হোঁচট খাওয়ায়। এক: `req.url` কোনো ফুল URL **নয়** — scheme নেই, host নেই, শুধু path আর query (`/items?name=x`); host থাকে `req.headers.host`-এ, আর `new URL(req.url, base)` path-query ভাগ করে, `searchParams` decode করে দেয়। দুই: headers **ছোট হাতের অক্ষরে** আসে (`req.headers['content-type']`, কখনোই `contentType` নয়), বেশিরভাগ string — দুটো array নিয়ম সহ: `set-cookie` **সবসময়** array (একটা cookie হলেও), আর বাকি যেকোনো repeated header এক string-এ comma জড়িয়ে আসে। তিন: body আপনার হয়ে parsed হয় না। `req` একটি readable stream, "body পড়া" মানে chunk জোড়া, concat, তারপর parse — সাথে একটা size guard, কারণ ২ GB upload-এ পাহারাহীন `JSON.parse` মানেই server মৃত্যু। ডেমো byte-বনাম-char বোঝাতে একটা বাংলা শব্দ মাপে: `হাই` মানে ৩টি character আর **৯টি UTF-8 byte**, আর `content-length` গোনে byte, char নয়।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 node code/4-http-server-scratch/4-2-request-parsing/demo.js
 ```
 
-ছাপে: `[1]` URL ভাগ — `req.url` বহন করেছিল `/items?name=হাঈ`, query `searchParams`-এ percent-decoded; `[2]` host header, আর ডাবল `set-cookie` header ২টির array হয়ে আসা; `[3]` `হাই`-এর body: ৩ char, ৯ byte — byte দৈর্ঘ্য ≠ char সংখ্যা; `[4]` guarded body-পড়া প্যাটার্ন: ৫-byte body ২০০, ৪০-byte body ১৬-byte ক্যাপে ছুঁয়ে 413, upload মাঝপথে কাটা।
+ছাপে: `[1]` URL ভাগ — `req.url` বহন করেছিল `/items?name=হাই`, query `searchParams`-এ percent-decoded; `[2]` host header, আর ডাবল `set-cookie` header ২টির array হয়ে আসা; `[3]` `হাই`-এর body: ৩ char, ৯ byte — byte দৈর্ঘ্য ≠ char সংখ্যা; `[4]` guarded body-পড়া প্যাটার্ন: ৫-byte body ২০০, ৪০-byte body ১৬-byte ক্যাপে ছুঁয়ে 413, upload মাঝপথে কাটা।
 
 <BuildExercise
 	title="Body-পড়া middleware লিখুন"

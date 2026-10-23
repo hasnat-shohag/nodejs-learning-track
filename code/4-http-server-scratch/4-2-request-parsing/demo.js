@@ -22,9 +22,6 @@ await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const port = server.address().port;
 
 // [1] URL: path, query, decoded params
-{
-	server.on('request', (req, res) => { /* registered per probe below */ });
-}
 const echo = [];
 const app = http.createServer((req, res) => {
 	// req.url: path + query, host lives in headers
@@ -50,7 +47,7 @@ const appPort = app.address().port;
 await new Promise((resolve, reject) => {
 	const req = http.request(
 		{
-			host: '127.0.0.1', port: appPort, path: '/items?name=%E0%A6%B9%E0%A6%BE%E0%A6%88',
+			host: '127.0.0.1', port: appPort, path: '/items?name=%E0%A6%B9%E0%A6%BE%E0%A6%87',
 			method: 'POST', headers: { 'set-cookie': ['a=1', 'b=2'] },
 		},
 		(res) => { res.resume(); res.on('end', resolve); },
@@ -63,7 +60,7 @@ console.log('[1] path+query split (req.url has no host):');
 console.log(`  path=${got.path} — query "name" decoded: ${got.q}`);
 console.log('[2] headers:');
 console.log(`  host header carries the host: ${got.host}`);
-console.log(`  duplicate set-cookie → array of ${got.setCookieCount}, single headers stay strings`);
+console.log(`  duplicate set-cookie → array of ${got.setCookieCount} (set-cookie is always an array)`);
 console.log(`[3] body bytes: ${got.bodyBytes} for "হাই" — 3 chars, 9 UTF-8 bytes; byte length ≠ char count`);
 
 // [4] size-guarded body read: the pattern to steal

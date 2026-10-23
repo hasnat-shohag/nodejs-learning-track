@@ -33,7 +33,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-Node-এ ডেটা নড়ানোর সব কিছুই চার ক্লাসের একটি। **Readable** ডেটা বানায় (`fs.createReadStream`, `process.stdin`, HTTP request body); **Writable** খায় (`fs.createWriteStream`, `process.stdout`, HTTP response); **Duplex** দুটোই করে, *স্বাধীন* বাফারসহ (TCP socket, `tls` connection); **Transform** একটি ধাপ — এক প্রান্তে ভেতরে, `transform()` ফাংশন, অন্য প্রান্তে বাইরে (zlib-এর gzip, crypto cipher)। এখানে যে API শিখবেন সেটাই সব জায়গায়: ভেতরের দিকে `data`/`end`, বাইরের দিকে `write()`, আর দুই তথ্য যা মানুষ মিস করে। প্রথমত, `pause()` সত্যিই flow থামায় — `resume()` ডাকার আগে কোনো `data` ইভেন্ট আসে না। দ্বিতীয়ত, `write()` একটি **boolean** ফেরায়: `true` মানে ঠেলতে থাকুন, `false` মানে internal buffer **highWaterMark** পার করেছে — থামুন, `'drain`-এর জন্য অপেক্ষা করুন। ওই boolean-ই পরের লেসনের ভিত্তি — backpressure — আর server ডেভের জন্য এটা ঐচ্ছিক জ্ঞান নয়।
+Node-এ ডেটা নড়ানোর সব কিছুই চার ক্লাসের একটি। **Readable** ডেটা বানায় (`fs.createReadStream`, `process.stdin`, HTTP request body); **Writable** খায় (`fs.createWriteStream`, `process.stdout`, HTTP response); **Duplex** দুটোই করে, *স্বাধীন* বাফারসহ (TCP socket, `tls` connection); **Transform** একটি ধাপ — এক প্রান্তে ভেতরে, `transform()` ফাংশন, অন্য প্রান্তে বাইরে (zlib-এর gzip, crypto cipher)। এখানে যে API শিখবেন সেটাই সব জায়গায়: ভেতরের দিকে `data`/`end`, বাইরের দিকে `write()`, আর দুই তথ্য যা মানুষ মিস করে। প্রথমত, `pause()` সত্যিই flow থামায় — `resume()` ডাকার আগে কোনো `data` ইভেন্ট আসে না। দ্বিতীয়ত, `write()` একটি **boolean** ফেরায়: `true` মানে ঠেলতে থাকুন, `false` মানে internal buffer **highWaterMark** ছুঁয়েছে (>=) — থামুন, `'drain'`-এর জন্য অপেক্ষা করুন। ওই boolean-ই পরের লেসনের ভিত্তি — backpressure — আর server ডেভের জন্য এটা ঐচ্ছিক জ্ঞান নয়।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ Node-এ ডেটা নড়ানোর সব কিছুই চার ক
 node code/4-http-server-scratch/4-5-streams/demo.js
 ```
 
-ছাপে: `[1]` একটি Readable মাঝপথে pause — ৫০ms কোনো `data` ইভেন্ট ছাড়া গেল, তারপর `resume()`-এ বাকি সব বইল: pause আসল; `[2]` ১৬-byte highWaterMark-ওয়ালা Writable-এ ৪৮ byte — `write()` ৯ বার false ফেরাল: bool-টাই backpressure সংকেত; `[3]` একটি Duplex-এর read পাশ নিজের chunk দিল যখন write পাশ ২০টা write নিল — এক অবজেক্টে দুই স্বাধীন বাফার; `[4]` একটি Transform পথেই uppercase করল, পাশে `createGzip()` — একই ক্লাস বাস্তবে: ১৩ byte ভেতরে, gzip byte বাইরে।
+ছাপে: `[1]` একটি Readable মাঝপথে pause — ৫০ms কোনো `data` ইভেন্ট ছাড়া গেল, তারপর `resume()`-এ বাকি সব বয়ে গেল: pause আসল; `[2]` ১৬-byte highWaterMark-ওয়ালা Writable-এ ৪৮ byte — `write()` ৯ বার false ফেরাল: bool-টাই backpressure সংকেত; `[3]` একটি Duplex-এর read পাশ নিজের chunk দিল যখন write পাশ ২০টা write নিল — এক অবজেক্টে দুই স্বাধীন বাফার; `[4]` একটি Transform পথেই uppercase করল, পাশে `createGzip()` — একই ক্লাস বাস্তবে: ১৩ byte ভেতরে, gzip byte বাইরে।
 
 <BuildExercise
 	title="প্রতিটি ক্লাস একটা করে বানান"

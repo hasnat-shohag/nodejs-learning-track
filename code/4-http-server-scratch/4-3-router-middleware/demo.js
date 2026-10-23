@@ -34,7 +34,10 @@ const match = (method, pathname) => {
 		const m = r.regex.exec(pathname);
 		if (!m) continue;
 		const params = {};
-		r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
+		r.keys.forEach((k, i) => {
+			try { params[k] = decodeURIComponent(m[i + 1]); }
+			catch { params[k] = m[i + 1]; } // malformed %-encoding → raw value, handler still runs
+		});
 		return { handler: r.handler, params };
 	}
 	return null;
@@ -128,6 +131,16 @@ console.log(`  good token   → ${ok.status} ${ok.body} — log → auth → han
 const missing = await call('GET', '/nope');
 console.log(`[3] GET /nope → ${missing.status} — no route matched, that IS the 404`);
 
+// malformed %-encoding must not crash the process
+try {
+	const res = await new Promise((resolve, reject) => {
+		http.get({ host: '127.0.0.1', port, path: '/users/%ZZ' }, resolve).on('error', reject);
+	});
+	let b = ''; res.on('data', (c) => { b += c; }); await new Promise((r) => res.on('end', r));
+	console.log(`[4] GET /users/%ZZ → ${res.statusCode} "${b}" — bad encoding survives as raw param, process alive`);
+} catch {
+	console.log('[4] GET /users/%ZZ — unexpected failure');
+}
 console.log('--- key idea ---');
 console.log('Router = loop + regex. Middleware = array + next(). Everything else is packaging.');
 await new Promise((resolve) => app.close(resolve));

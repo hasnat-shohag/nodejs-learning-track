@@ -72,7 +72,7 @@ const call = (port, path) => new Promise((resolve, reject) => {
 	child.stdout.on('data', (c) => { childOut += c; });
 	child.stderr.on('data', (c) => { childOut += c; });
 	const childExit = await new Promise((resolve) => child.on('exit', (code) => resolve(code)));
-	const firstLine = childOut.split('\n').find((l) => l.includes('Error'));
+	const firstLine = childOut.split('\n').find((l) => l.trim().startsWith('Error'));
 	console.log(`  same rejection with NO .catch: child died (exit ${childExit}) — "${(firstLine ?? '').trim()}"`);
 	console.log('  since Node 15 an unhandled rejection CRASHES the process by default — .catch is not optional');
 }

@@ -33,7 +33,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-Express-কে হাড় পর্যন্ত ছাড়লে দুই আইডিয়া থাকে। **Router** হলো `(method, pattern, handler)` সারির টেবিল; matching মানে টেবিলের ওপর একটা loop আর pattern থেকে বানানো regex — `:id` হয় capture group, `/users/42` মেলে, `42` বসে `req.params.id`-তে, percent-encoding decode হয়। এটাই পুরো রহস্য। **Middleware** হলো `(req, res, next)` নেওয়া ফাংশনের array: প্রতিটি request আগেই শেষ করতে পারে (status লিখে `next` ডাকা *নয়* — চেইন থামে) বা কাজ সেরে `next()` ডেকে request নিচে পাঠাতে পারে। Logging, auth, body-parsing — সবই একই shape। এই লেসন শেষ করার পর আপনি ফ্রেমওয়ার্ক *ব্যবহার* করেননি; আপনি *ফ্রেমওয়ার্কের মোড়া ৩০ লাইনই বানিয়েছেন*, আর সেই মোড়ক আর কখনো জাদু মনে হবে না।
+Express-কে হাড় পর্যন্ত ছাড়লে দুই আইডিয়া থাকে। **Router** হলো `(method, pattern, handler)` সারির টেবিল; matching মানে টেবিলের ওপর একটা loop আর pattern থেকে বানানো regex — `:id` হয় capture group, `/users/42` মেলে, `42` বসে `req.params.id`-তে, percent-encoding decode হয় (ভাঙা encoding হলে decode-এর guard throw না করে কাঁচা মান রাখে)। এটাই পুরো রহস্য। **Middleware** হলো `(req, res, next)` নেওয়া ফাংশনের array: প্রতিটি request আগেই শেষ করতে পারে (status লিখে `next` ডাকা *নয়* — চেইন থামে) বা কাজ সেরে `next()` ডেকে request নিচে পাঠাতে পারে। Logging, auth, body-parsing — সবই একই shape। এই লেসন শেষ করার পর আপনি ফ্রেমওয়ার্ক *ব্যবহার* করেননি; আপনি *ফ্রেমওয়ার্কের মোড়ানো ৩০ লাইনই বানিয়েছেন*, আর সেই মোড়ক আর কখনো জাদু মনে হবে না।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ Express-কে হাড় পর্যন্ত ছাড়লে দুই �
 node code/4-http-server-scratch/4-3-router-middleware/demo.js
 ```
 
-ছাপে: `[1]` route টেবিল চলা — `/health` exact মিলছে, `/users/42` param বের করছে, `/users/a%20b` decode হয়ে `a b`; `[2]` middleware চেইন — প্রতি request-এ log লাইন, auth টোকেন-ছাড়া request-এ 401 (চেইন আগেই থামল, handler আর চলেনি), একই route ভালো টোকেনে log → auth → handler; `[3]` 404: `/nope` কোনো সারিতে মেলেনি, আর "route মেলেনি" ব্যাপারটাই 404।
+ছাপে: `[1]` route টেবিল চলা — `/health` exact মিলছে, `/users/42` param বের করছে, `/users/a%20b` decode হয়ে `a b`; `[2]` middleware চেইন — প্রতি routed request-এ log লাইন, auth টোকেন-ছাড়া request-এ 401 (চেইন আগেই থামল, handler আর চলেনি), একই route ভালো টোকেনে log → auth → handler; `[3]` 404: `/nope` কোনো সারিতে মেলেনি, আর "route মেলেনি" ব্যাপারটাই 404। `[4]` ভাঙা percent-encoding (`/users/%ZZ`) — decode-এর guard throw না করে কাঁচা মান পাঠিয়ে দেয়, তাই যেখানে পাহারাহীন ভার্সন প্রসেস মারত, সেখানে এটা বেঁচে থাকে।
 
 <BuildExercise
 	title="নিজের বানানো router বাড়ান"

@@ -32,7 +32,7 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-Three facts trip everyone writing their first handler. One: `req.url` is **not** a full URL — no scheme, no host, just path and query (`/items?name=x`); the host lives in `req.headers.host`, and `new URL(req.url, base)` splits path from query with `searchParams` decoding for you. Two: headers arrive **lower-cased** (`req.headers['content-type']`, never `contentType`), and most are strings — but repeated headers like `set-cookie` arrive as an **array**. Three: the body is not parsed for you. `req` is a readable stream, and "reading the body" means collecting chunks, concatenating, then parsing — plus a size guard, because an unguarded `JSON.parse` on a 2 GB upload is how servers die. The demo measures a Bangla word to make byte-vs-char stick: `হাই` is 3 characters and **9 UTF-8 bytes**, and `content-length` counts bytes, not chars.
+Three facts trip everyone writing their first handler. One: `req.url` is **not** a full URL — no scheme, no host, just path and query (`/items?name=x`); the host lives in `req.headers.host`, and `new URL(req.url, base)` splits path from query with `searchParams` decoding for you. Two: headers arrive **lower-cased** (`req.headers['content-type']`, never `contentType`), and most are strings — with two array rules: `set-cookie` is **always** an array (even a single cookie), and every other repeated header arrives comma-joined in one string. Three: the body is not parsed for you. `req` is a readable stream, and "reading the body" means collecting chunks, concatenating, then parsing — plus a size guard, because an unguarded `JSON.parse` on a 2 GB upload is how servers die. The demo measures a Bangla word to make byte-vs-char stick: `হাই` is 3 characters and **9 UTF-8 bytes**, and `content-length` counts bytes, not chars.
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -50,7 +50,7 @@ Run the demo file for this lesson:
 node code/4-http-server-scratch/4-2-request-parsing/demo.js
 ```
 
-It prints: `[1]` the URL split — `req.url` carried `/items?name=হাঈ` with the query percent-decoded by `searchParams`; `[2]` the host header, and duplicate `set-cookie` headers arriving as an array of 2; `[3]` the body of `হাই`: 3 chars, 9 bytes — byte length ≠ char count; `[4]` the guarded body-read pattern: a 5-byte body returns 200, a 40-byte body hits the 16-byte cap and gets 413 with the upload cut mid-flight.
+It prints: `[1]` the URL split — `req.url` carried `/items?name=হাই` with the query percent-decoded by `searchParams`; `[2]` the host header, and duplicate `set-cookie` headers arriving as an array of 2; `[3]` the body of `হাই`: 3 chars, 9 bytes — byte length ≠ char count; `[4]` the guarded body-read pattern: a 5-byte body returns 200, a 40-byte body hits the 16-byte cap and gets 413 with the upload cut mid-flight.
 
 <BuildExercise
 	title="Write the body-reading middleware"
