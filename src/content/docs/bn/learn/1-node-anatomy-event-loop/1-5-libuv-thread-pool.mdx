@@ -1,18 +1,18 @@
 ---
-title: "libuv থ্রেড পুল: UV_THREADPOOL_SIZE ও অফ-থ্রেড কাজ"
+title: "libuv thread pool: UV_THREADPOOL_SIZE ও অফ-থ্রেড কাজ"
 titleEn: "libuv thread pool: UV_THREADPOOL_SIZE and off-thread work"
-description: fs, DNS আর crypto.pbkdf2 আপনার JS থ্রেডে চলে না — সেগুলো libuv-এর worker পুলের জন্য কিউ হয়, ডিফল্টে চার থ্রেড চওড়া — আর ব্যাচগুলো আপনি নিজেই দেখতে পারেন।
+description: fs, DNS আর crypto.pbkdf2 আপনার JS থ্রেডে চলে না — সেগুলো libuv-এর worker pool-এর জন্য কিউ হয়, ডিফল্টে চার থ্রেড চওড়া — আর ব্যাচগুলো আপনি নিজেই দেখতে পারেন।
 domain: 1
 task: "1.5"
 order: 5
-sourceUrl: https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv
+sourceUrl: https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking
 updated: 2026-10-22
 keywords:
   - term: thread pool
   - term: UV_THREADPOOL_SIZE
 sources:
   - label: Node.js docs — Introduction to libuv
-    href: https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv
+    href: https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking
 ---
 
 import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
@@ -31,7 +31,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-"Node single-threaded" কথাটা শুধু আপনার JavaScript-এর জন্য। কিছু async কাজ — ফাইল সিস্টেম কল, DNS লুকআপ (`c-ares` ব্যতীত), `crypto.pbkdf2`, `zlib` — সত্যিই থ্রেডে চলার মতো, কারণ OS-এর কাছে সেগুলোর নন-ব্লকিং রূপ নেই। libuv সেই কাজ চালায় **thread pool-এ**: ডিফল্টে চারটি OS থ্রেড, প্রসেস শুরুতেই স্থির। তাই ছয়টি পুল কাজ চলে **দুই ঢেউয়ে** — চারটা, তারপর দুটো। এই লেসন ঢেউগুলো দেখায়, আর `UV_THREADPOOL_SIZE` সেগুলোতে কী করে তা-ও।
+"Node single-threaded" কথাটা শুধু আপনার JavaScript-এর জন্য। কিছু async কাজ — ফাইল সিস্টেম কল, DNS লুকআপ (`c-ares` ব্যতীত), `crypto.pbkdf2`, `zlib` — সত্যিই থ্রেডে চলার মতো, কারণ OS-এর কাছে সেগুলোর নন-ব্লকিং রূপ নেই। libuv সেই কাজ চালায় **thread pool-এ**: ডিফল্টে চারটি OS থ্রেড, প্রথম ব্যবহারে তৈরি হয় আর তখনই environment থেকে সাইজ নেয় — বাস্তবে `UV_THREADPOOL_SIZE` সেট করুন `node` শুরুর আগে; কোডে সেট করা guaranteed নয়, পুল তৈরি হয়ে গেলে কিছুই করে না। তাই ছয়টি পুল কাজ চলে **দুই ঢেউয়ে** — চারটা, তারপর দুটো। এই লেসন ঢেউগুলো দেখায়, আর `UV_THREADPOOL_SIZE` সেগুলোতে কী করে তা-ও।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -50,7 +50,7 @@ node code/1-node-anatomy-event-loop/1-5-libuv-thread-pool/demo.js
 UV_THREADPOOL_SIZE=8 node code/1-node-anatomy-event-loop/1-5-libuv-thread-pool/demo.js
 ```
 
-ডিফল্ট সাইজে ছয়টি `pbkdf2` কাজ দুই ক্লাস্টারে শেষ হয় — চারটা একসাথে, তারপর দুটো — আর এই পুরো সময় আপনার JS থ্রেড মুক্ত থাকে। সাইজ ৮-তে ছয়টাই এক ক্লাস্টারে বসে। খেয়াল রাখুন: env ভ্যারিয়েবলটি প্রসেস শুরুর <em>আগেই</em> থাকতে হবে; রানটাইমে `process.env.UV_THREADPOOL_SIZE` সেট করার কোনো কাজ নেই।
+ডিফল্ট সাইজে ছয়টি `pbkdf2` কাজ দুই ক্লাস্টারে শেষ হয় — চারটা একসাথে, তারপর দুটো — আর এই পুরো সময় আপনার JS থ্রেড মুক্ত থাকে। সাইজ ৮-তে ছয়টাই এক ক্লাস্টারে বসে। খেয়াল রাখুন: পুল `UV_THREADPOOL_SIZE` পড়ে প্রথমবার তৈরি হওয়ার সময়; পুল তৈরির পরে কোডে `process.env.UV_THREADPOOL_SIZE` সেট করার কোনো কাজ নেই।
 
 <BuildExercise
 	title="পুল সাইজ অনুভব করুন"
@@ -60,7 +60,7 @@ UV_THREADPOOL_SIZE=8 node code/1-node-anatomy-event-loop/1-5-libuv-thread-pool/d
 	steps={[
 		{ title: 'ডিফল্ট বনাম ৮ চালান', why: 'দুই ঢেউ এক ঢেউয়ে মিশে যাওয়া দেখা।', expect: 'সাইজ ৪: কাজ ৫-৬ দ্বিতীয় ক্লাস্টারে শেষ; সাইজ ৮: এক ক্লাস্টার, টোটাল দ্রুত।' },
 		{ title: 'পুল অনাহারিত করুন', why: 'পুল কাজের ধরন জুড়ে শেয়ার্ড প্রমাণ করা।', expect: 'ছয় pbkdf2-এর সাথে একটি বড় fs.readFile: রিড আর শেষ কাজটি একই থ্রেডের জন্য অপেক্ষা করে।' },
-		{ title: 'রানটাইমে বদল চেষ্টা', why: 'পুল স্টার্টআপে স্থির তা নিশ্চিত করা।', expect: 'স্ক্রিপ্টের ভেতরে env সেট করলে কিছুই বদলায় না — সাইজ আলাদা হয় শুধু `node`-এর আগে সেট করলে।' },
+		{ title: 'রানটাইমে বদল চেষ্টা', why: 'পুল সাইজ একবারই পড়ে, প্রথম ব্যবহারে — তা নিশ্চিত করা।', expect: 'প্রথম পুল কলের পরে env সেট করলে কিছুই বদলায় না — সাইজ আলাদা হয় শুধু `node` শুরুর আগে সেট করলে।' },
 	]}
 />
 

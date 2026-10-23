@@ -13,7 +13,7 @@ export const LESSONS: LessonMeta[] = [
 	{ id: '1-2', domain: 1, slug: '1-2-event-loop-phases', titleEn: 'Event loop phases: timers, poll, check, close', titleBn: 'Event loop-এর ফেজ: timers, poll, check, close' },
 	{ id: '1-3', domain: 1, slug: '1-3-microtask-ordering', titleEn: 'Microtask ordering: nextTick vs Promise vs setImmediate', titleBn: 'মাইক্রোটাস্ক অর্ডারিং: nextTick বনাম Promise বনাম setImmediate' },
 	{ id: '1-4', domain: 1, slug: '1-4-blocking-the-loop', titleEn: 'Blocking the loop: the cost model, measuring event-loop lag', titleBn: 'লুপ ব্লক করা: কস্ট মডেল ও event-loop lag মাপা' },
-	{ id: '1-5', domain: 1, slug: '1-5-libuv-thread-pool', titleEn: 'libuv thread pool: UV_THREADPOOL_SIZE and off-thread work', titleBn: 'libuv থ্রেড পুল: UV_THREADPOOL_SIZE ও অফ-থ্রেড কাজ' },
+	{ id: '1-5', domain: 1, slug: '1-5-libuv-thread-pool', titleEn: 'libuv thread pool: UV_THREADPOOL_SIZE and off-thread work', titleBn: 'libuv thread pool: UV_THREADPOOL_SIZE ও অফ-থ্রেড কাজ' },
 	{ id: '1-6', domain: 1, slug: '1-6-timers-deep', titleEn: 'Timers deep: ref/unref, nesting, setInterval drift', titleBn: 'টাইমার ডিপ: ref/unref, নেস্টিং, setInterval drift' },
 
 	{ id: '2-1', domain: 2, slug: '2-1-v8-server-view', titleEn: 'V8 from a server dev’s view: JIT, hidden classes, GC', titleBn: 'সার্ভার ডেভের চোখে V8: JIT, হিডেন ক্লাস, GC' },

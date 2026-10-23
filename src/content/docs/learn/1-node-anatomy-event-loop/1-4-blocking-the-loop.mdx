@@ -30,13 +30,13 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-One line of hot-loop JavaScript can stall a server for every connected client at once — because the blocked thread is the **only** thread your callbacks run on. The cost model is simple: **lag is paid by every pending callback, once, in full**. This lesson makes that visible with a probe: a 50ms interval ping whose gaps grow by exactly the block time, next to the same 200ms of CPU work sliced with `setImmediate` — where no gap grows at all.
+One line of hot-loop JavaScript can stall a server for every connected client at once — because the blocked thread is the **only** thread your callbacks run on. The cost model is simple: **lag is paid by every pending callback, once, in full**. This lesson makes that visible with a probe: a 50ms interval ping whose gaps grow by the block time (plus whatever fraction of the interval had already elapsed when the block landed), next to the same 200ms of CPU work sliced with `setImmediate` — where no gap grows at all.
 
 <KeywordTable keywords={frontmatter.keywords} />
 
 <Pitfall title="monitorEventLoopDelay won't show you a spike as it happens">
 	<p>
-		`monitorEventLoopDelay()` is the documented tool, but its histogram updates on an interval and its resolution floors around a millisecond — a single 200ms block can read as ordinary jitter in the moment. The self-ping probe in the demo (schedule `setInterval`, measure gaps) is dumber and honest: every gap is a direct lag sample. Prefer it when the question is "how bad was that one request".
+		`monitorEventLoopDelay()` is the documented tool and it *does* record the spike (a 200ms block shows up in the histogram's percentiles). What it cannot tell you is *which request* caused it — the histogram aggregates, so a percentiles dashboard says "p99 is bad" while the self-ping probe in the demo (schedule `setInterval`, measure gaps) hands you per-window attribution. Prefer the self-ping when the question is "how bad was that one request".
 	</p>
 </Pitfall>
 
@@ -48,7 +48,7 @@ Run the demo file for this lesson:
 node code/1-node-anatomy-event-loop/1-4-blocking-the-loop/demo.js
 ```
 
-The probe fires every 50ms and records each gap. A 200ms synchronous spin lands inside one probe window: that gap prints as ~250 (50 + 200). Then the demo runs the same 200ms of work in 5ms slices with `setImmediate` re-arming — every gap stays ~50. Same work, same wall time; only one of them kept a server responsive.
+The probe fires every 50ms and records each gap. A 200ms synchronous spin lands inside one probe window: that gap prints as ~210 — the block time plus the elapsed part of the interval when the spin started. Then the demo runs the same 200ms of work in 5ms slices with `setImmediate` re-arming — every gap stays ~50. Same work, same wall time; only one of them kept a server responsive.
 
 <BuildExercise
 	title="Measure lag on your own route"
@@ -56,8 +56,8 @@ The probe fires every 50ms and records each gap. A 200ms synchronous spin lands 
 	time="25 min"
 	objectives={['Explain why one blocked callback delays every pending one', 'Build a lag probe you can drop into any service']}
 	steps={[
-		{ title: 'Run the demo', why: 'See the ~250ms gap next to the untouched 50ms gaps.', expect: 'One spike in the sync run; zero spikes in the sliced run.' },
-		{ title: 'Vary the block', why: 'Check the cost model: gap grows by the block, not by the request count.', expect: '400ms block → one ~450 gap; two 200ms blocks → two spikes if in different windows.' },
+		{ title: 'Run the demo', why: 'See the ~210ms gap next to the untouched 50ms gaps.', expect: 'One spike in the sync run; zero spikes in the sliced run.' },
+		{ title: 'Vary the block', why: 'Check the cost model: gap grows by the block, not by the request count.', expect: '400ms block → one ~410 gap (block + elapsed interval fraction); two 200ms blocks → two spikes if in different windows.' },
 		{ title: 'Drop the probe in a server', why: 'Wrap an `http.createServer` handler around the same probe.', expect: 'A slow route shows up as probe spikes while other requests still complete between them.' },
 	]}
 />

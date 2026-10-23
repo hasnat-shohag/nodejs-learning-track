@@ -30,7 +30,7 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-Timers are the event loop's most abused API. This lesson pins the three behaviors people get wrong: **ref/unref** — `unref()` only removes a timer's vote to keep the process alive, it does not cancel it; **re-arming** — a `setTimeout` scheduled from inside a timer callback runs on a *later loop turn*, it is not recursion; and **interval drift** — when a callback runs long, missed dues are *dropped*, so a 100ms interval under a 150ms callback fires late once, then continues on its grid. No catch-up bursts, ever.
+Timers are the event loop's most abused API. This lesson pins the three behaviors people get wrong: **ref/unref** — `unref()` only removes a timer's vote to keep the process alive, it does not cancel it; **re-arming** — a `setTimeout` scheduled from inside a timer callback runs on a *later loop turn*, it is not recursion; and **interval drift** — when a callback runs long, missed dues are *dropped*, so a 100ms interval under a 250ms callback fires late once, then holds its cadence from the shifted base. No catch-up bursts, ever.
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -48,7 +48,7 @@ Run the demo file for this lesson:
 node code/1-node-anatomy-event-loop/1-6-timers-deep/demo.js
 ```
 
-Four sections print: unref-ed timer firing anyway (`fired=true`); a child exiting with a timer pending; `ref()` restoring keep-alive; and a drift probe — a 100ms interval whose first callback blocks 150ms prints gaps `100 150 100 100 100`: one late fire, two dropped dues, then back on grid. Re-read the gaps against the rule: **fires never run early, and never repay misses**.
+Five sections print: unref-ed timer firing anyway (`fired=true`); a child exiting with a timer pending; `ref()` restoring keep-alive; re-armed ticks landing on two separate loop turns; and a drift probe — a 100ms interval whose first callback blocks 250ms prints gaps `100 250 100 100 100`: one late fire, two dues absorbed while blocked, then the 100ms cadence holding from the shifted base. Re-read the gaps against the rule: **fires never run early, and never repay misses**.
 
 <BuildExercise
 	title="Break each rule on purpose"
@@ -56,9 +56,9 @@ Four sections print: unref-ed timer firing anyway (`fired=true`); a child exitin
 	time="20 min"
 	objectives={['Predict whether an unref-ed timer fires in a live process', 'Explain dropped dues vs catch-up scheduling']}
 	steps={[
-		{ title: 'Run the demo', why: 'See all four sections with their verdict lines.', expect: 'fired=true; child exits; ref() holds; gaps 100 150 100 ….' },
+		{ title: 'Run the demo', why: 'See all five sections with their verdict lines.', expect: 'fired=true; child exits; ref() holds; two ticks; gaps 100 250 100 ….' },
 		{ title: 'unref a server socket', why: 'Confirm any ref-ed handle — not just timers — keeps the loop open.', expect: 'unref-ed timer fires while server listens; process lives until server.close().' },
-		{ title: 'Block longer than two intervals', why: 'Push drift: block 350ms.', expect: 'One fire at ~350, dues at 200/300 dropped — still no burst after.' },
+		{ title: 'Block longer than two intervals', why: 'Push drift: block 350ms.', expect: 'One gap ≈ 350 (block absorbed the dues at 200/300/400-start), three dues gone — no burst after.' },
 	]}
 />
 

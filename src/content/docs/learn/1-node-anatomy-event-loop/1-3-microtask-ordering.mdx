@@ -37,7 +37,7 @@ Between every loop phase — and after every callback — Node drains two **micr
 
 <Pitfall title="nextTick starves I/O; Promise does not (as much)">
 	<p>
-		A recursive `process.nextTick` chain never yields — timers and I/O wait forever, and Node 22+ warns and crashes on infinite nextTick recursion. A recursive Promise chain yields <em>slightly</em> (same drain window, still blocks phases but the promise queue does drain between ticks… until it also starves). Rule of thumb: in libraries use `queueMicrotask` or Promise; keep `nextTick` for the rare "run before I/O continues" cases, and never in a loop without a base case.
+		A recursive `process.nextTick` chain never yields — timers and I/O wait forever, silently: no warning, no crash, the process just hangs. A recursive Promise chain starves phases from the start too (a resolved-promise loop never lets the timeout run) — the real difference is that promise callbacks still interleave with *other* promise work while nextTick recursion starves even the Promise queue. Rule of thumb: in libraries use `queueMicrotask` or Promise; keep `nextTick` for the rare "run before I/O continues" cases, and never in a loop without a base case.
 	</p>
 </Pitfall>
 
@@ -59,7 +59,7 @@ Ten numbered lines, and the <em>numbers</em> are the lesson: watch `[1]`–`[2]`
 	steps={[
 		{ title: 'Run the demo', why: 'Read the numbers against the three rules in the comments.', expect: 'Exact order [0]-[9] as listed in the file header; stable across runs.' },
 		{ title: 'Queue a nextTick from a Promise', why: 'Test rule 2 — does it preempt remaining promises?', expect: 'No: the Promise queue drains fully first, then the new nextTick.' },
-		{ title: 'Uncomment the starvation lines', why: 'Feel the difference between nextTick and Promise recursion.', expect: 'With `starve()` active, the timeout never prints — the loop never gets a turn.' },
+		{ title: 'Write a starvation probe', why: 'Feel the difference between nextTick and Promise recursion.', expect: 'A recursive nextTick loop hangs silently — timeout never prints, no warning; a recursive resolved-Promise loop also starves the timeout.' },
 	]}
 />
 

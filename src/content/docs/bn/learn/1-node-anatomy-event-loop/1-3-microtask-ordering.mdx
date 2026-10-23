@@ -38,7 +38,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 <Pitfall title="nextTick কে I/O অনাহারিত করে; Promise কিছুটা কম (খুব বেশি নয়)">
 	<p>
-		রিকার্সিভ `process.nextTick` চেইন কখনো yield করে না — টাইমার আর I/O চিরকাল অপেক্ষায় থাকে, আর Node 22+ অসীম nextTick রিকার্সনে সতর্ক করে ক্র্যাশ করে। রিকার্সিভ Promise চেইন একটু যায় (নিষ্কাশন উইন্ডো একই, ফেজ তবু আটকে থাকে… শেষে সেও অনাহার ঘটায়)। নিয়ম: লাইব্রেরিতে `queueMicrotask` বা Promise ব্যবহার করুন; `nextTick` রাখুন বিরল "I/O চালু হওয়ার আগেই চালাও" কেসে — আর বেস কেস ছাড়া লুপে কখনোই নয়।
+		রিকার্সিভ `process.nextTick` চেইন কখনো yield করে না — টাইমার আর I/O চিরকাল অপেক্ষায় থাকে, চুপচাপ: কোনো warning নেই, কোনো crash নেই, প্রসেস শুধু ঝুলে থাকে। রিকার্সিভ Promise চেইনও শুরু থেকেই ফেজ অনাহারিত করে (resolved-promise লুপে timeout কখনো চলে না) — আসল পার্থক্য: Promise callback অন্য Promise কাজের সাথে interleave করে, আর nextTick রিকার্সন Promise queue-ও অনাহারিত করে। নিয়ম: লাইব্রেরিতে `queueMicrotask` বা Promise ব্যবহার করুন; `nextTick` রাখুন বিরল "I/O চালু হওয়ার আগেই চালাও" কেসে — আর বেস কেস ছাড়া লুপে কখনোই নয়।
 	</p>
 </Pitfall>
 
@@ -60,7 +60,7 @@ node code/1-node-anatomy-event-loop/1-3-microtask-ordering/demo.js
 	steps={[
 		{ title: 'ডেমো চালান', why: 'কমেন্টের তিনটি নিয়মের সাথে নাম্বারগুলো মেলান।', expect: 'ফাইলের হেডারে লেখা [0]-[9]-এর সঠিক ক্রম; বারবার চালালেও এক।' },
 		{ title: 'Promise থেকে nextTick কিউ করুন', why: 'নিয়ম ২ পরখা — বাকি promise-দের ওটা আগে ছাড়িয়ে যায়?', expect: 'না: আগে পুরো Promise কিউ নিষ্কাশিত, তারপর নতুন nextTick।' },
-		{ title: 'অনাহারের লাইন কমেন্ট-তোলা করুন', why: 'nextTick বনাম Promise রিকার্সনের পার্থক্য অনুভব করা।', expect: '`starve()` সক্রিয় থাকলে timeout কখনো প্রিন্ট হয় না — লুপ পাক পায় না।' },
+		{ title: 'অনাহার probe লিখুন', why: 'nextTick বনাম Promise রিকার্সনের পার্থক্য অনুভব করা।', expect: 'রিকার্সিভ nextTick লুপ চুপচাপ ঝুলে থাকে — timeout প্রিন্ট হয় না, warning নেই; রিকার্সিভ resolved-Promise লুপও timeout অনাহারিত করে।' },
 	]}
 />
 

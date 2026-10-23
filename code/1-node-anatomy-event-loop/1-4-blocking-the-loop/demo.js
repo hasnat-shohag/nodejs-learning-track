@@ -38,7 +38,7 @@ function asyncWork(ms) {
 
 setTimeout(() => {
   syncWork(200);
-}, 260); // inside one probe window: one gap ~ 50+200
+}, 260); // inside one probe window: gap = time-since-last-ping + block (~10 + 200 ≈ 210)
 
 setTimeout(async () => {
   await asyncWork(200);

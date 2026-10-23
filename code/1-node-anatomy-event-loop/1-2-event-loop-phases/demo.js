@@ -2,16 +2,18 @@
 //
 // Expected output:
 //
+//   --- one loop turn, four phases ---
 //   [timers]    setTimeout 0
 //   [check]     setImmediate
-//   [poll data] fs.readFileSync event: file read complete
-//   [close]     watcher closed
-//   ...
+//   [poll data] fs.readFile event: file read complete
+//   [check]     setImmediate nested (queued during poll)
+//   [timers]    setTimeout nested (queued during poll)
+//   [exit]      event loop empty, process exits
 //
 // Watch one loop turn through its phases: timers fire, the poll phase
-// sees I/O, check runs setImmediate, and close callbacks run last.
-
-import { readFileSync } from 'node:fs';
+// sees I/O, check runs setImmediate queued during poll. Top-level
+// timers-vs-immediate order races on entry; from inside a poll callback
+// the immediate always wins.
 
 console.log('--- one loop turn, four phases ---');
 setTimeout(() => console.log('[timers]    setTimeout 0'), 0);
@@ -27,6 +29,4 @@ import('node:fs').then((fs) => {
   });
 });
 
-const watcher = setInterval(() => {}, 1000);
-watcher.close();
 process.on('exit', () => console.log('[exit]      event loop empty, process exits'));

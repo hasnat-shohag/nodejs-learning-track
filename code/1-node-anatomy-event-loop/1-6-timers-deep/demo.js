@@ -12,7 +12,7 @@
 //   --- nesting: re-armed setTimeout runs on its own loop turn ---
 //   [5] tick 1 / [6] tick 2 / [7] two separate turns, not recursion
 //   --- setInterval drift under load ---
-//   gaps like: 100 150 51 51 100 — block 150 > interval → catch-up burst
+//   gaps like: 100 250 100 100 100 — a 250ms block: one late fire,
 //
 // ref/unref: unref removes keep-alive but a pending timer still fires if
 // something else keeps the loop alive; ref restores it.
@@ -47,7 +47,7 @@ console.log('--- nesting: re-armed setTimeout runs on its own loop turn ---');
 let n = 0;
 setTimeout(function tick() {
 	n += 1;
-	console.log(`[5] tick ${n}`);
+	console.log(`[${4 + n}] tick ${n}`);
 	if (n < 2) setTimeout(tick, 30);
 	else console.log('[7] two separate turns, not recursion');
 }, 30);
@@ -61,13 +61,13 @@ const iv = setInterval(() => {
 	gaps.push(Number(now - last) / 1e6);
 	last = now;
 	if (gaps.length === 1) {
-		const end = process.hrtime.bigint() + 150_000_000n; // 150ms block > 100ms interval
+		const end = process.hrtime.bigint() + 250_000_000n; // 250ms block > 2 intervals
 		while (process.hrtime.bigint() < end) {}
 	}
 	if (gaps.length >= 5) {
 		clearInterval(iv);
 		console.log('gaps (ms):', gaps.map((g) => g.toFixed(0)).join(' '));
-		console.log('[8] 150ms block: one late fire, dues 2 missed and DROPPED — no catch-up burst');
+		console.log('[8] 250ms block: one late fire, dues 2 absorbed and DROPPED — no catch-up burst');
 		console.log('    missed dues never accumulate: a timer cannot fire more than once per loop turn');
 	}
 }, 100);

@@ -39,7 +39,7 @@
   {
     "term": "libuv",
     "defEn": "The C library under Node that provides the event loop, TCP/UDP sockets, filesystem and thread-pool operations. Node's async I/O is libuv plus OS kernel facilities.",
-    "defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও থ্রেড-পুল অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
+    "defBn": "Node-এর নিচের C লাইব্রেরি, যা event loop, TCP/UDP সকেট, ফাইলসিস্টেম ও thread pool অপারেশন দেয়। Node-এর async I/O হলো libuv এবং OS কার্নেল সুবিধার সমন্বয়।",
     "refs": [
       "https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
     ],
@@ -102,7 +102,7 @@
   {
     "term": "timer drift",
     "defEn": "setInterval callbacks fire relative to when the previous one ran (blocking included), so a 100ms interval under load becomes slower and slower.",
-    "defBn": "setInterval-এর callback চলে আগেরটা কখন শেষ হলো তার থেকে (ব্লকিংসহ), তাই লোডের নিচে ১০০ms-এর ইন্টারভাল ক্রমশ ধীর হয়ে যায়。",
+    "defBn": "setInterval-এর callback চলে আগেরটা কখন শেষ হলো তার থেকে (ব্লকিংসহ), তাই লোডের নিচে ১০০ms-এর ইন্টারভাল ক্রমশ ধীর হয়ে যায়।",
     "refs": [
       "https://nodejs.org/api/timers.html"
     ],
@@ -110,8 +110,8 @@
   },
   {
     "term": "UV_THREADPOOL_SIZE",
-    "defEn": "Environment variable setting libuv thread-pool size. Must be set before the process starts; default 4, max useful ≈ 128.",
-    "defBn": "libuv থ্রেড-পুলের সাইজ নির্ধারণকারী environment variable। প্রসেস শুরুর আগে সেট করতে হয়; ডিফল্ট ৪, কার্যকর সর্বোচ্চ প্রায় ১২৮।",
+    "defEn": "Environment variable setting libuv thread-pool size. The pool reads it when it first spins up, so set it before `node` starts; default 4, hard cap 1024.",
+    "defBn": "libuv thread pool-এর সাইজ নির্ধারণকারী environment variable। পুল প্রথম তৈরি হওয়ার সময় পড়ে, তাই `node` শুরুর আগে সেট করুন; ডিফল্ট ৪, hard cap ১০২৪।",
     "refs": [
       "https://nodejs.org/en/learn/asynchronous-work/introduction-to-libuv"
     ],
