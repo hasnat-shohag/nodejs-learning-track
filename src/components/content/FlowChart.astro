@@ -12,17 +12,26 @@ const labels = isBn
 			open: 'ফ্লো চার্ট দেখুন',
 			title: 'লেসন ফ্লো চার্ট',
 			close: 'বন্ধ করুন',
+			zoomIn: 'বড় করুন',
+			zoomOut: 'ছোট করুন',
+			reset: 'আগের অবস্থায়',
 		}
 	: {
 			open: 'View flow chart',
 			title: 'Lesson flow chart',
 			close: 'Close',
+			zoomIn: 'Zoom in',
+			zoomOut: 'Zoom out',
+			reset: 'Reset view',
 		};
 ---
 
 {
 	chart && (
-		<div class="flowchart" data-flowchart>
+		<div
+			class="flowchart-launcher"
+			data-flowchart
+		>
 			<button type="button" class="flowchart-button" data-flowchart-open aria-haspopup="dialog">
 				<svg
 					aria-hidden="true"
@@ -44,22 +53,40 @@ const labels = isBn
 				<div class="flowchart-dialog-frame">
 					<div class="flowchart-dialog-head">
 						<h2>{labels.title}</h2>
-						<button type="button" class="flowchart-dialog-close" data-flowchart-close aria-label={labels.close}>
-							<svg
-								aria-hidden="true"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M18 6 6 18M6 6l12 12" />
-							</svg>
-							{labels.close}
-						</button>
+						<div class="flowchart-dialog-tools">
+							<button type="button" class="flowchart-tool" data-flowchart-zoom-out aria-label={labels.zoomOut} title={labels.zoomOut}>
+								<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M5 12h14" />
+								</svg>
+							</button>
+							<button type="button" class="flowchart-tool" data-flowchart-zoom-in aria-label={labels.zoomIn} title={labels.zoomIn}>
+								<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M12 5v14M5 12h14" />
+								</svg>
+							</button>
+							<button type="button" class="flowchart-tool" data-flowchart-zoom-reset aria-label={labels.reset} title={labels.reset}>
+								<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M3 12a9 9 0 1 0 3-6.7" />
+									<path d="M3 4v5h5" />
+								</svg>
+							</button>
+							<button type="button" class="flowchart-dialog-close" data-flowchart-close aria-label={labels.close}>
+								<svg
+									aria-hidden="true"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M18 6 6 18M6 6l12 12" />
+								</svg>
+								{labels.close}
+							</button>
+						</div>
 					</div>
 					<div class="flowchart-dialog-body" data-flowchart-body>
 						<pre class="mermaid-source" hidden>{chart}</pre>
@@ -71,6 +98,10 @@ const labels = isBn
 }
 
 <script>
+	import type Mermaid from 'mermaid';
+
+	type MermaidApi = typeof Mermaid;
+
 	interface FlowChartRoot extends HTMLElement {
 		dataset: DOMStringMap & { flowchartRendered?: string };
 	}
@@ -84,6 +115,17 @@ const labels = isBn
 			if (!openButton || !dialog || !body) return;
 
 			let rendered = false;
+			let mermaidModule: Promise<{ default: MermaidApi }> | null = null;
+
+			/* pan/zoom viewport; the rendered figure lands inside it */
+			const viewport = document.createElement('div');
+			viewport.className = 'flowchart-viewport';
+			body.appendChild(viewport);
+
+			function loadMermaid(): Promise<{ default: MermaidApi }> {
+				mermaidModule ??= import('mermaid');
+				return mermaidModule;
+			}
 
 			async function renderChart(body: HTMLElement): Promise<void> {
 				if (rendered) return;
@@ -91,7 +133,7 @@ const labels = isBn
 				const source = body.querySelector('pre.mermaid-source')?.textContent?.trim() ?? '';
 				if (!source) return;
 				try {
-					const { default: mermaid } = await import('mermaid');
+					const { default: mermaid } = await loadMermaid();
 					const isDark = document.documentElement.dataset.theme === 'dark';
 					mermaid.initialize({
 						startOnLoad: false,
@@ -105,7 +147,7 @@ const labels = isBn
 					const figure = document.createElement('figure');
 					figure.className = 'mermaid-figure flowchart-figure';
 					figure.innerHTML = svg;
-					body.appendChild(figure);
+					viewport.appendChild(figure);
 				} catch (error) {
 					console.warn('[nlt] flowchart render failed', error);
 					rendered = false;
@@ -123,13 +165,86 @@ const labels = isBn
 				if (event.target === dialog) dialog.close();
 			});
 
+			/* ---- zoom + pan on the rendered chart ---- */
+
+			let scale = 1;
+			let panX = 0;
+			let panY = 0;
+			const MIN_SCALE = 0.4;
+			const MAX_SCALE = 4;
+			const STEP = 1.25;
+
+			function applyTransform(): void {
+				viewport.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+			}
+
+			function zoomTo(next: number): void {
+				scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+				applyTransform();
+			}
+
+			function resetView(): void {
+				scale = 1;
+				panX = 0;
+				panY = 0;
+				applyTransform();
+			}
+
+			const zoomIn = root.querySelector<HTMLButtonElement>('[data-flowchart-zoom-in]');
+			const zoomOut = root.querySelector<HTMLButtonElement>('[data-flowchart-zoom-out]');
+			const zoomReset = root.querySelector<HTMLButtonElement>('[data-flowchart-zoom-reset]');
+			zoomIn?.addEventListener('click', () => zoomTo(scale * STEP));
+			zoomOut?.addEventListener('click', () => zoomTo(scale / STEP));
+			zoomReset?.addEventListener('click', resetView);
+
+			/* Ctrl/Cmd + wheel zooms anywhere over the chart */
+			body.addEventListener('wheel', (event) => {
+				if (!(event.ctrlKey || event.metaKey)) return;
+				event.preventDefault();
+				zoomTo(event.deltaY < 0 ? scale * STEP : scale / STEP);
+			}, { passive: false });
+
+			/* drag to pan while zoomed */
+			let dragging = false;
+			let lastX = 0;
+			let lastY = 0;
+
+			body.addEventListener('pointerdown', (event) => {
+				if (event.target instanceof HTMLButtonElement) return;
+				if (!body.querySelector('.flowchart-figure')) return;
+				dragging = true;
+				lastX = event.clientX;
+				lastY = event.clientY;
+				body.classList.add('is-panning');
+				body.setPointerCapture(event.pointerId);
+			});
+
+			body.addEventListener('pointermove', (event) => {
+				if (!dragging) return;
+				panX += event.clientX - lastX;
+				panY += event.clientY - lastY;
+				lastX = event.clientX;
+				lastY = event.clientY;
+				applyTransform();
+			});
+
+			const stopDrag = (): void => {
+				dragging = false;
+				body.classList.remove('is-panning');
+			};
+			body.addEventListener('pointerup', stopDrag);
+			body.addEventListener('pointercancel', stopDrag);
+
+			/* reset pan/zoom each time the modal reopens */
+			dialog.addEventListener('close', resetView);
+
 			/* re-render on theme switch so colors match */
 			new MutationObserver(() => {
 				const dark = document.documentElement.dataset.theme === 'dark';
 				const source = body.querySelector('pre.mermaid-source')?.textContent?.trim() ?? '';
 				const figure = body.querySelector<HTMLElement>('.flowchart-figure');
 				if (!source || !figure || !rendered) return;
-				void import('mermaid').then(({ default: mermaid }) => {
+				void loadMermaid().then(({ default: mermaid }) => {
 					mermaid.initialize({
 						startOnLoad: false,
 						securityLevel: 'strict',

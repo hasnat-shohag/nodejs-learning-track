@@ -1084,7 +1084,9 @@ pre.mermaid-source {
    belongs to the sidebar on desktop and the right edge to the fixed TOC at
    wide widths, so inset-inline-end is widened once the TOC appears. */
 
-.flowchart {
+/* Host wrapper is `flowchart-launcher`, NOT `flowchart`: mermaid stamps its
+   own `.flowchart` diagram-type class on the rendered root SVG. */
+.flowchart-launcher {
 	position: fixed;
 	inset-block-end: 1.25rem;
 	inset-inline-end: 1.25rem;
@@ -1094,7 +1096,7 @@ pre.mermaid-source {
 /* At wide widths the right sidebar (TOC) is a fixed column on the end edge;
    shift the pill so it does not sit under the TOC. */
 @media (min-width: 72rem) {
-	.flowchart {
+	.flowchart-launcher {
 		inset-inline-end: calc(var(--sl-sidebar-width, 18rem) + 1.25rem);
 	}
 }
@@ -1130,13 +1132,15 @@ pre.mermaid-source {
 }
 
 @media print {
-	.flowchart {
+	.flowchart-launcher {
 		display: none;
 	}
 }
 
 /* <dialog> element gets UA styles we cannot reach via classes on itself. */
 .flowchart-dialog {
+	/* reset.css zeroes `*` margins, which kills the UA dialog auto-centering */
+	margin: auto;
 	width: min(64rem, calc(100vw - 2rem));
 	max-width: 100%;
 	max-height: calc(100vh - 4rem);
@@ -1182,6 +1186,34 @@ pre.mermaid-source {
 	border-block-end: 1px solid var(--sl-color-hairline);
 }
 
+.flowchart-dialog-tools {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.flowchart-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: var(--nlt-control-height);
+	min-width: var(--nlt-control-height);
+	padding: 0.35rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: transparent;
+	color: var(--sl-color-text);
+	cursor: pointer;
+	transition:
+		border-color 120ms ease,
+		color 120ms ease;
+}
+
+.flowchart-tool:hover {
+	border-color: var(--sl-color-accent-high);
+	color: var(--sl-color-accent-high);
+}
+
 .flowchart-dialog-head h2 {
 	margin: 0;
 	font-size: var(--sl-text-lg);
@@ -1211,28 +1243,47 @@ pre.mermaid-source {
 }
 
 .flowchart-dialog-body {
-	overflow: auto;
+	overflow: hidden;
+	height: min(70vh, 40rem);
 	padding: 1.25rem;
+	touch-action: none;
 }
 
 .flowchart-dialog-body pre.mermaid-source {
 	display: none;
 }
 
+/* Pan/zoom target: transformed by the client script, not by CSS. */
+.flowchart-viewport {
+	transform-origin: 0 0;
+	will-change: transform;
+}
+
+.flowchart-dialog-body.is-panning {
+	cursor: grabbing;
+	user-select: none;
+}
+
 .flowchart-dialog .flowchart-figure {
+	display: flex;
+	justify-content: center;
 	margin: 0;
 	padding: 0;
 	border: 0;
 	background: transparent;
-	overflow-x: auto;
 }
 
 .flowchart-dialog .flowchart-figure svg {
-	max-width: none !important;
+	display: block;
+	width: auto;
+	height: auto;
+	max-width: 100% !important;
+	/* minus the body's vertical padding so the chart never clips */
+	max-height: calc(min(70vh, 40rem) - 2.5rem);
 }
 
 @media (max-width: 49.99rem) {
-	.flowchart {
+	.flowchart-launcher {
 		inset-block-end: 0.75rem;
 		inset-inline-end: 0.75rem;
 	}
@@ -1248,7 +1299,12 @@ pre.mermaid-source {
 	}
 
 	.flowchart-dialog-body {
+		height: min(65vh, 30rem);
 		padding: 0.85rem;
+	}
+
+	.flowchart-dialog .flowchart-figure svg {
+		max-height: calc(min(65vh, 30rem) - 1.7rem);
 	}
 }
 
