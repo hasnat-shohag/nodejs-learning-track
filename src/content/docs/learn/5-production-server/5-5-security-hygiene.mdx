@@ -1,0 +1,70 @@
+---
+title: "Security hygiene: timing-safe compares, browser headers, and the path guard"
+description: "Three attacks a plain server actually faces — timing leaks on secret compares, missing browser defenses, and path traversal — each with a one-line defense: timingSafeEqual, four security headers, and resolve-plus-startsWith before any fs call."
+domain: 5
+task: "5.5"
+order: 5
+sourceUrl: https://nodejs.org/api/crypto.html
+updated: 2026-10-23
+keywords:
+  - term: timing-safe compare
+  - term: security headers
+  - term: X-Forwarded-For
+sources:
+  - label: "Node.js docs — crypto: timingSafeEqual"
+    href: https://nodejs.org/api/crypto.html#cryptotimingsafeequala-b
+  - label: "OWASP — Security Headers Quick Reference"
+    href: https://owasp.org/www-project-secure-headers/
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.5</span>
+</div>
+
+## What you will learn
+
+A naive secret compare checks byte 0, and bails at the first mismatch — so a guess matching the real token's first 11 bytes takes measurably longer to reject than one failing at byte 0. The demo times 10,000 comparisons per position and the longer-prefix guess runs ~46% longer: that gradient is the leak, and an attacker reading it recovers a token one byte at a time. `crypto.timingSafeEqual(a, b)` — note: on `crypto`, not `Buffer` — compares every byte unconditionally, and the same sweep measures flat. **Security headers** are the server telling the browser how to defend itself, four lines: `x-content-type-options: nosniff` (no MIME guessing), `x-frame-options: DENY` (no clickjacking framing), `strict-transport-security` (no http downgrade), `content-security-policy: default-src 'self'` (no rogue scripts). **Path traversal** is `join(webroot, '../../etc/passwd')` — `join` concatenates, and the dots escape the webroot; the guard is `resolve()` (which normalizes the dots away) followed by `startsWith(webroot + sep)` *before* any fs call, returning null when the resolved path is not under the root. Decode input *before* guarding — encoded dots count too. Behind a proxy, one more hygiene item: **X-Forwarded-For** carries the client IP the proxy saw; trust it only from your own proxy tier, never raw.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="timingSafeEqual throws on length mismatch — and the throw leaks length">
+	<p>
+		`timingSafeEqual` requires equal-length buffers; different lengths throw `Input buffers must have the same length`. If attacker-controlled input reaches it un-screened, the throw-vs-no-throw difference tells the attacker the real token's length. Compare lengths first, then the bytes — both checks constant-shape, no early signal.
+	</p>
+</Pitfall>
+
+## Three defenses, three lines each
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-5-security-hygiene/demo.js
+```
+
+It prints: `[1]` the early-exit compare's timing gradient — mismatch at byte 0 vs byte 11, ~46% longer for the longer prefix; `[2]` the same sweep under `timingSafeEqual` — flat, plus the length-mismatch throw and why to screen lengths first; `[3]` the four security headers as sent and their meanings; `[4]` `join` escaping the webroot, and the resolve-plus-startsWith guard returning null for the same path.
+
+<BuildExercise
+	title="Audit your own handler"
+	difficulty="advanced"
+	time="35 min"
+	objectives={['Replace early-exit compares on secrets with timing-safe ones', 'Guard every path-built file route before touching fs']}
+	steps={[
+		{ title: 'Measure the leak', why: 'Time a naive compare against guesses with different shared prefixes.', expect: 'Longer prefix, longer reject time — the gradient an attacker reads.' },
+		{ title: 'Close it', why: 'Swap in crypto.timingSafeEqual with a length check in front.', expect: 'Same sweep flat; length mismatch handled before the call, never by its throw.' },
+		{ title: 'Guard the routes', why: 'Route a file request through resolve + startsWith, feed it dot-dot and encoded dot-dot.', expect: 'In-root path serves; both escapes return 403, decoded before the guard.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-5" />

@@ -1,0 +1,69 @@
+---
+title: "Streaming uploads: big bodies, flat memory"
+description: "An upload body is a Readable — the server that writes chunks straight to disk holds almost nothing in RAM, while the one that buffers the whole body first pays the full upload size in memory. A 20MB upload makes the difference boring and measurable."
+domain: 5
+task: "5.2"
+order: 2
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: multipart upload
+  - term: backpressure
+sources:
+  - label: "Node.js docs — http: message event"
+    href: https://nodejs.org/api/http.html#event-message
+  - label: "MDN — POST method"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.2</span>
+</div>
+
+## What you will learn
+
+The request object your handler receives *is* a Readable stream, and an upload is nothing special: bytes arriving over time. The streaming server pipes each `'data'` chunk into a `createWriteStream` — chunk → disk, never chunk → RAM → disk — and its heap stays flat (~7MB before, ~7.6MB during) while a 20MB upload lands, and stays just as flat with two 20MB uploads interleaved. The naive server that collects every chunk into an array and `Buffer.concat`s on `'end'` holds all 20971520 bytes in memory at once; multiply by concurrent uploads and that is your 3 AM OOM. **Multipart uploads** — what browsers send for `<input type="file">` — change nothing structural: the body is a Readable whose bytes carry boundary markers, so you slice on boundaries *while* streaming. The real-world discipline is boundedness: pick a max body size and reject early, because "stream it" still means "let the client send me anything".
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Unbounded body = client-chosen memory usage">
+	<p>
+		A handler with no length check lets the client decide how much data your process holds. Set a ceiling: read `content-length` when present, and count bytes as chunks arrive — past the limit, destroy the request and answer 413. Streaming protects you from *accidents*; a limit protects you from *clients*.
+	</p>
+</Pitfall>
+
+## Chunk to disk, never chunk to RAM
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-2-streaming-uploads/demo.js
+```
+
+It prints: `[1]` a 20MB upload in 64KB slices landing on disk — server heap before/during proving the body never lived in RAM; `[2]` two of them concurrently, heap still flat while chunks interleave; `[3]` the anti-pattern — the same upload held whole in memory, 20MB at once, the number your container limit reads.
+
+<BuildExercise
+	title="Serve an upload endpoint that cannot OOM"
+	difficulty="advanced"
+	time="35 min"
+	objectives={['Stream a body to disk with flat heap, verified by measurement', 'Add a hard byte limit that answers 413 past the ceiling']}
+	steps={[
+		{ title: 'Stream and measure', why: 'Post a big body at a streaming server, print heap before and during.', expect: 'Heap delta near zero while the file grows on disk.' },
+		{ title: 'Break the naive way', why: 'Same upload into an accumulate-then-concat handler.', expect: 'Heap jumps by the full body size — that is the OOM in miniature.' },
+		{ title: 'Enforce a limit', why: 'Reject bodies past 1MB, both by content-length and by counting chunks.', expect: 'Small upload 201; oversized 413, connection closed without buffering.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-2" />

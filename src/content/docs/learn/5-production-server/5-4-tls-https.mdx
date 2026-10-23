@@ -1,0 +1,69 @@
+---
+title: "TLS and HTTPS: certificate identity, the handshake, and encrypted HTTP"
+description: "https is http over a TLS layer: the certificate proves identity before a single HTTP byte flows, the handshake derives a shared secret, then every byte is encrypted. Locally you self-sign and the client opts in; in production a CA vouches for you."
+domain: 5
+task: "5.4"
+order: 4
+sourceUrl: https://nodejs.org/api/https.html
+updated: 2026-10-23
+keywords:
+  - term: TLS
+  - term: IncomingMessage
+sources:
+  - label: "Node.js docs — https"
+    href: https://nodejs.org/api/https.html
+  - label: "MDN — TLS"
+    href: https://developer.mozilla.org/en-US/docs/Glossary/TLS
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.4</span>
+</div>
+
+## What you will learn
+
+Plain HTTP sends identity and content in the clear — anyone on the path reads and rewrites both. **TLS** fixes exactly that, in two moves: a *certificate* lets the server prove who it is, and a *handshake* lets both sides derive a shared secret whose bytes never cross the wire. After that, HTTP runs unchanged over the encrypted channel — same methods, same headers, same `IncomingMessage`/`ServerResponse` objects, which is why `https.createServer` is `http.createServer` plus a `key` and `cert` option. The demo makes the trust model visible: a client *without* your CA refuses the self-signed certificate before any HTTP happens — `DEPTH_ZERO_SELF_SIGNED_CERT` — and that refusal is the system *working*; identity is checked first, conversation second. The client that passes the CA option verifies the chain and speaks `TLSv1.3` in both directions. Production swaps the self-sign step for a real certificate authority (Let's Encrypt) — the server code does not change, only who vouches.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="CN is not enough — the certificate must name the exact host you dial">
+	<p>
+		A cert with `CN=localhost` is *invalid* for `https://127.0.0.1`: the hostname check runs against the Subject Alternative Name list, and Node rejects with `ERR_TLS_CERT_ALTNAME_INVALID` even though the CN "matches-ish". The demo's openssl call carries `-addext subjectAltName=IP:127.0.0.1,DNS:localhost` for exactly this reason. Self-signing without SANs is the most common "but it works in curl" trap.
+	</p>
+</Pitfall>
+
+## Identity first, then encrypted HTTP
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-4-tls-https/demo.js
+```
+
+It prints: `[1]` openssl producing a self-signed key + certificate pair with subject and SANs; `[2]` the server on it, and a client with no CA refused — self-signed means untrusted *by default*; `[3]` the client with the CA option connecting: status 200, protocol `TLSv1.3`, body flowing over the verified channel — next to the same content over plain http with no identity and no encryption.
+
+<BuildExercise
+	title="Turn on the padlock"
+	difficulty="advanced"
+	time="35 min"
+	objectives={['Run an https server with a locally-trusted certificate', 'Explain what the client verifies and in what order']}
+	steps={[
+		{ title: 'Make the pair', why: 'Self-sign with SANs for localhost and 127.0.0.1.', expect: 'openssl prints subject and subjectAltName entries.' },
+		{ title: 'Prove refusal is correct', why: 'Connect with rejectUnauthorized and no CA option.', expect: 'DEPTH_ZERO_SELF_SIGNED_CERT — identity checked before HTTP.' },
+		{ title: 'Trust and talk', why: 'Pass the cert as ca, read the protocol off the socket before consuming the body.', expect: '200 over TLSv1.3 — socket details vanish once the response ends, read them early.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-4" />

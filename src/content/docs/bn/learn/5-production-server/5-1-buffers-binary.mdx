@@ -1,0 +1,70 @@
+---
+title: "Buffer আর binary: বাইট, encoding, আর সবকিছুর নিচের ArrayBuffer"
+description: "JS string গণনা করে character; network আর disk চালায় byte। Buffer হলো fixed-length byte array plus encoding helper — আর TypedArray/ArrayBuffer view জানলে এর অর্ধেক gotcha ফ্রিতে বোঝা যায়।"
+titleEn: "Buffers and binary: bytes, encodings, and the ArrayBuffer under everything"
+domain: 5
+task: "5.1"
+order: 1
+sourceUrl: https://nodejs.org/api/buffer.html
+updated: 2026-10-23
+keywords:
+  - term: Buffer
+  - term: TypedArray
+sources:
+  - label: "Node.js docs — buffer"
+    href: https://nodejs.org/api/buffer.html
+  - label: "MDN — Uint8Array"
+    href: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.1</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+JS string হলো *character*-এর সিকোয়েন্স; runtime-এর নিচের সব কিছু — socket, file, TLS, crypto — চালায় *byte*। বাংলা string `'হাই'` ৩টি character কিন্তু **৯টি UTF-8 byte**: প্রতিটি character তিন byte, আর `content-length` header, ফাইলের সাইজ, hash — সবাই গোনে ৯, ৩ নয়। **Buffer** হলো Node-এর সেতু: fixed-length byte array with encoding helper, আর — যেটা আচরণ ব্যাখ্যা করে — একটি **TypedArray** subclass, `ArrayBuffer`-এর ওপর `Uint8Array` view। এই এক তথ্যই পুরো gotcha তালিকা দেয়: `Buffer.from(arrayBuffer)` কপি করে না, মেমরি শেয়ার করে (`Uint8Array` দিয়ে লিখলে `Buffer` দিয়ে পড়া যায়); `subarray` হলো zero-copy *alias* — slice দিয়ে লিখলে parent বদলায়; আর decode একটা *পছন্দ* — একই ৯ byte `utf8`-এ পড়লে বাংলা ফেরে, `latin1`-এ পড়লে নীরব mojibake, `hex`-এ দেখায় wire-এ আসলে কী আছে। ভুল decode কখনো throw করে না; চুপচাপ মিথ্যা বলে।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="allocUnsafe-র content undefined — এটা optimization, ডিফল্ট নয়">
+	<p>
+		`Buffer.alloc(n)` জিরো করা ঠিকায়া দেয়। `Buffer.allocUnsafe(n)` দেয় pooled মেমরি যার content *undefined* — যা ছিল, তা-ই আছে। না পড়ে আগে প্রতিটি byte লিখুন, নাহলে অন্য request-এর ডেটা আপনার response-এ লিক হতে পারে। ডেমোতে এটা জিরো ফিরেছিল — সেটা ভাগ্য, ওয়াদা নয়। Profiling প্রমাণ না করা পর্যন্ত `alloc`-ই ব্যবহার করুন।
+	</p>
+</Pitfall>
+
+## বাইট ভেতরে, বাইট বাইরে
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-1-buffers-binary/demo.js
+```
+
+ছাপে: `[1]` `'হাই'` — ৩ char, ৯ byte, কাঁচা UTF-8-এর hex; `[2]` `Uint8Array` দিয়ে লেখা `Buffer`-এ দেখা যায় — একই `ArrayBuffer` শেয়ার, আর `subarray` দিয়ে লিখলে parent বদলায়; `[3]` একই ৯ byte তিনভাবে decode — ঠিক, mojibake, hex; `[4]` alias gotcha, `alloc` বনাম `allocUnsafe` content, আর কোনটার নিয়ম কী।
+
+<BuildExercise
+	title="String নয়, wire পড়ুন"
+	difficulty="মাঝারি"
+	time="২৫ মিনিট"
+	objectives={['নন-ASCII টেক্সটের byte সংখ্যা মাপার আগেই অনুমান করা', 'toString() বিশ্বাস না করে decode ভেবেচেনে বাছা']}
+	steps={[
+		{ title: 'মাপার আগে গুনুন', why: 'একটা বাংলা বাক্যের byte length অনুমান করুন, তারপর Buffer.byteLength দিয়ে মিলিয়ে দেখুন।', expect: 'বাংলা char-এ ৩x ভুল — char আর byte এক নয়।' },
+		{ title: 'ইচ্ছা করে alias', why: 'একটা Buffer subarray করুন, slice দিয়ে লিখুন, parent পড়ুন।', expect: 'Parent বদলেছে — slice view, কপি নয়।' },
+		{ title: 'তিনভাবে decode', why: 'একটা Buffer utf8, latin1, hex দিয়ে পড়ুন, মিলিয়ে দেখুন।', expect: 'কোনো error নেই — ভুল decode নীরব। এখানে utf8-ই একমাত্র ঠিক।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-1" />

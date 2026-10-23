@@ -1,0 +1,70 @@
+---
+title: "Streaming upload: বড় body, সমতল মেমরি"
+description: "Upload body একটা Readable — chunk সোজা disk-এ লেখে যে সার্ভার RAM-এ প্রায় কিছুই ধরে রাখে না; পুরো body আগে buffer করে যেটা RAM-এ পুরো upload সাইজ দেয়। ২০MB upload পার্থক্যটা বোরিং আর মাপার মত করে দেয়।"
+titleEn: "Streaming uploads: big bodies, flat memory"
+domain: 5
+task: "5.2"
+order: 2
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: multipart upload
+  - term: backpressure
+sources:
+  - label: "Node.js docs — http: message event"
+    href: https://nodejs.org/api/http.html#event-message
+  - label: "MDN — POST method"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.2</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+আপনার handler যে request object পায় সেটা *নিজেই* একটা Readable stream, আর upload-এ বিশেষ কিছু নেই: সময়ের সাথে বাইট আসছে। Streaming সার্ভার প্রতিটি `'data'` chunk পাঠায় `createWriteStream`-এ — chunk থেকে disk, কখনোই chunk থেকে RAM থেকে disk নয় — আর এর heap থাকে সমতল (~7MB আগে, ~7.6MB চলার সময়) যখন ২০MB upload নামে, আর দুটো ২০MB upload interleave করলেও ততটাই সমতল। Naive সার্ভার প্রতিটি chunk array-তে জমায়, `'end'`-এ `Buffer.concat` করে — একসাথে পুরো 20971520 byte মেমরিতে ধরে রাখে; concurrent upload দিয়ে গুণ করলে সেটাই রাত ৩টার OOM। **Multipart upload** — browser যেটা পাঠায় `<input type="file">`-এর জন্য — গঠনে কিছু বদলায় না: body এমন একটা Readable যার byte-এ boundary marker বসে, তাই *streaming করতে করতে* boundary-তে কেটে নিতে হয়। বাস্তবের নিয়ম হলো boundedness: সর্বোচ্চ body সাইজ ঠিক করুন, আগেই reject করুন — কারণ "stream করো" মানেই চলে না "client আমাকে যা খুশি পাঠাক"।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Unbounded body মানে client-নির্বাচিত মেমরি ব্যবহার">
+	<p>
+		Length check ছাড়া handler client-কে ঠিক করতে দেয় আপনার প্রসেস কত ডেটা ধরবে। Ceiling দিন: `content-length` থাকলে পড়ুন, আর chunk আসতে বাইট গুনুন — লিমিট ছাড়ালে request destroy করে 413 দিন। Streaming বাঁচায় *দুর্ঘটনা* থেকে; লিমিট বাঁচায় *client* থেকে।
+	</p>
+</Pitfall>
+
+## Chunk থেকে disk, কখনো chunk থেকে RAM নয়
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-2-streaming-uploads/demo.js
+```
+
+ছাপে: `[1]` ২০MB upload 64KB slice-এ disk-এ নামছে — আগে/চলার heap প্রমাণ করে body কখনোই RAM-এ ছিল না; `[2]` দুটো একসাথে, chunk interleave করেও heap সমতল; `[3]` anti-pattern — একই upload পুরোটা মেমরিতে, একসাথে ২০MB — যে সংখ্যাটা আপনার container limit পড়ে।
+
+<BuildExercise
+	title="OOM-অক্ষম upload endpoint বানান"
+	difficulty="উঁচু স্তর"
+	time="৩৫ মিনিট"
+	objectives={['মাপা heap দিয়ে প্রমাণ সহ streaming body-to-disk', '1MB ছাড়ালে 413 দেয়া hard byte limit']}
+	steps={[
+		{ title: 'Stream করে মাপুন', why: 'Streaming সার্ভারে বড় body post করুন, আগে-চলার heap ছাপান।', expect: 'Disk-এ ফাইল বাড়ে, heap delta প্রায় শূন্য।' },
+		{ title: 'Naive ভাঙুন', why: 'একই upload accumulate-then-concat handler-এ দিন।', expect: 'Heap পুরো body সাইজ লাফায় — OOM-এর মিনিয়েচার।' },
+		{ title: 'লিমিট বসান', why: 'content-length আর chunk গুনে দুইভাবেই 1MB ছাড়ালে reject করুন।', expect: 'ছোট upload 201; বড়টা 413, buffer না করে connection বন্ধ।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-2" />

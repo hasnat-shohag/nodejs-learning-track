@@ -1,0 +1,70 @@
+---
+title: "Static serving আর caching: ETag স্ট্যাম্প, Cache-Control নীতি, 304 wire বাঁচায়"
+description: "Static file server মানে তিনটা সিদ্ধান্ত: extension অনুযায়ী content-type, body-র স্ট্যাম্প (ETag), আর পুনর্ব্যবহারের নীতি (Cache-Control)। Browser If-None-Match পাঠালে আর স্ট্যাম্প মিললে 304 — শূন্য body byte, header compare-র দামে পুরো body বাদ।"
+titleEn: "Static serving and caching: ETag stamps, Cache-Control policy, 304 saves the wire"
+domain: 5
+task: "5.3"
+order: 3
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: ETag
+  - term: Cache-Control
+sources:
+  - label: "MDN — ETag"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
+  - label: "MDN — Cache-Control"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.3</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Caching আপনার সার্ভার আর browser-এর চুক্তি, header-এ স্বাক্ষরিত। **ETag** হলো *body-র* স্ট্যাম্প — এখানে তার SHA-256-এর প্রথম ১৬ hex char — আর browser-এর চুক্তির অর্ধেক হলো নীতি বললে সেটা `If-None-Match` হয়ে ফেরত পাঠানো। স্ট্যাম্প মিললে উত্তর দিন **304 Not Modified**, *শূন্য* body byte; browser নিজের cached কপি পুনর্ব্যবহার করে, wire দাম দেয় শুধু header-এর। ফাইল বদলালে নতুন body hash আলাদা, স্ট্যাম্প সরে, client পায় পুরো 200 ফ্রেশ byte সহ — ডেমো দুই দিকই দেখায়: ফাইল overwrite করার *আগে* পুরনো ETag ধরে রেখে। **Cache-Control** বলে নীতি: `public, max-age=60` — এক মিনিট না জিজ্ঞেস করে কপি পুনর্ব্যবহার করতে পারে; `no-cache` — প্রতিবার revalidate; `no-store` — জমানোই নিষেধ। মনে রাখার এক লাইন: ETag বলে body *কী*, Cache-Control বলে কপি *কতক্ষণ বিশ্বাস্য* — একটা ছাড়া আরেকটা অকেজো।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="যে byte আসলে পাঠান, সেটাই স্ট্যাম্প করুন">
+	<p>
+		Disk-এর *ফাইল থেকে* হিসাব করা ETag মিথ্যা বলে যেই মুহূর্তে আপনি পাঠানোর আগে transform করেন — gzip, templating, partial content। ভুল স্ট্যাম্প মানে আলাদা body-র জন্য 304, আর browser আপনার আশীর্বাদ নিয়ে stale byte সার্ভ করে। Hash করুন সেই ঠিকায়া Buffer যেটা সার্ভার ছেড়ে যায়, আর response বদলাতে পারলে (compression অন/অফ, language negotiation) নতুন করে হিসাব করুন।
+	</p>
+</Pitfall>
+
+## স্ট্যাম্প, নীতি, আর ফ্রি 304
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-3-static-server-caching/demo.js
+```
+
+ছাপে: `[1]` প্রথম GET — extension অনুযায়ী content-type, reply-তে `etag` আর `cache-control`; `[2]` `If-None-Match` নিয়ে re-GET — 304, body byte: 0; `[3]` request-এর মাঝে ফাইল নতুন লেখা — পুরনো স্ট্যাম্প পাঠানো, নতুন body ফেরত, 200, আর ETag content-এর সাথে সরে গেছে।
+
+<BuildExercise
+	title="দ্বিতীয় ভিজিট ফ্রি করুন"
+	difficulty="মাঝারি"
+	time="৩০ মিনিট"
+	objectives={['ঠিক ETag আর ঘোষিত নীতি সহ file serve করা', 'Revalidation পথ body transfer বাঁচায় — প্রমাণ']}
+	steps={[
+		{ title: 'Serve আর স্ট্যাম্প', why: 'প্রতিটি response body hash করে ETag, cache-control সেট করে পাঠান।', expect: 'প্রথম GET: 200, etag আছে, নীতি header আছে।' },
+		{ title: 'Revalidate', why: 'etag-টা if-none-match দিয়ে আবার request করুন।', expect: '304, শূন্য body byte — কপি এখনো ভালো।' },
+		{ title: 'বদলে cache ভাঙুন', why: 'ফাইল rewrite করে পুরনো etag পাঠান।', expect: 'নতুন body সহ 200 আর নতুন etag — content সরেছে, স্ট্যাম্প সরেছে।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-3" />

@@ -1,0 +1,69 @@
+---
+title: "Buffers and binary: bytes, encodings, and the ArrayBuffer under everything"
+description: "JS strings count characters; networks and disks move bytes. Buffer is the fixed-length byte array plus encoding helpers that bridges the two — and knowing it is a Uint8Array view over an ArrayBuffer explains half its gotchas for free."
+domain: 5
+task: "5.1"
+order: 1
+sourceUrl: https://nodejs.org/api/buffer.html
+updated: 2026-10-23
+keywords:
+  - term: Buffer
+  - term: TypedArray
+sources:
+  - label: "Node.js docs — buffer"
+    href: https://nodejs.org/api/buffer.html
+  - label: "MDN — Uint8Array"
+    href: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.1</span>
+</div>
+
+## What you will learn
+
+A JS string is a sequence of *characters*; everything below the runtime — sockets, files, TLS, crypto — moves *bytes*. The Bangla string `'হাই'` is 3 characters but **9 UTF-8 bytes**: every character costs three bytes, and a `content-length` header, a file size, or a hash all count the 9, not the 3. **Buffer** is Node's bridge: a fixed-length byte array with encoding helpers, and — the part that explains its behavior — a **TypedArray** subclass, a `Uint8Array` view over an `ArrayBuffer`. That single fact gives you the whole gotcha list: `Buffer.from(arrayBuffer)` shares memory rather than copying (write through the `Uint8Array`, read through the `Buffer`); `subarray` is a zero-copy *alias*, so writing through the slice mutates the parent; and decoding is a *choice* — the same 9 bytes read as `utf8` give you the Bangla back, read as `latin1` give silent mojibake, and `hex` shows you what is actually on the wire. Wrong decodings never throw; they lie quietly.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="allocUnsafe returns undefined contents — it is an optimization, not a default">
+	<p>
+		`Buffer.alloc(n)` is guaranteed zeroed. `Buffer.allocUnsafe(n)` hands you pooled memory whose contents are *undefined* — whatever was there, is there. Write every byte before you read any, or you can leak another request's data into a response. In the demo it came back zeroed — that is luck, not a promise. Use `alloc` unless profiling proved the allocation matters.
+	</p>
+</Pitfall>
+
+## Bytes in, bytes out
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-1-buffers-binary/demo.js
+```
+
+It prints: `[1]` `'হাই'` — 3 chars, 9 bytes, hex of the raw UTF-8; `[2]` a `Uint8Array` write visible through the `Buffer` sharing its `ArrayBuffer`, and a `subarray` write mutating the parent; `[3]` the same 9 bytes decoded three ways — correct, mojibake, hex; `[4]` the alias gotcha, `alloc` vs `allocUnsafe` contents, and the rule for each.
+
+<BuildExercise
+	title="Read the wire, not the string"
+	difficulty="intermediate"
+	time="25 min"
+	objectives={['Predict byte counts for non-ASCII text before measuring', 'Choose decodings deliberately instead of trusting toString()']}
+	steps={[
+		{ title: 'Count before you measure', why: 'Guess the byte length of a Bangla sentence, then check with Buffer.byteLength.', expect: 'Off by 3x per Bangla char — chars are not bytes.' },
+		{ title: 'Alias on purpose', why: 'subarray a Buffer, write through the slice, read the parent.', expect: 'Parent changed — slice is a view, not a copy.' },
+		{ title: 'Decode three ways', why: 'Take one Buffer through utf8, latin1, hex and compare.', expect: 'No errors — wrong decodings are silent. utf8 is the only right one here.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-1" />

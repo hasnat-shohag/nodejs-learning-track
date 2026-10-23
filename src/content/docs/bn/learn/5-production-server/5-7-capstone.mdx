@@ -1,0 +1,71 @@
+---
+title: "Capstone: production-আকৃতির সার্ভার — route, cache, guard, pool, shutdown"
+description: "এক ফাইলে পুরো domain: ETag আর 304 সহ static route, traversal-guarded file route, worker pool-এ চালা CPU route যখন loop চলতেই থাকে, আর এমন shutdown যা কোনো handle রেখে যায় না।"
+titleEn: "Capstone: a production-shaped server — routes, cache, guard, pool, shutdown"
+domain: 5
+task: "5.7"
+order: 7
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: ETag
+  - term: security headers
+  - term: thread pool
+sources:
+  - label: "Node.js docs — http server"
+    href: https://nodejs.org/api/http.html#class-httpserver
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.7</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+প্রতিটা টুকরা এমন লেসন যা আপনি পেয়েছেন; capstone এক প্রসেসে সব জুড়ে দেয়। **Route**: `/` serve করে **ETag** স্ট্যাম্প করা body, `If-None-Match`-এর উত্তর 304 — caching চুক্তি; `/file/*` চালায় resolve-plus-startsWith **traversal guard**, filesystem ছোঁয়ার আগেই, আর `/file/../../etc/passwd` মরে 403-এ; `/hash` হলো CPU কাজ, আর এর *ভুল* ঠিকানা event loop — তাই এটা round-robin হয়ে যায় দুই-worker **thread pool**-এ (3-4-এর pool), প্রতিটা hash worker-এ ~৪০ms, আর main thread-এর ২০ms ticker টিকটিক চালায় — ফাঁক ২১ms। প্রতিটা reply বহন করে 5-5-এর **security header** — তিন-জোড়া টেবিলের এক লুপ। Pool-এর reply route হয় job id দিয়ে, একটা শেয়ার্ড `message` listener আর pending-jobs Map-এর মধ্য দিয়ে: request-প্রতি `once('message')` হলো capstone-এর বানানো bug — কারণ একই worker-এ দুই job পড়লে দুই অপেক্ষাই প্রথম reply শোনে। আর shutdown ফিচার, শেষ কথা নয়: `server.close()` শোনা বন্ধ করে, `worker.terminate()` pool খালি করে, আর প্রসেস পরিষ্কার exit করে কারণ কোনো handle বাকি নেই — graceful redeploy-এরও একই শৃঙ্খলা।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Request-প্রতি once('message') race করে — pool reply job id দিয়ে route করুন">
+	<p>
+		দুটো `/hash` request একই worker-এ পড়তে পারে। প্রতি handler যদি `worker.once('message')` বসায়, দুজনেই ফায়ার করে worker-এর *প্রথম* reply-তে: এক request পায় অন্যের উত্তর, একটা চিরকাল ঝুলে থাকে। Worker-প্রতি একটা শেয়ার্ড `message` listener, jobId → response-এর `Map`, আর প্রতিটা reply যে request চেয়েছিল সেখানে route — প্রতিটা আসল pool (piscina সহ) এই প্যাটার্নই ব্যবহার করে।
+	</p>
+</Pitfall>
+
+## পুরো domain, এক প্রসেস
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-7-capstone/demo.js
+```
+
+ছাপে: `[1]` boot — pool worker উঠেছে, server শুনছে, header চালু; `[2]` static route — etag সহ 200, সেটা নিয়ে re-GET, 304 আর শূন্য body byte; `[3]` traversal চেষ্টা guard-এ 403; `[4]` চারটা concurrent `/hash` request pool-এর threadId-এ ছড়িয়ে, main-loop ticker এখনো ২০ms ফাঁকে — CPU কাজ loop-কে কখনো আটকায়নি; `[5]` shutdown — প্রসেস খোলা রাখার কিছুই বাকি নেই।
+
+<BuildExercise
+	title="Ship করুন, তারপর ইচ্ছা করে ভাঙুন"
+	difficulty="উঁচু স্তর"
+	time="৪৫ মিনিট"
+	objectives={['Route, cache, guard, pool, shutdown — এক সার্ভারে জোড়া', 'একটা একটা করে সরিয়ে কোন কম্পোনেন্ট মরে জানা']}
+	steps={[
+		{ title: 'পুরোটা চালান', why: 'প্রতিটা route-এর উত্তর নিজের লেসনের লাইনে দেখুন।', expect: 'Static route-এ 200/304, traversal-এ 403, pool threadId ছড়ানো, পরিষ্কার exit।' },
+		{ title: 'Guard সরান', why: '/file সোজা join() থেকে serve করে escape request করুন।', expect: 'Path webroot-এর বাইরে resolve হয় — guard যে ফুটো বন্ধ করে ঠিক সেটাই।' },
+		{ title: 'Hash inline করুন', why: 'pbkdf2Sync-কে /hash handler-এ নিয়ে ticker আবার চালান।', expect: 'Ticker ফাঁক hash সময়ে ফেটে যায় — সবার loop, ব্লকড।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-7" />

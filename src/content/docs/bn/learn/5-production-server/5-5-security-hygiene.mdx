@@ -1,0 +1,71 @@
+---
+title: "Security hygiene: timing-safe compare, browser header, আর path guard"
+description: "Plain সার্ভারের সত্যিকারের তিন হুমকি — secret compare-এ timing leak, browser defense নেই, path traversal — প্রতিটার এক-লাইন প্রতিষেধ: timingSafeEqual, চার security header, আর fs ছোঁয়ার আগে resolve-plus-startsWith।"
+titleEn: "Security hygiene: timing-safe compares, browser headers, and the path guard"
+domain: 5
+task: "5.5"
+order: 5
+sourceUrl: https://nodejs.org/api/crypto.html
+updated: 2026-10-23
+keywords:
+  - term: timing-safe compare
+  - term: security headers
+  - term: X-Forwarded-For
+sources:
+  - label: "Node.js docs — crypto: timingSafeEqual"
+    href: https://nodejs.org/api/crypto.html#cryptotimingsafeequala-b
+  - label: "OWASP — Security Headers Quick Reference"
+    href: https://owasp.org/www-project-secure-headers/
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.5</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Naive secret compare byte 0 দেখে প্রথম mismatch-এ থেমে যায় — তাই real token-এর প্রথম ১১ byte মেলে এমন guess বাদ দিতে যেটা byte 0-এ ব্যর্থ হয় তার চেয়ে মাপার মত বেশি সময় নেয়। ডেমো প্রতি position-এ ১০,০০০ compare সময় মাপে, আর লম্বা-prefix guess চলে ~৪৬% বেশি সময়: gradient-টাই leak, আর attacker পড়ে এক byte এক byte করে পুরো token তুলে নেয়। `crypto.timingSafeEqual(a, b)` — খেয়াল: `crypto`-তে, `Buffer`-এ নয় — প্রতিটি byte শর্তহীন তুলনা করে, আর একই sweep মাপে সমতল। **Security header** মানে সার্ভার browser-কে বলছে নিজে কীভাবে জামিন দেবে, চার লাইন: `x-content-type-options: nosniff` (MIME অনুমান নিষেধ), `x-frame-options: DENY` (clickjacking frame নিষেধ), `strict-transport-security` (http downgrade নিষেধ), `content-security-policy: default-src 'self'` (rogue script নিষেধ)। **Path traversal** হলো `join(webroot, '../../etc/passwd')` — `join` জোড়ে, আর dot-এ বেরিয়ে যায়; guard হলো `resolve()` (dot সরিয়ে normalize করে) তারপর `startsWith(webroot + sep)` — কোনো fs কলের *আগে*, রুটের নিচে না থাকলে null। Input decode করুন guard-এর *আগে* — encode করা dot-ও dot। Proxy-র পেছনে আরেকটা hygiene: **X-Forwarded-For** বহন করে proxy-দেখা client IP; বিশ্বাস করুন শুধু নিজের proxy tier থেকে, কাঁচা কখনো নয়।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="timingSafeEqual length mismatch-এ throw করে — আর throw-টাই length লিক করে">
+	<p>
+		`timingSafeEqual` সমান-length buffer চায়; আলাদা হলে throw: `Input buffers must have the same length`। Attacker-নিয়ন্ত্রিত input স্ক্রিন ছাড়া পৌঁছালে throw/না-throw পার্থক্য attacker-কে real token-এর length জানিয়ে দেয়। আগে length compare, তারপর byte — দুটোই constant-shape, কোনো আগামি সিগন্যাল নয়।
+	</p>
+</Pitfall>
+
+## তিন প্রতিষেধ, তিন লাইন করে
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-5-security-hygiene/demo.js
+```
+
+ছাপে: `[1]` early-exit compare-এর timing gradient — byte 0 বনাম byte 11 mismatch, লম্বা prefix-এ ~৪৬% বেশি; `[2]` `timingSafeEqual`-এ একই sweep — সমতল, plus length-mismatch throw আর কেন আগে length স্ক্রিন করবেন; `[3]` চার security header যেমন পাঠানো, তাদের মানে; `[4]` `join` webroot ছাড়িয়ে যাচ্ছে, আর resolve-plus-startsWith guard একই path-এ null দিচ্ছে।
+
+<BuildExercise
+	title="নিজের handler audit করুন"
+	difficulty="উঁচু স্তর"
+	time="৩৫ মিনিট"
+	objectives={['Secret-এর early-exit compare timing-safe দিয়ে বদলানো', 'Path-built file route-এ fs ছোঁয়ার আগে guard']}
+	steps={[
+		{ title: 'Leak মাপুন', why: 'Naive compare-এ আলাদা shared-prefix সহ guess-এর সময় মাপুন।', expect: 'লম্বা prefix, বেশি reject সময় — gradient-টাই attacker পড়ে।' },
+		{ title: 'বন্ধ করুন', why: 'সামনে length check সহ crypto.timingSafeEqual বসান।', expect: 'একই sweep সমতল; length mismatch কলের আগে সামলানো, throw দিয়ে কখনো নয়।' },
+		{ title: 'Route guard করুন', why: 'File request resolve + startsWith দিয়ে চালান, dot-dot আর encoded dot-dot খাওয়ান।', expect: 'ভেতরের path serve; দুই escape-ই 403, guard-এর আগে decode।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-5" />

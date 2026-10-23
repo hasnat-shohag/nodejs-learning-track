@@ -1,0 +1,69 @@
+---
+title: "Diagnostics: loop delay as the honest health metric, --inspect for the deep end"
+description: "Production servers fail by going quiet or slow, not by crashing. monitorEventLoopDelay samples the gap between loop turns from inside the process; a timer tick held 85ms late is the same stall seen from the other side. --inspect opens the debugger channel from outside."
+domain: 5
+task: "5.6"
+order: 6
+sourceUrl: https://nodejs.org/api/perf_hooks.html
+updated: 2026-10-23
+keywords:
+  - term: perf_hooks
+  - term: --inspect
+sources:
+  - label: "Node.js docs — perf_hooks: monitorEventLoopDelay"
+    href: https://nodejs.org/api/perf_hooks.html#monitoreventloopdelayoptions
+  - label: "Node.js docs — debugging guide"
+    href: https://nodejs.org/en/learn/getting-started/debugging
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.6</span>
+</div>
+
+## What you will learn
+
+`monitorEventLoopDelay()` from **perf_hooks** returns a histogram that samples the gap between loop turns — the true latency of the process, as felt by every request and timer. A ~90ms blocking `pbkdf2Sync` call freezes the loop mid-turn, and the histogram records it as a delay spike of the same size — but only with `resolution: 1` and only after one *more* turn runs: a coarse sample interval, or disabling too early, makes the same stall look tiny or invisible, which is exactly the demo's cautionary note. The stall seen from the timer side is the same fact: a 20ms `setInterval` ticker runs ~85ms late, because the tick due during the block queues behind it. Latency SLA breaches show up here before any dashboard notices — every queued request and timer waits the full gap. When inside-the-process instruments are not enough, **--inspect** (or `SIGUSR1`) opens a DevTools debugging channel to a live server, and a heap snapshot answers "what is eating the memory" when rss creeps up. Both are last-resort tools for diagnosis, never routine operation: the metrics you *watch* are loop delay, rss drift, and event-loop lag percentiles — the stall detector that runs while you sleep.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="A coarse resolution hides the spikes you installed it to catch">
+	<p>
+		`monitorEventLoopDelay({ resolution: 5 })` samples every 5ms; a 90ms stall sampled that way read as `max 5.4ms` in the demo — the spike averaged away. And the big gap is only recorded on the *next* loop turn after the block: call `disable()` too early and the histogram misses the very stall you caused. Pick `resolution: 1` for diagnosis, and let the loop turn once before you read it.
+	</p>
+</Pitfall>
+
+## Watch the loop from inside, attach from outside
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-6-diagnostics/demo.js
+```
+
+It prints: `[1]` a ~90ms blocking call measured by `monitorEventLoopDelay` at `resolution: 1` — the stall as the loop felt it, with the coarse-resolution warning; `[2]` the same stall from the timer side — a 20ms ticker firing ~85ms late, drift equal to the block; `[3]` the prod checklist from inside the process: rss/heapUsed for leak candidates, `--inspect`/`SIGUSR1` for the debugger, heap snapshots when rss climbs.
+
+<BuildExercise
+	title="Build your own stall detector"
+	difficulty="advanced"
+	time="30 min"
+	objectives={['Measure event-loop delay and catch a real stall in the histogram', 'Correlate the same stall with timer drift']}
+	steps={[
+		{ title: 'Record a stall', why: 'Enable monitorEventLoopDelay at resolution 1, run a 90ms sync burn, read mean and max after one extra turn.', expect: 'Max sample ≈ the stall size — the loop told the truth.' },
+		{ title: 'Hide it, then unhide', why: 'Same burn at resolution 5, then back to 1.', expect: 'Coarse sampling shrinks the spike — a healthy-looking lie.' },
+		{ title: 'See the drift', why: 'Run a 20ms ticker through the same stall and print the gaps.', expect: 'One gap ≈ stall + interval — timers queue behind the block.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-6" />

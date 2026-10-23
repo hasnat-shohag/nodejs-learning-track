@@ -1,0 +1,70 @@
+---
+title: "Diagnostics: loop delay-ই সৎ health metric, গভীর জায়গায় --inspect"
+description: "Production সার্ভার ক্র্যাশে মরে না — চুপ হয়ে যায় বা ধীর হয়। monitorEventLoopDelay প্রসেসের ভেতর থেকে loop turn-এর ফাঁক স্যাম্পল করে; ৮৫ms দেরি করা timer tick একই stall-এর অন্য পাশ। --inspect বাইরে থেকে debugger চ্যানেল খোলে।"
+titleEn: "Diagnostics: loop delay as the honest health metric, --inspect for the deep end"
+domain: 5
+task: "5.6"
+order: 6
+sourceUrl: https://nodejs.org/api/perf_hooks.html
+updated: 2026-10-23
+keywords:
+  - term: perf_hooks
+  - term: --inspect
+sources:
+  - label: "Node.js docs — perf_hooks: monitorEventLoopDelay"
+    href: https://nodejs.org/api/perf_hooks.html#monitoreventloopdelayoptions
+  - label: "Node.js docs — debugging guide"
+    href: https://nodejs.org/en/learn/getting-started/debugging
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.6</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+**perf_hooks**-এর `monitorEventLoopDelay()` একটা histogram দেয় যা loop turn-এর ফাঁক স্যাম্পল করে — প্রসেসের আসল latency, প্রতিটা request আর timer যেটা অনুভব করে। ~৯০ms blocking `pbkdf2Sync` কল loop মাঝ turn-এ জমিয়ে রাখে, আর histogram সেটা রেকর্ড করে একই সাইজের delay spike হয়ে — কিন্তু শুধু `resolution: 1`-এ, আর একটা *অতিরিক্ত* turn ঘোরার পরে: মোটা স্যাম্পল interval, বা খুব আগে disable করা, একই stall-কে ছোট বা অদৃশ্য দেখায় — ডেমোর সতর্কবার্তা ঠিক সেটাই। Timer-এর পাশ থেকে ওই stall একই সত্য: ২০ms-এর `setInterval` ticker ~৮৫ms দেরি চলে, কারণ block চলাকালীন পাওনা tick তার পেছনে queue হয়। Latency SLA ভাঙা এখানেই আগে ধরা পড়ে, যেকোনো dashboard-এর আগে — queue হওয়া প্রতিটা request আর timer পুরো ফাঁকটাই অপেক্ষা করে। প্রসেসের ভেতরের যন্ত্র না যথেষ্ট হলে **--inspect** (বা `SIGUSR1`) চালু সার্ভারে DevTools debugging চ্যানেল খোলে, আর heap snapshot উত্তর দেয় "মেমরি খাচ্ছে কী" — rss বাড়লে। দুটোই রুটিন নয়, diagnosis-এর শেষ হাতিয়ার: যে metric আপনি *watch* করেন সেটা loop delay, rss drift, event-loop lag percentile — ঘুমের মধ্যে চলা stall detector।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="মোটা resolution যে spike ধরতে বসিয়েছেন, সেটাই লুকায়">
+	<p>
+		`monitorEventLoopDelay({ resolution: 5 })` প্রতি ৫ms স্যাম্পল নেয়; ওইভাবে স্যাম্পল করা ৯০ms stall ডেমোতে পড়ল `max 5.4ms` — spike গড়ে গিয়ে হারিয়ে গেছে। আর বড় ফাঁকটা রেকর্ড হয় block-এর *পরের* loop turn-এ: খুব আগে `disable()` ডাকলে histogram ঠিক যে stall আপনি বাধিয়েছেন সেটাই মিস করে। Diagnosis-এ `resolution: 1`, আর পড়ার আগে loop-কে একবার ঘুরতে দিন।
+	</p>
+</Pitfall>
+
+## ভেতর থেকে loop দেখুন, বাইরে থেকে যুক্ত হোন
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-6-diagnostics/demo.js
+```
+
+ছাপে: `[1]` `resolution: 1`-এ `monitorEventLoopDelay`-এ মাপা ~৯০ms blocking কল — loop যেমন টের পেয়েছে, সাথে মোটা-resolution সতর্কতা; `[2]` timer-এর পাশ থেকে একই stall — ২০ms ticker ~৮৫ms দেরি, drift সমান block; `[3]` প্রসেসের ভেতর থেকে prod checklist: leak-প্রার্থী rss/heapUsed, debugger-এর জন্য `--inspect`/`SIGUSR1`, rss বাড়লে heap snapshot।
+
+<BuildExercise
+	title="নিজের stall detector বানান"
+	difficulty="উঁচু স্তর"
+	time="৩০ মিনিট"
+	objectives={['Event-loop delay মেপে histogram-এ সত্যিকারের stall ধরা', 'একই stall timer drift-এর সাথে মিলিয়ে দেখা']}
+	steps={[
+		{ title: 'Stall রেকর্ড করুন', why: 'resolution 1-এ monitorEventLoopDelay চালু করে ৯০ms sync burn দিন, একটা বাড়তি turn-এর পর mean আর max পড়ুন।', expect: 'সর্বোচ্চ স্যাম্পল ≈ stall সাইজ — loop সত্য বলেছে।' },
+		{ title: 'লুকান, তারপর খুলুন', why: 'একই burn resolution 5-এ, তারপর আবার 1-এ।', expect: 'মোটা স্যাম্পলিং spike ছোট করে দেখায় — স্বাস্থ্যকর-দেখানো মিথ্যা।' },
+		{ title: 'Drift দেখুন', why: 'একই stall-এর ভেতর দিয়ে ২০ms ticker চালিয়ে ফাঁকগুলো ছাপুন।', expect: 'একটা ফাঁক ≈ stall + interval — timer block-এর পেছনে queue হয়।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-6" />

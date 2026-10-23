@@ -1,0 +1,70 @@
+---
+title: "Capstone: a production-shaped server — routes, cache, guard, pool, shutdown"
+description: "One file assembling the domain: static route with ETag and 304, a traversal-guarded file route, a CPU route served by the worker pool from 3-4 while the loop keeps ticking, and a shutdown that leaves no handle behind."
+domain: 5
+task: "5.7"
+order: 7
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: ETag
+  - term: security headers
+  - term: thread pool
+sources:
+  - label: "Node.js docs — http server"
+    href: https://nodejs.org/api/http.html#class-httpserver
+  - label: "Node.js docs — worker_threads"
+    href: https://nodejs.org/api/worker_threads.html
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.7</span>
+</div>
+
+## What you will learn
+
+Every piece is a lesson you already own; the capstone wires them into one process. The **routes**: `/` serves a body stamped with an **ETag** and answers `If-None-Match` with 304 — the caching contract; `/file/*` runs the resolve-plus-startsWith **traversal guard** before anything touches the filesystem, and `/file/../../etc/passwd` dies at 403; `/hash` is CPU work, and the *wrong* home for it is the event loop — so it round-robins onto a two-worker **thread pool** (the pool from 3-4), each hash ~40ms in a worker while a 20ms ticker in the main thread keeps ticking, gaps at 21ms. Every reply carries the **security headers** from 5-5 — one loop over a three-pair table. The pool reply is routed by job id through one shared `message` listener and a pending-jobs map: per-request `once('message')` is the bug the capstone spells out, because two jobs landing on one worker make both waiters hear the first reply. And shutdown is a feature, not an afterthought: `server.close()` stops listening, `worker.terminate()` drains the pool, and the process exits clean because no handle is left — the same discipline a graceful redeploy needs.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Per-request once('message') races — route pool replies by job id">
+	<p>
+		Two `/hash` requests can land on the same worker. If each handler attached `worker.once('message')`, *both* fire on the worker's first reply: one request gets the other's answer, one hangs forever. One shared `message` listener per worker, a `Map` of jobId → response, and each reply routed to the request that asked — the pattern every real pool (piscina included) uses.
+	</p>
+</Pitfall>
+
+## The whole domain, one process
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-7-capstone/demo.js
+```
+
+It prints: `[1]` boot — pool workers up, server listening, headers on; `[2]` the static route — 200 with an etag, re-GET with it, 304 and zero body bytes; `[3]` the traversal attempt refused by the guard; `[4]` four concurrent `/hash` requests spread across pool threadIds with the main-loop ticker still at 20ms gaps — the CPU work never blocked the loop; `[5]` shutdown with nothing left to hold the process open.
+
+<BuildExercise
+	title="Ship it, then break it on purpose"
+	difficulty="advanced"
+	time="45 min"
+	objectives={['Assemble routes, cache, guard, pool, and shutdown into one server', 'Know which single component fails when you remove each one']}
+	steps={[
+		{ title: 'Run the whole thing', why: 'Watch each route answer with its own lesson on the line.', expect: '200/304 on the static route, 403 on traversal, pool threadIds spread, clean exit.' },
+		{ title: 'Remove the guard', why: 'Serve /file straight from join() and request the escape.', expect: 'Path resolves outside the webroot — the exact hole the guard closes.' },
+		{ title: 'Inline the hash', why: 'Move pbkdf2Sync into the /hash handler and re-run the ticker.', expect: 'Ticker gaps explode to the hash duration — the loop everyone shares, blocked.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-7" />

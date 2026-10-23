@@ -1,0 +1,69 @@
+---
+title: "Static serving and caching: ETag stamps, Cache-Control policy, 304 saves the wire"
+description: "A static file server is three decisions: content-type by extension, a body stamp (ETag), and a reuse policy (Cache-Control). When the browser re-sends If-None-Match and the stamp still fits, 304 answers with zero body bytes — the whole body skipped for the cost of a header compare."
+domain: 5
+task: "5.3"
+order: 3
+sourceUrl: https://nodejs.org/api/http.html
+updated: 2026-10-23
+keywords:
+  - term: ETag
+  - term: Cache-Control
+sources:
+  - label: "MDN — ETag"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
+  - label: "MDN — Cache-Control"
+    href: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+---
+
+import ReadingProgress from '../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.3</span>
+</div>
+
+## What you will learn
+
+Caching is a contract between your server and the browser, signed in headers. The **ETag** is a stamp *of the body* — here, the first 16 hex chars of its SHA-256 — and the browser's half of the deal is re-sending it as `If-None-Match` when the policy says revalidate. If the stamp still matches, you answer **304 Not Modified** and send *zero* body bytes; the browser reuses its cached copy and the wire only paid for headers. If the file changed, the new body hashes differently, the stamp moves, and the client gets a full 200 with fresh bytes — the demo shows both sides by capturing the old ETag *before* overwriting the file. **Cache-Control** states the policy: `public, max-age=60` lets the browser reuse without asking for a minute; `no-cache` forces revalidation every time; `no-store` forbids saving at all. The one sentence to remember: ETag says *what* the body is, Cache-Control says *how long the copy may be trusted* — and neither is useful without the other.
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="Stamp the bytes you actually send">
+	<p>
+		An ETag computed from the *file on disk* lies the moment you transform before sending — gzip, templating, partial content. Wrong stamp means a 304 for a body that differs, and the browser serves stale bytes with your blessing. Hash the exact buffer that leaves the server, and recompute it whenever the response can vary (compression on/off, language negotiation).
+	</p>
+</Pitfall>
+
+## Stamp, policy, and the free 304
+
+Run the demo file for this lesson:
+
+```bash
+node code/5-production-server/5-3-static-server-caching/demo.js
+```
+
+It prints: `[1]` a first GET — content-type by extension, `etag` and `cache-control` on the reply; `[2]` the re-GET carrying `If-None-Match` — 304, body bytes: 0; `[3]` the file rewritten between requests — old stamp sent, new body back, 200, and the ETag moved with the content.
+
+<BuildExercise
+	title="Make the second visit free"
+	difficulty="intermediate"
+	time="30 min"
+	objectives={['Serve files with a correct ETag and a stated policy', 'Prove the revalidation path saves the body transfer']}
+	steps={[
+		{ title: 'Serve and stamp', why: 'Hash each response body into an ETag, set cache-control, ship it.', expect: 'First GET: 200, etag present, policy header present.' },
+		{ title: 'Revalidate', why: 'Re-request with the etag in if-none-match.', expect: '304, zero body bytes — the copy was still good.' },
+		{ title: 'Break the cache on change', why: 'Rewrite the file, re-send the old etag.', expect: '200 with the new body and a new etag — content moved, stamp moved.' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-3" />

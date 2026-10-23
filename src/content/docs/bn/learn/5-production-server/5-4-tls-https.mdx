@@ -1,0 +1,70 @@
+---
+title: "TLS আর HTTPS: certificate identity, handshake, আর encrypted HTTP"
+description: "https মানে TLS স্তরের ওপর http: certificate একটা HTTP byte চলার আগেই identity প্রমাণ করে, handshake shared secret বানায়, তারপর প্রতিটি byte encrypted। লোকালি self-sign করে client opt-in করে; production-এ CA জামিন দেয়।"
+titleEn: "TLS and HTTPS: certificate identity, the handshake, and encrypted HTTP"
+domain: 5
+task: "5.4"
+order: 4
+sourceUrl: https://nodejs.org/api/https.html
+updated: 2026-10-23
+keywords:
+  - term: TLS
+  - term: IncomingMessage
+sources:
+  - label: "Node.js docs — https"
+    href: https://nodejs.org/api/https.html
+  - label: "MDN — TLS"
+    href: https://developer.mozilla.org/en-US/docs/Glossary/TLS
+---
+
+import ReadingProgress from '../../../../../components/progress/ReadingProgress.astro';
+import MarkComplete from '../../../../../components/progress/MarkComplete.astro';
+import KeywordTable from '../../../../../components/content/KeywordTable.astro';
+import Pitfall from '../../../../../components/content/Pitfall.astro';
+import BuildExercise from '../../../../../components/content/BuildExercise.astro';
+import Attribution from '../../../../../components/content/Attribution.astro';
+
+<ReadingProgress />
+
+<div class="lesson-meta">
+	<span class="lesson-badge">Domain 5</span>
+	<span class="lesson-task">Task 5.4</span>
+</div>
+
+## এই লেসনে যা শিখবেন
+
+Plain HTTP identity আর content একেবারে খোলা পাঠায় — পথের যে কেউ দুটোই পড়ে আর বদলায়। **TLS** ঠিক এটাই ঠিক করে, দুই চালে: *certificate* দিয়ে server প্রমাণ করে সে কে, আর *handshake*-এ দুই পাশ বানায় shared secret যার byte কখনো wire পার হয় না। এরপর HTTP অপরিবর্তিত চলে encrypted চ্যানেলে — একই method, একই header, একই `IncomingMessage`/`ServerResponse` object, তাই `https.createServer` মানে `http.createServer` plus `key` আর `cert` option। ডেমো trust মডেল চোখে দেখায়: আপনার CA *ছাড়া* client self-signed certificate reject করে যেকোনো HTTP-এর আগেই — `DEPTH_ZERO_SELF_SIGNED_CERT` — আর সেই reject মানে সিস্টেম *কাজ করছে*; আগে identity, পরে কথা। CA option সহ client chain verify করে দুই দিকেই `TLSv1.3` বলে। Production-এ self-sign জায়গায় বসে আসল certificate authority (Let-এর Encrypt) — server code বদলায় না, শুধু জামিনদার।
+
+<KeywordTable keywords={frontmatter.keywords} />
+
+<Pitfall title="CN যথেষ্ট নয় — certificate-এ যে host dial করছেন সেটাই থাকতে হবে">
+	<p>
+		`CN=localhost` সহ cert `https://127.0.0.1`-এর জন্য *অবৈধ*: hostname check চলে Subject Alternative Name তালিকায়, আর Node reject করে `ERR_TLS_CERT_ALTNAME_INVALID` দিয়ে যদিও CN "প্রায় মেলে"। ডেমোর openssl কল ঠিক এজন্যই বহন করে `-addext subjectAltName=IP:127.0.0.1,DNS:localhost`। SAN-ছাড়া self-sign সবচেয়ে পরিচিত "কিন্তু curl-এ তো চলে" ফাঁদ।
+	</p>
+</Pitfall>
+
+## আগে identity, তারপর encrypted HTTP
+
+এই লেসনের ডেমো ফাইলটি চালান:
+
+```bash
+node code/5-production-server/5-4-tls-https/demo.js
+```
+
+ছাপে: `[1]` openssl বানাচ্ছে self-signed key + certificate জোড়া, subject আর SAN সহ; `[2]` তার ওপর server, আর CA ছাড়া client REFUSED — self-signed মানে *ডিফল্টে* untrusted; `[3]` CA option সহ client যুক্ত হচ্ছে: status 200, protocol `TLSv1.3`, verified চ্যানেলে body — পাশে একই content plain http-তে, identity নেই, encryption নেই।
+
+<BuildExercise
+	title="প্যাডলক চালু করুন"
+	difficulty="উঁচু স্তর"
+	time="৩৫ মিনিট"
+	objectives={['লোকালি-trusted certificate সহ https সার্ভার চালানো', 'Client কী যাচাই করে কোন ক্রমে — ব্যাখ্যা করা']}
+	steps={[
+		{ title: 'জোড়া বানান', why: 'localhost আর 127.0.0.1-এর SAN সহ self-sign করুন।', expect: 'openssl subject আর subjectAltName entry ছাপে।' },
+		{ title: 'Refusal সঠিক প্রমাণ', why: 'rejectUnauthorized সহ, CA option ছাড়া connect করুন।', expect: 'DEPTH_ZERO_SELF_SIGNED_CERT — HTTP-এর আগেই identity check।' },
+		{ title: 'Trust করে কথা বলুন', why: 'Cert-কে ca হিসেবে দিন, body খরচ করার আগে socket থেকে protocol পড়ুন।', expect: 'TLSv1.3-এ 200 — response শেষ হলে socket ডিটেইল মিলিয়ে যায়, আগে পড়ুন।' },
+	]}
+/>
+
+<Attribution sourceUrl={frontmatter.sourceUrl} updated={frontmatter.updated} />
+
+<MarkComplete lessonId="5-4" />
