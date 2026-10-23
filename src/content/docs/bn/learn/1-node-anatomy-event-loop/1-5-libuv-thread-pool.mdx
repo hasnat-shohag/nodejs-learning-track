@@ -21,8 +21,23 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS থ্রেড একটি async API কল করে] --> B{OS-এর কাছে নন-ব্লকিং রূপ আছে?}
+	B -- হ্যাঁ: socket pipe TTY --> C[কার্নেলের async I/O — কোনো থ্রেড লাগে না]
+	B -- না: fs DNS pbkdf2 zlib --> D[libuv thread pool-এ পাঠানো হয়]
+	D --> E[UV_THREADPOOL_SIZE — ডিফল্টে চার থ্রেড<br/>প্রথম ব্যবহারে একবার পড়ে, node শুরুর আগে সেট করুন]
+	E --> F{খালি worker thread আছে?}
+	F -- হ্যাঁ --> G[কাজ worker-এ চলে — JS থ্রেড মুক্ত]
+	F -- না --> H[কাজ কিউ হয় — পুল ব্যস্ত মানে অপেক্ষা]
+	G --> H
+	H --> I[রেজাল্ট event loop-এ ফেরত যায়]
+	I --> J[Callback poll ফেজে পৌঁছায়]
+	J --> A
+	K[পুল শেয়ার্ড — একটি ধীর fs.stat পেছনের প্রতিটি pbkdf2-কে দেরি করায়] --> H`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

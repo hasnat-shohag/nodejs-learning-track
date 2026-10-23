@@ -23,8 +23,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS string গোনে character] --> B[Encode করে byte<br/>৩টি বাংলা char = ৯টি UTF-8 byte]
+	B --> C[Buffer: fixed-length byte array]
+	C --> D[V8 heap-এর বাইরে কাঁচা মেমরি]
+	D --> E{alloc নাকি allocUnsafe?}
+	E -- alloc --> F[বাইট জিরো করা — পড়তে নিরাপদ]
+	E -- allocUnsafe --> G[Pooled মেমরি, content undefined<br/>না পড়ে আগে সব byte লিখুন]
+	F --> H[ArrayBuffer-এর ওপর Uint8Array view]
+	G --> H
+	H --> I[Decode একটা পছন্দ: utf8, latin1, hex]
+	I --> J[utf8-এ টেক্সট ফেরে<br/>ভুল decode নীরবে মিথ্যা বলে]
+	H --> K[subarray zero-copy alias<br/>slice দিয়ে লিখলে parent বদলায়]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

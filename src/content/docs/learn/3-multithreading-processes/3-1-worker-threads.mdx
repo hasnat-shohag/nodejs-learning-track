@@ -24,8 +24,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[new Worker spawns an OS thread] --> B[Second V8 isolate<br/>own event loop, same process]
+	B --> C[No shared JS heap<br/>so no locks needed]
+	C --> D[Parent worker.postMessage]
+	D --> E{Transfer list given?}
+	E -- clone --> F[Structured clone — full copy<br/>sender keeps its bytes]
+	E -- transfer --> G[Zero-copy move<br/>sender buffer detached]
+	F --> H[Worker parentPort.on<br/>receives the message]
+	G --> H
+	H --> I[Worker posts result back]
+	I --> J[exit event fires<br/>thread cleaned up]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

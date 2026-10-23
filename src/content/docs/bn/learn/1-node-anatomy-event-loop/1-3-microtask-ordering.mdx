@@ -22,8 +22,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[চলমান অপারেশন বা callback শেষ] --> B{nextTick কিউতে কিছু আছে?}
+	B -- হ্যাঁ --> C[পুরো nextTick কিউ নিষ্কাশন — FIFO]
+	C --> D{Promise মাইক্রোটাস্ক কিউ-য়েড?}
+	B -- না --> D
+	D -- হ্যাঁ --> E[পুরো Promise কিউ নিষ্কাশন<br/>মাঝপথের nextTick আগিয়ে যেতে পারে না]
+	E --> B
+	D -- না --> F[দুই কিউই খালি — মাইক্রোটাস্ক সীমানা পার]
+	F --> G[লুপের পরের ফেজ চলে — timers poll check]
+	G --> A
+	H[setImmediate আর setTimeout মাইক্রোটাস্ক নয়] --> I[তারা নিজেদের ফেজে অপেক্ষা করে — এখানে কখনো নিষ্কাশিত হয় না]
+	I --> G`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

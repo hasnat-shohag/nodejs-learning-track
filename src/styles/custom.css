@@ -1076,3 +1076,170 @@ pre.mermaid-source {
 		display: block;
 	}
 }
+
+/* ---------- lesson flow chart ---------- */
+
+/* Floating pill pinned above content so the chart is one tap away from
+   anywhere in a long lesson. Bottom-start avoids both the reading-progress
+   bar (top) and the right edge's scrollbar/TOC affordances. */
+
+.flowchart {
+	position: fixed;
+	inset-block-end: 1.25rem;
+	inset-inline-start: 1.25rem;
+	z-index: calc(var(--sl-z-index-navbar) + 2);
+}
+
+.flowchart-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: var(--nlt-control-height);
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--sl-color-accent-high);
+	border-radius: 999px;
+	background: var(--sl-color-bg);
+	color: var(--sl-color-accent-high);
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	line-height: 1.4;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		color 120ms ease;
+}
+
+.flowchart-button:hover {
+	background: var(--sl-color-accent-high);
+	color: var(--sl-color-white);
+}
+
+.flowchart-button svg {
+	flex-shrink: 0;
+}
+
+@media print {
+	.flowchart {
+		display: none;
+	}
+}
+
+/* <dialog> element gets UA styles we cannot reach via classes on itself. */
+.flowchart-dialog {
+	width: min(64rem, calc(100vw - 2rem));
+	max-width: 100%;
+	max-height: calc(100vh - 4rem);
+	padding: 0;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: 0.75rem;
+	background: var(--sl-color-bg);
+	color: var(--sl-color-text);
+	box-shadow: 0 24px 48px rgb(0 0 0 / 0.35);
+	overflow: hidden;
+}
+
+.flowchart-dialog:not([open]) {
+	display: none;
+}
+
+/* Fallback for browsers without <dialog>: center a plain open element. */
+@supports not selector(dialog) {
+	.flowchart-dialog[open] {
+		position: fixed;
+		inset: 0;
+		margin: auto;
+		display: grid;
+		place-items: center;
+		z-index: calc(var(--sl-z-index-navbar) + 3);
+		background: rgb(0 0 0 / 0.5);
+	}
+}
+
+.flowchart-dialog-frame {
+	display: grid;
+	grid-template-rows: auto 1fr;
+	max-height: calc(100vh - 4rem);
+}
+
+.flowchart-dialog-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.85rem 1.25rem;
+	border-block-end: 1px solid var(--sl-color-hairline);
+}
+
+.flowchart-dialog-head h2 {
+	margin: 0;
+	font-size: var(--sl-text-lg);
+	font-weight: 700;
+}
+
+.flowchart-dialog-close {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	min-height: var(--nlt-control-height);
+	padding: 0.4rem 0.85rem;
+	border: 1px solid var(--sl-color-hairline);
+	border-radius: var(--nlt-control-radius);
+	background: transparent;
+	color: var(--sl-color-text);
+	font-size: var(--sl-text-sm);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease;
+}
+
+.flowchart-dialog-close:hover {
+	border-color: var(--sl-color-accent-high);
+	color: var(--sl-color-accent-high);
+}
+
+.flowchart-dialog-body {
+	overflow: auto;
+	padding: 1.25rem;
+}
+
+.flowchart-dialog-body pre.mermaid-source {
+	display: none;
+}
+
+.flowchart-dialog .flowchart-figure {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	overflow-x: auto;
+}
+
+.flowchart-dialog .flowchart-figure svg {
+	max-width: none !important;
+}
+
+@media (max-width: 49.99rem) {
+	.flowchart {
+		inset-block-end: 0.75rem;
+		inset-inline-start: 0.75rem;
+	}
+
+	.flowchart-button {
+		padding: 0.45rem 0.8rem;
+		font-size: var(--sl-text-xs);
+	}
+
+	.flowchart-dialog {
+		width: calc(100vw - 1rem);
+		max-height: calc(100vh - 2rem);
+	}
+
+	.flowchart-dialog-body {
+		padding: 0.85rem;
+	}
+}
+

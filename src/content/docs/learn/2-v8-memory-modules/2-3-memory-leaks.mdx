@@ -21,8 +21,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Request arrives] --> B[Handler stores data — global cache or timer or listener]
+	B --> C{Reference reachable from a root?}
+	C -- no --> D[Garbage — next GC reclaims it]
+	C -- yes --> E[GC marks it live — cannot free]
+	E --> F{More requests?}
+	F -- yes --> B
+	F -- no --> G[Heap stays grown after a full GC — leak confirmed]
+	G --> H[RSS climbs, GC pressure builds]
+	H --> I[Longer pauses and slower responses]
+	H --> J[Eventually OOM or a forced restart]
+	K[Heap snapshot in DevTools] --> L[Retainer edge — the link you must break]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

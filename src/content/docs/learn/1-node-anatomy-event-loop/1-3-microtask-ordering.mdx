@@ -21,8 +21,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Current operation or callback finishes] --> B{nextTick queue has items?}
+	B -- yes --> C[Drain entire nextTick queue — FIFO]
+	C --> D{Promise microtasks queued?}
+	B -- no --> D
+	D -- yes --> E[Drain entire Promise queue<br/>mid-drain nextTicks cannot preempt]
+	E --> B
+	D -- no --> F[Both queues empty — microtask boundary crossed]
+	F --> G[Next loop phase runs — timers poll check]
+	G --> A
+	H[setImmediate and setTimeout are not microtasks] --> I[They wait in their own phases — never drain here]
+	I --> G`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

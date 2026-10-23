@@ -20,8 +20,24 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS code runs to completion] --> B[Timers phase]
+	B --> C[Pending callbacks]
+	C --> D[Idle / prepare]
+	D --> E[Poll phase — wait for I/O]
+	E --> F[Check phase — setImmediate]
+	F --> G[Close callbacks]
+	G --> H{More work?}
+	H -- yes --> B
+	H -- no --> I[Loop exits]
+	E -- I/O callback runs<br/>inside poll --> J[setImmediate queued]
+	J --> F
+	E -- I/O callback runs<br/>inside poll --> K[setTimeout 0 queued]
+	K --> B`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

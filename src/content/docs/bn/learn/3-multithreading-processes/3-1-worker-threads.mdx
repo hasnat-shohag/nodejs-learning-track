@@ -25,8 +25,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[new Worker একটি OS থ্রেড spawn করে] --> B[দ্বিতীয় V8 আইসোলেট<br/>নিজের event loop, একই প্রসেস]
+	B --> C[শেয়ার্ড JS heap নেই<br/>তাই লক-ও লাগে না]
+	C --> D[parent থেকে worker.postMessage]
+	D --> E{transfer list দেওয়া হয়েছে?}
+	E -- clone --> F[structured clone — পুরো কপি<br/>প্রেরকের কাছে বাইট থেকেই যায়]
+	E -- transfer --> G[শূন্য-কপি সরানো<br/>প্রেরকের buffer detach হয়]
+	F --> H[worker-এর parentPort.on<br/>মেসেজ পৌঁছায়]
+	G --> H
+	H --> I[worker ফল ফেরত পাঠায়]
+	I --> J[exit ইভেন্ট ফায়ার<br/>থ্রেড পরিষ্কার হয়]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

@@ -22,8 +22,23 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Readable source — file, socket, request body] --> B{Flowing or paused?}
+	B -- flowing, data events fire --> C[Chunks flow on their own]
+	B -- paused --> D[pause really pauses<br/>resume lets data through]
+	D --> C
+	C --> E[Transform stage in between<br/>gzip, cipher, uppercase]
+	E --> F[Writable sink — file, stdout, res]
+	F --> G{write returned false?}
+	G -- true, buffer below highWaterMark --> H[Keep pushing chunks]
+	G -- false, buffer hit highWaterMark --> I[Stop and wait for the drain event<br/>the backpressure signal]
+	H --> E
+	I --> F
+	J[Duplex does both with<br/>two independent buffers] --> K[Each side carries its own<br/>backpressure signal]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

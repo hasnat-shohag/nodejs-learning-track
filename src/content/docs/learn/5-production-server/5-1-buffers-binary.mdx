@@ -22,8 +22,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS string counts characters] --> B[Encode to bytes<br/>3 chars of Bangla = 9 UTF-8 bytes]
+	B --> C[Buffer: fixed-length byte array]
+	C --> D[Raw memory outside the V8 heap]
+	D --> E{Buffer.alloc or allocUnsafe?}
+	E -- alloc --> F[Zeroed bytes — safe to read]
+	E -- allocUnsafe --> G[Pooled memory, contents undefined<br/>write every byte before reading]
+	F --> H[Uint8Array view over an ArrayBuffer]
+	G --> H
+	H --> I[Decode is a choice: utf8, latin1, hex]
+	I --> J[utf8 gives the text back<br/>wrong decoding lies silently]
+	H --> K[subarray is a zero-copy alias<br/>writes mutate the parent]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

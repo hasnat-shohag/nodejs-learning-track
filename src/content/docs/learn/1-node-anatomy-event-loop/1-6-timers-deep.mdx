@@ -20,8 +20,25 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[setTimeout or setInterval armed] --> B{Is the delay elapsed?}
+	B -- no --> B
+	B -- yes: threshold reached --> C[Callback runs in the timers phase<br/>a minimum delay, never exact]
+	C --> D[Heavy work in the poll phase delays the timers phase]
+	D --> C
+	E[setTimeout scheduled inside a timer callback] --> F[Runs on a later loop turn — not recursion]
+	F --> C
+	G[setInterval due while a callback still runs] --> H{Missed dues}
+	H -- dropped, never repaid --> C
+	I[unref removes the keep-alive vote] --> J{Another ref-ed handle keeps the loop open?}
+	J -- yes --> K[Timer still fires on schedule]
+	J -- no --> L[Process exits — timer pending]
+	A --> M[ref restores the keep-alive vote]
+	M --> J`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

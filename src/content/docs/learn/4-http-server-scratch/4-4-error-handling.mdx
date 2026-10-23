@@ -22,8 +22,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Error born inside a handler] --> B{Synchronous throw?}
+	B -- yes --> C[try/catch net catches it<br/>500 sent, stack logged]
+	B -- no, async --> D{Rejected promise<br/>or stream error event?}
+	D --> E[.catch wrapper catches<br/>500 sent, server keeps serving]
+	C --> F[Client gets meaning<br/>logs get stack traces]
+	E --> F
+	D -- no net at all --> G[Unhandled rejection — Node 15+<br/>kills the process by default]
+	G --> H[Orchestrator restarts<br/>a clean process]
+	I[Error escapes every net] --> J[uncaughtException fires — state unknown<br/>log, then exit 1]
+	K[Unknown route versus thrown handler] --> L[404 is the client problem<br/>500 is yours]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

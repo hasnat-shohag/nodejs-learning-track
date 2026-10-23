@@ -21,8 +21,26 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Main thread — প্রতিটি callback চলে এখানেই] --> B{সিনক্রোনাস CPU কাজ দীর্ঘ?}
+	B -- না --> C[লুপের পরের ফেজ সময়মতো চলে]
+	C --> A
+	B -- হ্যাঁ: ২০০ms হট-লুপ --> D[Main thread আটকে যায় — লুপ ফ্রিজ]
+	D --> E[timers ফেজ অপেক্ষা করে — প্রতিটি due setTimeout দেরিতে চলে]
+	D --> F[poll ফেজ অপেক্ষা করে — কিউ-য়ে থাকা I/O callback বসে থাকে]
+	D --> G[সব কানেক্টেড ক্লায়েন্টের সার্ভার একসাথে অচল]
+	D --> H[প্রোব ধরে ফেলে — এক গ্যাপ বাড়ে ব্লক-সময় সাথে ইন্টারভালের বাকি অংশ]
+	F --> C
+	E --> C
+	G --> I{আটকানো সারান}
+	I -- setImmediate দিয়ে কাজ কাটুন --> J[৫ms স্লাইস ফেজের মাঝে রি-আর্ম — কোনো গ্যাপ বাড়ে না]
+	I -- থ্রেড থেকে সরান --> K[worker_threads বা libuv thread pool]
+	J --> A
+	K --> A`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

@@ -24,8 +24,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[মডিউল লোড] --> B{CommonJS না ESM?}
+	B -- require --> C[absolute ফাইলনেমে রিজলভ]
+	C --> D{আগেই require.cache-তে আছে?}
+	D -- হ্যাঁ --> E[ক্যাশ করা exports ফেরত — প্রতিবার একই অবজেক্ট]
+	D -- না --> F[সোর্স একটি ফাংশনে wrap]
+	F --> G[ইভালুয়েট — module.exports ভরে ওঠে]
+	G --> H[ফাইলনেম দিয়ে ক্যাশ করে exports ফেরত]
+	B -- import --> I[আগে পুরো গ্রাফ parse]
+	I --> J[বাইন্ডিং link — এখনো কোনো কোড চলে না]
+	J --> K[ডেপথ-ফার্স্ট ইভালুয়েট — async]
+	K --> L[live binding — রিড বর্তমান মান দেখে]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

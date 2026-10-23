@@ -20,8 +20,24 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Node process] --> B[V8 — executes your JavaScript]
+	A --> C[libuv — owns the event loop and async I/O]
+	A --> D[Node core APIs — fs http net]
+	D --> E[C++ bindings — glue layer between V8 and libuv]
+	E --> C
+	B --> F[One main thread — every JS callback runs here]
+	F --> G{Node is single-threaded?}
+	G -- your JavaScript --> H[Yes — one thread runs every callback]
+	G -- the whole process --> I[No — V8 plus libuv plus OS threads]
+	C --> J[OS async I/O — sockets files DNS]
+	J --> K[Events post back to the main thread]
+	K --> F
+	F --> L[See the layers yourself — process.versions.v8 and versions.uv]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

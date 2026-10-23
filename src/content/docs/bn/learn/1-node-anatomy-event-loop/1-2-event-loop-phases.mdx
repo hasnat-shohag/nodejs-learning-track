@@ -21,8 +21,24 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS কোড সম্পূর্ণ চলে] --> B[timers ফেজ]
+	B --> C[Pending callbacks]
+	C --> D[Idle / prepare]
+	D --> E[poll ফেজ — I/O-এর জন্য অপেক্ষা]
+	E --> F[check ফেজ — setImmediate]
+	F --> G[Close callbacks]
+	G --> H{আরও কাজ আছে?}
+	H -- হ্যাঁ --> B
+	H -- না --> I[লুপ বেরিয়ে যায়]
+	E -- I/O callback চলে<br/>poll-এর ভেতরে --> J[setImmediate কিউ হয়]
+	J --> F
+	E -- I/O callback চলে<br/>poll-এর ভেতরে --> K[setTimeout 0 কিউ হয়]
+	K --> B`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

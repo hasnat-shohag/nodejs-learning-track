@@ -23,8 +23,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Module load] --> B{CommonJS or ESM?}
+	B -- require --> C[Resolve to an absolute filename]
+	C --> D{Already in require.cache?}
+	D -- yes --> E[Return cached exports — same object every time]
+	D -- no --> F[Wrap the source in a function]
+	F --> G[Evaluate — module.exports gets filled]
+	G --> H[Cache by filename and return exports]
+	B -- import --> I[Parse the whole graph first]
+	I --> J[Link bindings — no code runs yet]
+	J --> K[Evaluate depth-first — async]
+	K --> L[Live bindings — reads see the current value]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

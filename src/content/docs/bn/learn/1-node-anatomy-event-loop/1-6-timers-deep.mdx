@@ -21,8 +21,25 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[setTimeout বা setInterval সেট] --> B{নির্ধারিত সময় পার হয়েছে?}
+	B -- না --> B
+	B -- হ্যাঁ: থ্রেশহোল্ড ছোঁয়া হয়েছে --> C[Callback চলে timers ফেজে<br/>ন্যূনতম দেরি, কখনোই সঠিক নয়]
+	C --> D[poll ফেজের ভারী কাজ timers ফেজকে দেরি করায়]
+	D --> C
+	E[টাইমার callback-এর ভেতর থেকে setTimeout শিডিউল] --> F[পরের লুপ-পাকে চলে — রিকার্সন নয়]
+	F --> C
+	G[setInterval-এর due callback চলার সময় পড়ে] --> H{মিস হওয়া due}
+	H -- ফেলে দেওয়া হয়, শোধ হয় না --> C
+	I[unref কিপ-অ্যালাইভ ভোট সরায়] --> J{আরেকটি ref-ড handle লুপ খোলা রাখে?}
+	J -- হ্যাঁ --> K[টাইমার তবু শিডিউলেই ফায়ার করে]
+	J -- না --> L[প্রসেস বেরিয়ে যায় — টাইমার ঝুলন্ত]
+	A --> M[ref কিপ-অ্যালাইভ ভোট ফেরায়]
+	M --> J`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

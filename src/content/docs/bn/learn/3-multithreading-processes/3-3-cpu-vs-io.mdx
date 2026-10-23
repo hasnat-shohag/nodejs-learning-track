@@ -23,8 +23,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[নতুন কাজ এলো] --> B{কাজটা কীসের জন্য অপেক্ষা করে?}
+	B -- OS বা নেটওয়ার্ক --> C[I/O-bound কাজ]
+	C --> D[event loop নিজেই যথেষ্ট]
+	D --> E[request OS-কে ছুড়ে দেয়<br/>completion পরে সামলায়]
+	E --> F[Worker লাগে না —<br/>অপেক্ষায় থাকা থ্রেড খাঁটি ওভারহেড]
+	B -- শুধু CPU --> G[CPU-bound কাজ]
+	G --> H{কোন থ্রেডে চলছে?}
+	H -- main থ্রেড --> I[event loop ব্লকড<br/>প্রতিটি callback লাইনে পড়ে]
+	I --> J[Worker-এ সরান]
+	H -- Worker থ্রেড --> K[main লুপ মুক্ত থাকে<br/>CPU খরচ একই, starvation নেই]
+	J --> K`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

@@ -23,8 +23,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Handler-এর ভেতরে error জন্ম নেয়] --> B{Sync throw?}
+	B -- হ্যাঁ --> C[try/catch জাল ধরে<br/>500 যায়, stack log হয়]
+	B -- না, async --> D{Rejected promise<br/>নাকি stream-এর error ইভেন্ট?}
+	D --> E[.catch র‍্যাপার ধরে<br/>500 যায়, server চালু থাকে]
+	C --> F[ক্লায়েন্ট পায় অর্থ<br/>log পায় stack]
+	E --> F
+	D -- কোনো জাল নেই --> G[Unhandled rejection — Node 15+<br/>ডিফল্টেই প্রসেস মারে]
+	G --> H[Orchestrator restart করে<br/>পরিষ্কার প্রসেস]
+	I[Error সব জাল পার করে গেলে] --> J[uncaughtException ফায়ার — state অজানা<br/>log করে exit 1]
+	K[অজানা route বনাম handler-এর throw] --> L[404 মানে ক্লায়েন্টের সমস্যা<br/>500 মানে আপনার]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

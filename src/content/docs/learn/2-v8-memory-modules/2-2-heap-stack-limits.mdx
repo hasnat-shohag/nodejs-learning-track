@@ -20,8 +20,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Memory allocation] --> B{Stack or heap?}
+	B -- call frames --> C[Stack — frames, depth capped ~12k]
+	C --> D{Deep recursion?}
+	D -- no --> C
+	D -- yes --> E[RangeError — catchable, process survives]
+	B -- objects --> F[Heap — V8 old space]
+	F --> G{Old space full and cannot grow?}
+	G -- no --> H[GC frees unreachable objects]
+	H --> F
+	G -- yes --> I[Process killed — SIGABRT and no exception]
+	J[Buffer backing store] --> K[External memory — outside the heap limit]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

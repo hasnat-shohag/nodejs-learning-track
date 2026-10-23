@@ -22,8 +22,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[GET request for a static file] --> B[Extension gives content-type]
+	B --> C[Hash the response body<br/>SHA-256 first 16 hex chars]
+	C --> D[ETag: the stamp of the body]
+	D --> E{If-None-Match header present?}
+	E -- no --> F[200 with the body<br/>ETag + Cache-Control set]
+	F --> G[Browser caches the copy<br/>policy decides how long to trust it]
+	E -- yes --> H{Stamp still matches?}
+	H -- yes --> I[304 Not Modified<br/>zero body bytes on the wire]
+	H -- no --> J[File changed: new hash, new stamp<br/>200 with the fresh body]
+	I --> K[Browser reuses its cached copy]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

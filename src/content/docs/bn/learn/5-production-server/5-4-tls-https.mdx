@@ -23,8 +23,20 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Client একটি https host dial করে] --> B[TCP connection তৈরি]
+	B --> C[TLS handshake শুরু]
+	C --> D[Server certificate পাঠায়]
+	D --> E{Client chain আর hostname SAN verify করে?}
+	E -- না --> F[Connection refused<br/>DEPTH_ZERO_SELF_SIGNED_CERT — আগে identity]
+	E -- হ্যাঁ --> G[Key agreement: shared secret তৈরি<br/>তার byte কখনো wire পার হয় না]
+	G --> H[Encrypted চ্যানেল তৈরি]
+	H --> I[HTTP অপরিবর্তিত চলে ভেতরে<br/>একই method, একই header]
+	I --> J[https.Server http-কে wrap করে<br/>createServer plus key আর cert]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

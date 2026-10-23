@@ -1,0 +1,152 @@
+---
+interface Props {
+	chart: string;
+}
+
+const { chart } = Astro.props;
+
+const isBn = (Astro.locals.starlightRoute?.lang ?? 'en').startsWith('bn');
+
+const labels = isBn
+	? {
+			open: 'ফ্লো চার্ট দেখুন',
+			title: 'লেসন ফ্লো চার্ট',
+			close: 'বন্ধ করুন',
+		}
+	: {
+			open: 'View flow chart',
+			title: 'Lesson flow chart',
+			close: 'Close',
+		};
+---
+
+{
+	chart && (
+		<div class="flowchart" data-flowchart>
+			<button type="button" class="flowchart-button" data-flowchart-open aria-haspopup="dialog">
+				<svg
+					aria-hidden="true"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<rect x="3" y="3" width="18" height="18" rx="2" />
+					<path d="M7 8h10M7 12h10M7 16h4" />
+				</svg>
+				{labels.open}
+			</button>
+			<dialog class="flowchart-dialog" data-flowchart-dialog aria-label={labels.title}>
+				<div class="flowchart-dialog-frame">
+					<div class="flowchart-dialog-head">
+						<h2>{labels.title}</h2>
+						<button type="button" class="flowchart-dialog-close" data-flowchart-close aria-label={labels.close}>
+							<svg
+								aria-hidden="true"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M18 6 6 18M6 6l12 12" />
+							</svg>
+							{labels.close}
+						</button>
+					</div>
+					<div class="flowchart-dialog-body" data-flowchart-body>
+						<pre class="mermaid-source" hidden>{chart}</pre>
+					</div>
+				</div>
+			</dialog>
+		</div>
+	)
+}
+
+<script>
+	interface FlowChartRoot extends HTMLElement {
+		dataset: DOMStringMap & { flowchartRendered?: string };
+	}
+
+	function setupFlowCharts(): void {
+		document.querySelectorAll<FlowChartRoot>('[data-flowchart]:not([data-flowchart-ready])').forEach((root) => {
+			root.dataset.flowchartReady = 'true';
+			const openButton = root.querySelector<HTMLButtonElement>('[data-flowchart-open]');
+			const dialog = root.querySelector<HTMLDialogElement>('[data-flowchart-dialog]');
+			const body = root.querySelector<HTMLElement>('[data-flowchart-body]');
+			if (!openButton || !dialog || !body) return;
+
+			let rendered = false;
+
+			async function renderChart(body: HTMLElement): Promise<void> {
+				if (rendered) return;
+				rendered = true;
+				const source = body.querySelector('pre.mermaid-source')?.textContent?.trim() ?? '';
+				if (!source) return;
+				try {
+					const { default: mermaid } = await import('mermaid');
+					const isDark = document.documentElement.dataset.theme === 'dark';
+					mermaid.initialize({
+						startOnLoad: false,
+						securityLevel: 'strict',
+						theme: isDark ? 'dark' : 'default',
+						fontFamily: 'inherit',
+						gantt: { useWidth: 900 },
+					});
+					const target = `nlt-flowchart-${Date.now()}`;
+					const { svg } = await mermaid.render(target, source);
+					const figure = document.createElement('figure');
+					figure.className = 'mermaid-figure flowchart-figure';
+					figure.innerHTML = svg;
+					body.appendChild(figure);
+				} catch (error) {
+					console.warn('[nlt] flowchart render failed', error);
+					rendered = false;
+				}
+			}
+
+			openButton.addEventListener('click', () => {
+				void renderChart(body);
+				if (typeof dialog.showModal === 'function') dialog.showModal();
+				else dialog.setAttribute('open', '');
+			});
+
+			dialog.addEventListener('click', (event) => {
+				/* click on backdrop (dialog itself, not frame) closes */
+				if (event.target === dialog) dialog.close();
+			});
+
+			/* re-render on theme switch so colors match */
+			new MutationObserver(() => {
+				const dark = document.documentElement.dataset.theme === 'dark';
+				const source = body.querySelector('pre.mermaid-source')?.textContent?.trim() ?? '';
+				const figure = body.querySelector<HTMLElement>('.flowchart-figure');
+				if (!source || !figure || !rendered) return;
+				void import('mermaid').then(({ default: mermaid }) => {
+					mermaid.initialize({
+						startOnLoad: false,
+						securityLevel: 'strict',
+						theme: dark ? 'dark' : 'default',
+						fontFamily: 'inherit',
+					});
+					return mermaid.render(`nlt-flowchart-theme-${Date.now()}`, source);
+				}).then(({ svg }) => {
+					figure.innerHTML = svg;
+				}).catch(() => undefined);
+			}).observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: ['data-theme'],
+			});
+		});
+	}
+
+	setupFlowCharts();
+	document.addEventListener('astro:page-load', setupFlowCharts);
+</script>

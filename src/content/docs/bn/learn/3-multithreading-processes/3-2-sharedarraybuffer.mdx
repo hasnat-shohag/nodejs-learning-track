@@ -24,8 +24,23 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[দুই থ্রেডের একই বাইট দরকার] --> B[SharedArrayBuffer<br/>এক শেয়ার্ড মেমরি, শূন্য কপি]
+	B --> C[থ্রেড ১ সেলগুলো ম্যাপ করে]
+	B --> D[থ্রেড ২ সেলগুলো ম্যাপ করে]
+	C --> E{সেল কীভাবে আপডেট হচ্ছে?}
+	D --> E
+	E -- খাঁটি += 1 --> F[load, add, store — তিন ধাপ]
+	F --> G[দুজনেই একই পুরনো মান load করে<br/>একটি ইনক্রিমেন্ট হারায়]
+	G --> H[data race]
+	E -- Atomics.add --> I[একটি অবিভাজ্য অপারেশন<br/>প্রতিটি আপডেট জায়গা পায়]
+	H --> J[Atomics.wait থ্রেড পার্ক করে রাখে<br/>OS লেভেলে ঘুম, স্পিন নেই]
+	I --> J
+	J --> K[অন্য পাশে Atomics.notify<br/>থ্রেড জেগে ওঠে]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

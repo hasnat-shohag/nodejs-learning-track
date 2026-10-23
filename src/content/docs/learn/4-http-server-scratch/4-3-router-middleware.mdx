@@ -22,8 +22,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Request enters the middleware chain] --> B[Middleware runs — req, res, next]
+	B --> C{Ends the response itself?}
+	C -- yes, status written, chain stops --> D[Request finished early<br/>handler never runs]
+	C -- no, calls next --> E{More middleware left?}
+	E -- yes --> B
+	E -- no --> F[Route table loop — method<br/>plus pattern regex per row]
+	F --> G{Route matched?}
+	G -- no --> H[404 — no row matched<br/>a fallthrough, not an error]
+	G -- yes --> I[Capture groups land in req.params<br/>handler runs and responds]
+	J[An error thrown in the chain] --> K[Error middleware — err, req, res, next<br/>four arguments, mounted last]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

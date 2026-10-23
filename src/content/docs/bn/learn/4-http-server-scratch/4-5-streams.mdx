@@ -23,8 +23,23 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Readable উৎস — ফাইল, socket, request body] --> B{Flowing নাকি paused?}
+	B -- flowing, data ইভেন্ট ফায়ার --> C[Chunk নিজে নিজেই বয়ে যায়]
+	B -- paused --> D[pause সত্যিই pause করে<br/>resume-এ ডেটা ছাড়ে]
+	D --> C
+	C --> E[মাঝে Transform ধাপ<br/>gzip, cipher, uppercase]
+	E --> F[Writable গন্তব্য — ফাইল, stdout, res]
+	F --> G{write false ফেরাল?}
+	G -- true, বাফার highWaterMark-এর নিচে --> H[Chunk ঠেলতে থাকুন]
+	G -- false, বাফার highWaterMark ছুঁয়েছে --> I[থামুন, drain ইভেন্টের অপেক্ষা করুন<br/>এটাই backpressure সংকেত]
+	H --> E
+	I --> F
+	J[Duplex দুটোই করে —<br/>দুটি স্বাধীন বাফার] --> K[প্রতিটি পাশ বহন করে নিজের<br/>backpressure সংকেত]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

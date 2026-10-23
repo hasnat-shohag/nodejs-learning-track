@@ -22,8 +22,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[New task arrives] --> B{What does it wait on?}
+	B -- OS or network --> C[I/O-bound work]
+	C --> D[Event loop alone is enough]
+	D --> E[Hand off to the OS<br/>handle completion later]
+	E --> F[No Worker needed —<br/>a waiting thread is pure overhead]
+	B -- CPU only --> G[CPU-bound work]
+	G --> H{Which thread runs it?}
+	H -- main thread --> I[Event loop blocked<br/>every callback queues behind it]
+	I --> J[Move it to a Worker]
+	H -- Worker thread --> K[Main loop stays free<br/>same CPU cost, no starvation]
+	J --> K`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

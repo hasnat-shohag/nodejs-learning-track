@@ -24,8 +24,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[User input সহ request এলো] --> B[আগে decode — encode করা dot-ও dot]
+	B --> C[Path traversal guard<br/>resolve তারপর startsWith webroot]
+	C --> D{Path webroot-এর নিচে?}
+	D -- না --> E[কোনো fs কলের আগেই 403]
+	D -- হ্যাঁ --> F[Size limit বসান]
+	F --> G[Auth: timingSafeEqual দিয়ে secret compare<br/>early exit নেই, timing leak নেই]
+	G --> H{Length আগেই মিলিয়েছে?}
+	H -- না --> I[Constant-shape reject<br/>throw করলে length লিক হতো]
+	H -- হ্যাঁ --> J[Security header: nosniff, DENY, HSTS, CSP]
+	J --> K[Handler চলে least-privilege runtime-এ<br/>fail-closed default]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

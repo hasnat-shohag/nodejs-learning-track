@@ -23,8 +23,22 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Boot: pool workers up, headers on] --> B[Request arrives]
+	B --> C{Which route?}
+	C -- static / --> D[ETag stamp + Cache-Control]
+	D --> E{If-None-Match matches?}
+	E -- yes --> F[304, zero body bytes]
+	E -- no --> G[200 with the fresh body]
+	C -- /file/* --> H[Traversal guard: resolve then startsWith<br/>outside webroot dies at 403]
+	H --> I[fs serves the file]
+	C -- /hash --> J[CPU work to the worker pool<br/>replies routed by job id]
+	J --> K[Main loop keeps ticking<br/>the hash never blocked it]
+	B --> L[SIGTERM: server.close plus terminate workers<br/>clean exit, no handle left]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

@@ -24,8 +24,24 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS সোর্স V8-এ ঢোকে] --> B[Ignition বাইটকোডে কম্পাইল করে]
+	B --> C{ফাংশন হট হচ্ছে?}
+	C -- না --> B
+	C -- হ্যাঁ --> D[Sparkplug — বেসলাইন মেশিন কোড]
+	D --> E{আরও হট?}
+	E -- না --> D
+	E -- হ্যাঁ --> F[TurboFan — অপটিমাইজড মেশিন কোড]
+	G[একই ভাবে বানানো অবজেক্ট একটি hidden class শেয়ার করে] --> F
+	F --> H{নতুন শেপ বা টাইপ দেখা গেছে?}
+	H -- না --> F
+	H -- হ্যাঁ --> I[Deopt — অপটিমাইজড কোড ফেলে বেসলাইনে ফেরত]
+	I --> D
+	F --> J[GC একই থ্রেডে চলে — pause]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

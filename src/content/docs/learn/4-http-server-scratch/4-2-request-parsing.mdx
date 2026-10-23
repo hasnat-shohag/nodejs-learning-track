@@ -22,8 +22,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Raw TCP bytes arrive on the socket] --> B[Parser splits request line<br/>and lower-cased headers]
+	B --> C{Malformed request?}
+	C -- yes --> D[clientError event<br/>socket torn down]
+	C -- no --> E[Headers complete — req.url holds<br/>path plus query, nothing more]
+	E --> F[new URL splits path and query<br/>searchParams decodes for you]
+	F --> G[Body streams as chunks<br/>req is a readable stream]
+	G --> H{Size guard exceeded?}
+	H -- yes --> I[413 — upload cut mid-flight]
+	H -- no --> J[Collect chunks, concat<br/>parse once at the end]
+	J --> K[end event fires<br/>body consumed exactly once]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

@@ -23,8 +23,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[cluster.fork দিয়ে N বার] --> B[N টি worker প্রসেস<br/>প্রত্যেকটির নিজের event loop আর মেমরি]
+	A --> C[primary পোর্টের মালিক<br/>শোনার socket শেয়ার্ড]
+	C --> D[connection এলো]
+	D --> E[round-robin হ্যান্ডঅফ<br/>লাইনের পরের worker-কে একটি connection]
+	E --> F[worker রিকোয়েস্ট serve করে]
+	B --> F
+	F --> G{worker বেরিয়ে যায় বা crash?}
+	G -- crash --> H[primary-তে exit ফায়ার করে]
+	H --> I[primary replacement fork করে<br/>পোর্ট কখনো মরে না]
+	G -- স্বাভাবিক --> J[পোর্ট শেয়ার্ডই থাকে<br/>সার্ভিং চলতেই থাকে]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

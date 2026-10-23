@@ -22,8 +22,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[রিকোয়েস্ট আসে] --> B[হ্যান্ডলার ডেটা রাখে — global cache বা timer বা listener]
+	B --> C{রেফারেন্স রুট থেকে পৌঁছানো-যোগ্য?}
+	C -- না --> D[গার্বেজ — পরের GC মুক্ত করে]
+	C -- হ্যাঁ --> E[GC জীবিত মার্ক করে — মুক্ত করতে পারে না]
+	E --> F{আরও রিকোয়েস্ট?}
+	F -- হ্যাঁ --> B
+	F -- না --> G[ফুল GC-র পরেও heap বাড়াই — লিক নিশ্চিত]
+	G --> H[RSS ওঠে, GC-চাপ জমে]
+	H --> I[pause লম্বা হয় আর রেসপন্স ধীর হয়]
+	H --> J[শেষে OOM বা জোর-রিস্টার্ট]
+	K[DevTools-এ heap snapshot] --> L[retainer edge — যে লিংক ভাঙতে হবে]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

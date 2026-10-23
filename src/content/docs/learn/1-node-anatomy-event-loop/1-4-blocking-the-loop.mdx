@@ -20,8 +20,26 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Main thread — every callback runs here] --> B{Synchronous CPU work is long?}
+	B -- no --> C[Next loop phase runs on time]
+	C --> A
+	B -- yes: a 200ms hot loop --> D[Main thread stalls — loop frozen]
+	D --> E[Timers phase waits — every due setTimeout fires late]
+	D --> F[Poll phase waits — queued I/O callbacks sit in the queue]
+	D --> G[Server unresponsive to every connected client at once]
+	D --> H[Probe sees it — one gap grows to block time plus elapsed interval]
+	F --> C
+	E --> C
+	G --> I{Fix the stall}
+	I -- chunk the work with setImmediate --> J[5ms slices re-arm between phases — no gap grows]
+	I -- move it off the thread --> K[worker_threads or the libuv thread pool]
+	J --> A
+	K --> A`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

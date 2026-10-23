@@ -24,8 +24,20 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS থেকে fs, crypto, Buffer কল] --> B{কল কোথায় যায়?}
+	B -- core C++ binding --> C[আর্গুমেন্ট বাউন্ডারি পার করে — JS মান থেকে C টাইপ]
+	C --> D[নেটিভ কোড চলে — প্রায়ই libuv thread pool-এ]
+	D --> E[রেজাল্ট আবার JS মানে রূপান্তর]
+	E --> F{নেটিভ কোডে error?}
+	F -- হ্যাঁ --> G[error বাউন্ডারি পার করে থ্রো হয়]
+	F -- না --> H[JS callback চলতে থাকে]
+	I[require-এ অ্যাডন লোড — node-gyp কম্পাইল করেছে] --> C
+	I --> J[N-API অ্যাডন — স্থির ABI Node আপগ্রেড টিকে যায়]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

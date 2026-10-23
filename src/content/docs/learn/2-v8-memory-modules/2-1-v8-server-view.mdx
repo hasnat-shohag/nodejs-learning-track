@@ -23,8 +23,24 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS source enters V8] --> B[Ignition compiles to bytecode]
+	B --> C{Function becomes hot?}
+	C -- no --> B
+	C -- yes --> D[Sparkplug — baseline machine code]
+	D --> E{Still hotter?}
+	E -- no --> D
+	E -- yes --> F[TurboFan — optimized machine code]
+	G[Objects built the same way share one hidden class] --> F
+	F --> H{New shape or type seen?}
+	H -- no --> F
+	H -- yes --> I[Deopt — optimized code discarded and baseline restored]
+	I --> D
+	F --> J[GC runs on the same thread — pauses]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

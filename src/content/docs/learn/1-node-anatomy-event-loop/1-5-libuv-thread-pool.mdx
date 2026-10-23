@@ -20,8 +20,23 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS thread calls an async API] --> B{Does the OS have a non-blocking form?}
+	B -- yes: sockets pipes TTY --> C[Kernel async I/O — no thread needed]
+	B -- no: fs DNS pbkdf2 zlib --> D[Dispatch to the libuv thread pool]
+	D --> E[UV_THREADPOOL_SIZE — four threads by default<br/>read once at first use, before node starts]
+	E --> F{Free worker thread?}
+	F -- yes --> G[Job runs on a worker — JS thread stays free]
+	F -- no --> H[Job queues — pool busy means waiting]
+	G --> H
+	H --> I[Result posted back to the event loop]
+	I --> J[Callback delivered in the poll phase]
+	J --> A
+	K[Pool is shared — one slow fs.stat delays every pbkdf2 behind it] --> H`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

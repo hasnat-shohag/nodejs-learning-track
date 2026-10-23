@@ -22,8 +22,20 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Symptom: server goes slow or quiet] --> B[Measure: monitorEventLoopDelay histogram<br/>loop delay, rss drift, lag percentiles]
+	B --> C{Fair read: one loop turn after the block}
+	C -- read too early or coarse resolution --> D[Meter blind: max near zero<br/>the stall was still real]
+	C -- fair read --> E{Delay spike in the histogram?}
+	E -- yes --> F[Blocking call froze the loop<br/>timers queue behind it, ticker drifts]
+	E -- no --> G[Observe deeper: --inspect or SIGUSR1<br/>heap snapshot when rss climbs]
+	G --> H[Locate the slow code]
+	F --> H
+	H --> I[Fix: move the work off the loop<br/>re-measure to confirm]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

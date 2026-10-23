@@ -23,8 +23,23 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Pool starts: spawn N workers once] --> B[Workers idle, heap already paid]
+	A2[Job arrives] --> C{Idle worker available?}
+	C -- yes --> D[Dispatch job by message]
+	C -- no --> E[Job waits in the queue<br/>no new spawn, no storm]
+	D --> F[Worker runs the job]
+	F --> G[Worker posts result back]
+	G --> H{More jobs in queue?}
+	H -- yes --> D
+	H -- no --> B
+	B --> D
+	E --> H
+	I[Spawn-per-job alternative<br/>30 ms spawn plus a fresh heap every time] -.->|pool avoids this| A`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

@@ -24,8 +24,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[createServer — listening এখনো false] --> B[listen পোর্ট bind করে]
+	B --> C[listening ইভেন্ট ফায়ার<br/>server.address-এ আসল পোর্ট]
+	C --> D[OS একটি TCP connection accept করে]
+	D --> E[connection ইভেন্ট — একটি খাঁটি net.Socket]
+	E --> F[request ইভেন্ট — IncomingMessage req<br/>ServerResponse res]
+	F --> G[handler চলে]
+	G --> H[res.end response বন্ধ করে]
+	H --> I{Keep-alive socket?}
+	I -- হ্যাঁ, আরও request ওটাতেই চলে --> F
+	I -- না, socket বন্ধ --> J[Handshake-এর খরচ একবারই<br/>অনেক request-এ ভাগ হয়]
+	K[server.close নতুন connection বন্ধ করে] --> L[Node 19 থেকে idle socket কাটা পড়ে<br/>close callback চলমান request-এর অপেক্ষায়]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

@@ -24,8 +24,23 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Pool শুরু: একবারেই N টি worker spawn] --> B[Worker idle, heap-এর খরচ দেওয়াই]
+	A2[কাজ এলো] --> C{idle worker আছে?}
+	C -- হ্যাঁ --> D[মেসেজে কাজ বিতরণ]
+	C -- না --> E[কাজ কিউতে অপেক্ষা করে<br/>নতুন spawn নেই, storm নেই]
+	D --> F[worker কাজ চালায়]
+	F --> G[worker ফল ফেরত পাঠায়]
+	G --> H{কিউতে আরও কাজ আছে?}
+	H -- হ্যাঁ --> D
+	H -- না --> B
+	B --> D
+	E --> H
+	I[প্রতি জবে spawn-এর বিকল্প<br/>প্রতিবার 30 ms spawn আর একটি ফ্রেশ heap] -.->|pool এড়িয়ে যায়| A`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

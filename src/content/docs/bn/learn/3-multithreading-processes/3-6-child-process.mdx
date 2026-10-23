@@ -24,8 +24,23 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[অন্য প্রোগ্রাম চালান] --> B{কোন এন্ট্রি পয়েন্ট?}
+	B -- ভিত্তি, বড় বা চলমান আউটপুট --> C[spawn — stream, shell নেই<br/>child চলার সময়ই chunk আসে]
+	B -- child টা Node --> D[fork — spawn + IPC channel<br/>child.send আর process.send দুই দিকেই JSON]
+	B -- শেলের এক one-liner --> E[exec — shell স্ট্রিং, buffer<br/>maxBuffer সীমা, বাড়লে child kill]
+	B -- ফিক্সড কমান্ড, নিরাপদ ইনপুট --> F[execFile — argv আক্ষরিক, shell নেই<br/>ইনপুট ইন্টারপ্রেট হতে পারে না]
+	C --> G[stdio stream দিয়ে child চলে]
+	D --> G
+	E --> G
+	F --> G
+	G --> H[exit ইভেন্ট ফায়ার<br/>আগে signal, তারপর code দেখুন]
+	H --> I[স্বাভাবিক মৃত্যু: code সেট, signal null]
+	H --> J[signal-এ মৃত্যু: code null, signal সেট]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

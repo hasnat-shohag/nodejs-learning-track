@@ -22,8 +22,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[cluster.fork x N] --> B[N worker processes<br/>each own event loop and memory]
+	A --> C[Primary owns the port<br/>shared listen socket]
+	C --> D[Connection arrives]
+	D --> E[Round-robin handoff<br/>one connection to the next worker]
+	E --> F[Worker serves the request]
+	B --> F
+	F --> G{Worker exits or crashes?}
+	G -- crash --> H[exit fires in the primary]
+	H --> I[Primary forks a replacement<br/>the port never dies]
+	G -- normal --> J[Port stays shared<br/>serving continues]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 3</span>

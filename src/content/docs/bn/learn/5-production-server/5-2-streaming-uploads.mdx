@@ -23,8 +23,24 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Client upload body পাঠায়] --> B[Request object নিজেই Readable stream]
+	B --> C[data event: পরের chunk এলো]
+	C --> D{Size limit ছাড়িয়েছে?}
+	D -- হ্যাঁ --> E[Request destroy, উত্তর 413<br/>আধা-লেখা ফাইল cleanup]
+	D -- না --> F[Chunk pipe হয় createWriteStream-এ]
+	F --> G{write false ফেরত দিলো?}
+	G -- হ্যাঁ --> H[Request pause]
+	H --> I[drain event]
+	I --> J[Request resume]
+	J --> C
+	G -- না --> K{চলছে আরও chunk?}
+	K -- হ্যাঁ --> C
+	K -- না --> L[ফাইল শেষ — heap কখনোই body ধরেনি]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

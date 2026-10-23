@@ -23,8 +23,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Request middleware চেইনে ঢোকে] --> B[middleware চলে — req, res, next]
+	B --> C{নিজেই response শেষ করে?}
+	C -- হ্যাঁ, status লেখা, চেইন থামে --> D[Request আগেই শেষ<br/>handler আর চলে না]
+	C -- না, next ডাকে --> E{আরও middleware বাকি?}
+	E -- হ্যাঁ --> B
+	E -- না --> F[Route টেবিলের loop — প্রতি সারিতে<br/>method আর pattern regex]
+	F --> G{Route মিলেছে?}
+	G -- না --> H[404 — কোনো সারি মেলেনি<br/>error নয়, শুধু fallthrough]
+	G -- হ্যাঁ --> I[Capture group req.params-এ বসে<br/>handler চলে আর সাড়া দেয়]
+	J[চেইনে কোথাও error থ্রো হলে] --> K[Error middleware — err, req, res, next<br/>চার আর্গুমেন্ট, সবার শেষে বসানো]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

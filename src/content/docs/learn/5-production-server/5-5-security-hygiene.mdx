@@ -23,8 +23,21 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Request arrives with user input] --> B[Decode first — encoded dots count too]
+	B --> C[Path traversal guard<br/>resolve then startsWith webroot]
+	C --> D{Path stays under webroot?}
+	D -- no --> E[403 rejected before any fs call]
+	D -- yes --> F[Enforce the size limit]
+	F --> G[Auth: compare secret with timingSafeEqual<br/>no early exit, no timing leak]
+	G --> H{Lengths matched first?}
+	H -- no --> I[Constant-shape reject<br/>the throw would leak length]
+	H -- yes --> J[Security headers: nosniff, DENY, HSTS, CSP]
+	J --> K[Handler runs on least-privilege runtime<br/>fail-closed defaults]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>

@@ -23,8 +23,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Socket-এ খাঁটি TCP byte আসে] --> B[Parser request line আর<br/>ছোট-হাতের headers ভাগ করে]
+	B --> C{Malformed request?}
+	C -- হ্যাঁ --> D[clientError ইভেন্ট<br/>socket কাটা পড়ে]
+	C -- না --> E[Headers শেষ — req.url-এ শুধু<br/>path আর query, এর বেশি কিছু নয়]
+	E --> F[new URL path-query ভাগ করে<br/>searchParams নিজেই decode করে]
+	F --> G[Body chunk হয়ে stream করে<br/>req একটি readable stream]
+	G --> H{Size guard পার হয়েছে?}
+	H -- হ্যাঁ --> I[413 — upload মাঝপথে কাটা]
+	H -- না --> J[Chunk জোড়া, concat<br/>শেষে একবারই parse]
+	J --> K[end ইভেন্ট ফায়ার<br/>body ঠিক একবারই খরচ]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

@@ -23,8 +23,20 @@ import KeywordTable from '../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[JS calls fs, crypto, Buffer] --> B{Where does the call go?}
+	B -- core C++ binding --> C[Arguments cross the boundary — JS values to C types]
+	C --> D[Native code runs — often on the libuv thread pool]
+	D --> E[Result converted back to a JS value]
+	E --> F{Error inside native code?}
+	F -- yes --> G[Error thrown back across the boundary]
+	F -- no --> H[JS callback continues]
+	I[Addon loads at require — node-gyp compiled it] --> C
+	I --> J[N-API addon — stable ABI survives Node upgrades]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 2</span>

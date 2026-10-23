@@ -21,8 +21,24 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Node প্রসেস] --> B[V8 — আপনার JavaScript চালায়]
+	A --> C[libuv — event loop আর async I/O-এর মালিক]
+	A --> D[Node core API — fs http net]
+	D --> E[C++ bindings — V8 আর libuv-এর মাঝের আঠা]
+	E --> C
+	B --> F[এক main thread — প্রতিটি JS callback চলে এখানেই]
+	F --> G{Node single-threaded?}
+	G -- আপনার JavaScript --> H[হ্যাঁ — এক থ্রেডেই সব callback]
+	G -- পুরো প্রসেস --> I[না — V8 প্লাস libuv প্লাস OS থ্রেড]
+	C --> J[OS async I/O — socket ফাইল DNS]
+	J --> K[ইভেন্ট ফিরে আসে main thread-এ]
+	K --> F
+	F --> L[লেয়ারগুলো নিজেই দেখুন — process.versions.v8 ও versions.uv]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 1</span>

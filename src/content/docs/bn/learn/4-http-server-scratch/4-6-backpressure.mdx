@@ -24,8 +24,21 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[দ্রুত source ধীর sink-এ দেয়] --> B[write false ফেরায়<br/>বাফার highWaterMark পার করেছে]
+	B --> C{সংকেত সম্মান করা হয়?}
+	C -- না, লেখা চালিয়ে যাওয়া --> D[Chunk RAM-এ জমে<br/>writableLength ফুলে ওঠে]
+	D --> E[এক ধীর ক্লায়েন্টের response<br/>প্রতিটি ধীর ক্লায়েন্টে গুণ]
+	C -- হ্যাঁ, পড়া থামানো --> F[drain ইভেন্টের অপেক্ষা]
+	F --> G[drain ফায়ার — sink এঁটে উঠেছে]
+	G --> H[আবার লেখা — মেমরি highWaterMark-এর<br/>কাছেই আটকে]
+	H --> B
+	I[pipe readable-কে writable-এ জোড়ে] --> J[একই pause/resume নাচ<br/>আপনার হয়ে সামলানো]
+	I --> K[pipeline যোগ করে error propagation<br/>আর প্রতিটি ধাপ destroy করে]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 4</span>

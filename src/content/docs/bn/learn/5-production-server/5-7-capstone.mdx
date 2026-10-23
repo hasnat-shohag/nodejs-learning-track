@@ -24,8 +24,22 @@ import KeywordTable from '../../../../../components/content/KeywordTable.astro';
 import Pitfall from '../../../../../components/content/Pitfall.astro';
 import BuildExercise from '../../../../../components/content/BuildExercise.astro';
 import Attribution from '../../../../../components/content/Attribution.astro';
+import FlowChart from '../../../../../components/content/FlowChart.astro';
 
 <ReadingProgress />
+
+<FlowChart chart={`flowchart TD
+	A[Boot: pool worker উঠেছে, header চালু] --> B[Request এলো]
+	B --> C{কোন route?}
+	C -- static / --> D[ETag স্ট্যাম্প + Cache-Control]
+	D --> E{If-None-Match মেলে?}
+	E -- হ্যাঁ --> F[304, শূন্য body byte]
+	E -- না --> G[fresh body সহ 200]
+	C -- /file/* --> H[Traversal guard: resolve তারপর startsWith<br/>webroot-এর বাইরে 403-এ মরে]
+	H --> I[fs ফাইল serve করে]
+	C -- /hash --> J[CPU কাজ worker pool-এ<br/>reply route হয় job id দিয়ে]
+	J --> K[Main loop টিকটিক চালায়<br/>hash কখনোই এটাকে আটকায়নি]
+	B --> L[SIGTERM: server.close plus worker terminate<br/>পরিষ্কার exit, কোনো handle বাকি নেই]`} />
 
 <div class="lesson-meta">
 	<span class="lesson-badge">Domain 5</span>
