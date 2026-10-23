@@ -36,7 +36,7 @@ Two memory ceilings, two failure modes. The **stack** holds call frames, is capp
 
 <Pitfall title="--max-old-space-size caps OLD space only">
 	<p>
-		The flag does not cap the whole heap: new space (young generation), code space, and large-object space sit outside it — so a process with `--max-old-space-size=512` can legitimately use ~600MB RSS. Tune it from the <strong>old space</strong> number in `v8.getHeapSpaceStatistics()`, not from container RSS. And when raising it: if the growth is a leak, a bigger heap just delays the crash and lengthens the major-GC pauses.
+		The flag constrains the old-space budget, not the whole heap: new space (young generation), code space, and large-object space sit outside it — so a process with `--max-old-space-size=512` can legitimately use ~600MB RSS. And do not read `getHeapStatistics().heap_size_limit` as the old-space cap either: it is a heap-wide budget (at `--max-old-space-size=64` it prints ~112MB). Tune from the <strong>old_space</strong> row of `v8.getHeapSpaceStatistics()`, not from container RSS or the heap-wide limit. And when raising it: if the growth is a leak, a bigger heap just delays the crash and lengthens the major-GC pauses.
 	</p>
 </Pitfall>
 
@@ -48,7 +48,7 @@ Run the demo file for this lesson:
 node code/2-v8-memory-modules/2-2-heap-stack-limits/demo.js
 ```
 
-`[1]` recurses to `RangeError` at ~12.5k frames — caught, printed, process continues. `[2]` shows heap growth is just numbers moving until a limit. `[3]` spawns a child with `--max-old-space-size=64` and lets it die: the parent reports the SIGABRT signal and reads the child's stderr stacktrace — V8 frames naming the allocation site, not a JS `throw`. The contrast is the lesson: **stack overflow is an exception; heap exhaustion is a shutdown**.
+`[1]` recurses to `RangeError` at ~12.5k frames — caught, printed, process continues. `[2]` shows heap growth is just numbers moving until a limit — and prints `heap_size_limit`, a *heap-wide* budget, not the old-space cap. `[3]` spawns a child with `--max-old-space-size=64` and lets it die: the parent reports the SIGABRT signal and reads the child's OOM dump — a native C++ stack trace (`node::`/`v8::` symbols, no JS allocation site) plus "Last few GCs" lines that carry the actual pressure evidence. The contrast is the lesson: **stack overflow is an exception; heap exhaustion is a shutdown**.
 
 <BuildExercise
 	title="Diagnose an OOM you caused"

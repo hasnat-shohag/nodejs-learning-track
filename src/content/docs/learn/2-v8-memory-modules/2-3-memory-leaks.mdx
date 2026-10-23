@@ -31,7 +31,7 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-GC cannot free what it can reach, and "reachable" is the whole game. The three shapes that pin reachability in almost every Node leak: a **closure** captured into module state (a request map nobody prunes), a **timer** holding its scope alive, and a **listener** never removed — Node even warns at the 11th. This lesson builds the first and third, proves with GC-forced measurements which structure is a leak and which is bounded, and writes a **heap snapshot** you can open in DevTools to see the retainer edge itself.
+GC cannot free what it can reach, and "reachable" is the whole game. The three shapes that pin reachability in almost every Node leak: a **closure** captured into module state (a request map nobody prunes), a **timer** holding its scope alive, and a **listener** never removed — Node even warns at the 11th. This lesson builds the closure and listener shapes (the timer shape is the same reachability trick with a callback instead), proves with GC-forced measurements which structure is a leak and which is bounded, and writes a **heap snapshot** you can open in DevTools to see the retainer edge itself. One more trap worth knowing: `Buffer` backing stores live in *external* memory, outside `used_heap_size` — a buffer-heavy app can bleed megabytes the heap counter never shows (`external_memory` in `getHeapStatistics()` does).
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -49,7 +49,7 @@ Run the demo file for this lesson (note the flag):
 node --expose-gc code/2-v8-memory-modules/2-3-memory-leaks/demo.js
 ```
 
-`[1]` pins 40 payloads in a module-level Map: GC runs and the heap <em>stays</em> grown — 40 reachable, leak confirmed. `[2]` runs the same load into a 10-entry cache with eviction: 400 requests later the heap is back at baseline, because the map itself is bounded. `[3]` adds 12 listeners and lets Node's own `MaxListenersExceededWarning` call it out on stderr. `[4]` writes a `.heapsnapshot` to `/tmp` — open it in Chrome DevTools' Memory panel and the leaking Map appears with its retainer chain, which is the actual edge you must break.
+`[1]` pins 40 payloads in a module-level Map: GC runs and the heap <em>stays</em> grown — 40 reachable, leak confirmed. `[2]` runs the same load into a 10-entry cache with eviction: 400 requests later the heap is back at baseline, because the map itself is bounded. `[3]` adds 12 listeners and lets Node's own `MaxListenersExceededWarning` call it out on stderr. `[4]` re-pins the 40 payloads and *then* writes a `.heapsnapshot` to `/tmp` — captured while the leak is live, because a snapshot of a cleared map has nothing to retain. Open it in Chrome DevTools' Memory panel and the leaking Map appears with its retainer chain, which is the actual edge you must break. `[5]` allocates 200MB of Buffers: `used_heap_size` stays at ~11MB while `external_memory` climbs to ~200MB — the buffer trap in one line.
 
 <BuildExercise
 	title="Find the retainer, break the edge"

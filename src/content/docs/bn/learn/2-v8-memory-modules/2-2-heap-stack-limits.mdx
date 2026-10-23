@@ -37,7 +37,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 <Pitfall title="--max-old-space-size শুধু OLD space সীমিত করে">
 	<p>
-		ফ্ল্যাগটি পুরো heap সীমিত করে না: new space (young generation), code space আর large-object space এর বাইরে — তাই `--max-old-space-size=512`-এর প্রসেস বৈধভাবে ~৬০০MB RSS নিতে পারে। টিউন করুন `v8.getHeapSpaceStatistics()`-এর <strong>old space</strong> নম্বর থেকে, কন্টেইনারের RSS থেকে নয়। আর বাড়ানোর আগে ভাবুন: বৃদ্ধিটা লিক হলে বড় heap শুধু ক্র্যাশ দেরি করায় আর major-GC pause লম্বা করে।
+		ফ্ল্যাগটি পুরো heap নয়, old-space বাজেটটা সীমিত করে: new space (young generation), code space আর large-object space এর বাইরে — তাই `--max-old-space-size=512`-এর প্রসেস বৈধভাবে ~৬০০MB RSS নিতে পারে। আর `getHeapStatistics().heap_size_limit`-কেও old-space ক্যাপ ভেবে পড়বেন না: সেটা heap-ব্যাপী বাজেট (`--max-old-space-size=64`-এ সেটা ~১১২MB ছাপায়)। টিউন করুন `v8.getHeapSpaceStatistics()`-এর <strong>old_space</strong> রো থেকে, কন্টেইনারের RSS বা heap-ব্যাপী লিমিট থেকে নয়। আর বাড়ানোর আগে ভাবুন: বৃদ্ধিটা লিক হলে বড় heap শুধু ক্র্যাশ দেরি করায় আর major-GC pause লম্বা করে।
 	</p>
 </Pitfall>
 
@@ -49,7 +49,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 node code/2-v8-memory-modules/2-2-heap-stack-limits/demo.js
 ```
 
-`[1]` ~১২.৫ হাজার ফ্রেমে রিকার্স করে `RangeError` — ধরা হলো, ছাপা হলো, প্রসেস চলতেই থাকল। `[2]` দেখায় heap বৃদ্ধি মানে শুধু নম্বর বাড়া, একটা লিমিট পর্যন্ত। `[3]` `--max-old-space-size=64` দিয়ে একটি চাইল্ড চালিয়ে মরতে দেয়: প্যারেন্ট রিপোর্ট করে SIGABRT সিগন্যাল আর চাইল্ডের stderr স্ট্যাকট্রেস পড়ে — V8 ফ্রেমগুলো অ্যালোকেশন সাইটের নাম নেয়, JS `throw`-এর না। কনট্রাস্টটাই লেসন: **stack overflow একটি exception; heap exhaustion একটি শাটডাউন**।
+`[1]` ~১২.৫ হাজার ফ্রেমে রিকার্স করে `RangeError` — ধরা হলো, ছাপা হলো, প্রসেস চলতেই থাকল। `[2]` দেখায় heap বৃদ্ধি মানে শুধু নম্বর বাড়া, একটা লিমিট পর্যন্ত — আর ছাপায় `heap_size_limit`, একটা *heap-ব্যাপী* বাজেট, old-space ক্যাপ না। `[3]` `--max-old-space-size=64` দিয়ে একটি চাইল্ড চালিয়ে মরতে দেয়: প্যারেন্ট রিপোর্ট করে SIGABRT সিগন্যাল আর চাইল্ডের OOM ডাম্প পড়ে — একটা native C++ স্ট্যাকট্রেস (`node::`/`v8::` সিম্বল, কোনো JS অ্যালোকেশন সাইট নেই) সাথে "Last few GCs" লাইন, যেখানেই আসল চাপের প্রমাণ। কনট্রাস্টটাই লেসন: **stack overflow একটি exception; heap exhaustion একটি শাটডাউন**।
 
 <BuildExercise
 	title="নিজের ঘটানো OOM ডায়াগনোজ করুন"

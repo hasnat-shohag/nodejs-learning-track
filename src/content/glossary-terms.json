@@ -146,8 +146,8 @@
   },
   {
     "term": "ESM loader",
-    "defEn": "Node's ES module pipeline: resolve (extensions/folders per --experimental-specifier-resolution), load, parse, then link before any module body runs; top-level await supported.",
-    "defBn": "Node-এর ES মডিউল পাইপলাইন: resolve (extensions/folders), load, parse, তারপর যেকোনো মডিউল বডি চলার আগে link; top-level await সমর্থিত।",
+    "defEn": "Node's ES module pipeline: resolve (customizable via module customization hooks), load, parse, then link before any module body runs; top-level await supported.",
+    "defBn": "Node-এর ES মডিউল পাইপলাইন: resolve (module customization hooks দিয়ে কাস্টমাইজযোগ্য), load, parse, তারপর যেকোনো মডিউল বডি চলার আগে link; top-level await সমর্থিত।",
     "refs": [
       "https://nodejs.org/api/esm.html"
     ],

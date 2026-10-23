@@ -51,7 +51,7 @@ Run the demo file for this lesson:
 node code/2-v8-memory-modules/2-5-native-boundary/demo.js
 ```
 
-`[1]` prints `process.versions` — node, v8, uv, zlib, openssl — the C and C++ layers already inside your process. `[2]` runs `pbkdf2` at 1 vs 100,000 iterations: the same native call, whose work lands on the **thread pool** you met in Domain 1. `[3]` times 1M pure-JS calls against 1M `Buffer.byteLength` calls — each native call crosses the boundary, and the ~4x difference is the seam's price. The rule it buys: **batch work on one side**; do not ping-pong per item.
+`[1]` prints `process.versions` — node, v8, uv, zlib, openssl, and `napi` (the N-API level this Node supports) — the C and C++ layers already inside your process. `[2]` runs `pbkdf2` at 1 vs 100,000 iterations: the same native call, whose work lands on the **thread pool** you met in Domain 1. `[3]` times 1M pure-JS calls against 1M `Buffer.byteLength` calls — each native call crosses the boundary, and the difference is real but several-fold, not a fixed multiplier (machine- and call-dependent; `byteLength` on an existing Buffer view even takes a fast path). The honest rule it buys: **measure your own crossing, then batch work on one side**; do not ping-pong per item.
 
 <BuildExercise
 	title="Audit your own boundary"
@@ -60,7 +60,7 @@ node code/2-v8-memory-modules/2-5-native-boundary/demo.js
 	objectives={['Explain what N-API stabilizes and what node-gyp does', 'Recognize boundary cost in a hot loop']}
 	steps={[
 		{ title: 'Run the demo', why: 'See the native stack you already ship and its call cost.', expect: 'byteLength slower than pure JS per call; same output length keys for both pbkdf2 sizes.' },
-		{ title: 'Batch the crossing', why: 'Replace the per-call loop with one Buffer.concat + single byteLength.', expect: 'Time collapses — one crossing instead of a million.' },
+		{ title: 'Batch the crossing', why: 'Replace the per-call loop: one Buffer.concat, then a length sum (or a single byteLength of the whole).', expect: 'Time collapses — the length sum avoids even the one crossing; Buffer.concat plus one byteLength is the near twin.' },
 		{ title: 'List your addons', why: 'Run `npm ls` and spot native deps in your own projects.', expect: 'At least one (e.g. sharp) — check whether it ships prebuilds and which Node versions they cover.' },
 	]}
 />

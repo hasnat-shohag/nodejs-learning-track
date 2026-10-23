@@ -33,7 +33,7 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-`require()` is a cache lookup keyed by resolved filename — the second call returns the *same* exports object, and the cache is writable (`delete require.cache[...]` forces a reload). ES modules are a different machine: the loader **resolves and links the whole graph first**, then evaluates modules depth-first. Circulars break both systems, differently: CJS hands one side a **partial exports object** (with a warning), ESM **TDZ-throws** on a top-level read — but ESM bindings are *live*, so a read deferred to call time sees the current value. This lesson runs all four behaviors and shows where each system's escape hatch is.
+`require()` is a cache lookup keyed by resolved filename — the second call returns the *same* exports object, and the cache is writable (`delete require.cache[...]` forces a reload). ES modules are a different machine: the loader **resolves and links the whole graph first**, then evaluates modules depth-first. Circulars break both systems, differently: CJS hands one side a **partial exports object** (with a warning) — always, whichever side you enter from. ESM is subtler: a top-level circular read **TDZ-throws only when the reader module evaluates before the exporter**; entered the other way, the same read works. But ESM bindings are *live* in every order, so a read deferred to call time always sees the current value. This lesson runs all four behaviors and shows where each system's escape hatch is. (One more Node 22 fact worth knowing: `require()` of an ESM-only `.mjs` file now works without flags, quietly dissolving the "two systems, no bridge" confusion.)
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ Run the demo file for this lesson:
 node code/2-v8-memory-modules/2-4-module-internals/demo.js
 ```
 
-It writes real modules to a temp dir and exercises them: `[1]` two `require()` calls return the identical object — mutate one, both see it. `[2]` deletes the cache entry and re-requires: fresh state, different object. `[3]` a circular `require` where `second.cjs` sees `first.firstValue === undefined` — the half-built exports — plus Node's circular-dependency warning on stderr. `[4]` the same cycle in ESM: a top-level read would TDZ-throw, but a read inside a function called *after* evaluation returns the live value. Check stderr for both warnings; they are the systems telling on themselves.
+It writes real modules to a temp dir and exercises them: `[1]` two `require()` calls return the identical object — mutate one, both see it. `[2]` deletes the cache entry and re-requires: fresh state, different object. `[3]` a circular `require` where `second.cjs` sees `first.firstValue === undefined` — the half-built exports — plus Node's circular-dependency warning on stderr. `[4]` the same cycle in ESM, entered from *both sides* in separate child processes: via the reader's entry, the exporter evaluates first and the top-level read is fine; via the exporter's entry, the reader evaluates first and the same read throws `ReferenceError: Cannot access 'aValue' before initialization` — then a call-time read returns the live value in both orders. Check stderr for both warnings; they are the systems telling on themselves.
 
 <BuildExercise
 	title="Break the cache, survive the cycle"
@@ -61,7 +61,7 @@ It writes real modules to a temp dir and exercises them: `[1]` two `require()` c
 	steps={[
 		{ title: 'Run the demo', why: 'See cache identity, eviction, and both circular behaviors.', expect: 'a === b true; c fresh; second sees undefined; readB() live.' },
 		{ title: 'Break [1] on purpose', why: 'Evict the cache between calls, confirm state resets.', expect: 'Same file, new object — module state is per-cache-entry, not per-file.' },
-		{ title: 'Fix the [3] cycle', why: 'Reorder requires so second loads fully first.', expect: 'Both values defined — but note the fix is structural; the warning is your real signal.' },
+		{ title: 'Fix the [3] cycle', why: 'Reordering cannot fix an eager two-way CJS cycle — whichever side loads first, the other still sees a partial object. Make the access lazy instead: a getter, or require inside the function that needs it.', expect: 'Both sides see defined values — lazy access is the actual fix pattern for CJS cycles.' },
 	]}
 />
 

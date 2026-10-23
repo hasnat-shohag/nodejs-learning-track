@@ -5,17 +5,22 @@
 //   [1] require() returns the SAME exports object twice (module cache)
 //   [2] deleting require.cache[...] forces a reload: fresh object
 //   [3] circular require: partial exports (the half-built object)
-//   [4] ESM circular: top-level read TDZ-throws; a read inside a function
-//       called later works — bindings are LIVE, values resolve at call time
+//   [4] ESM circular: top-level read TDZ-throws ONLY when the reader
+//       module evaluates before the exporter; entered the other way the
+//       same read works. A read inside a function called later works in
+//       both orders — bindings are LIVE, values resolve at call time
 //
 // CommonJS caches by resolved filename; ES modules link first, evaluate
 // later, and export live bindings. Circulars break both — CJS truncates,
-// ESM TDZ-throws — unless the read is deferred to call time.
+// ESM TDZ-throws on reader-first order — unless the read is deferred to
+// call time.
 
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -53,29 +58,52 @@ writeFileSync(join(dir, 'second.cjs'), `
 `);
 require(join(dir, 'first.cjs'));
 
-// [4] ESM circular import: let-bindings TDZ-throw exactly like CJS
-// truncates — but reading them inside a FUNCTION called later works,
-// because bindings are live: the function reads the CURRENT value.
-console.log('[4] ESM circular import — TDZ at eval time, live at call time:');
+// [4] ESM circular import: whether a top-level read TDZ-throws depends on
+// WHICH module evaluates first — the reader or the exporter. Enter the cycle
+// from the reader (b): a evaluates first, b's top-level read works. Enter
+// from a: b's top-level read runs while aValue is still in TDZ → throws.
+// A read inside a FUNCTION called later works in both orders — bindings are
+// LIVE, values resolve at call time. Each entry runs in its OWN child node
+// process: the module cache of this demo process would otherwise make the
+// second entry see the cycle already evaluated.
+console.log('[4] ESM circular import — TDZ depends on eval order; deferred reads are live:');
 writeFileSync(join(dir, 'a.mjs'), `
 	import { readB } from './b.mjs';
 	export let aValue = 'A';
-	console.log('  [a.mjs] evaluating; readB() deferred:', typeof readB);
+	console.log('  [a.mjs] evaluated, aValue =', aValue);
 `);
 writeFileSync(join(dir, 'b.mjs'), `
 	import { aValue } from './a.mjs'; // circular edge
 	export function readB() { return 'b sees aValue = ' + aValue; } // read at CALL time: live binding
-	// reading aValue HERE (top level) would TDZ-throw — a.mjs has not run yet
+	console.log('  [b.mjs] top-level read of aValue:', aValue); // TDZ only if b evaluates FIRST
 `);
-const root = join(dir, 'root.mjs');
-writeFileSync(root, `
+const runNode = async (arg) => {
+	try {
+		const { stdout } = await promisify(execFile)('node', [arg], { cwd: dir });
+		return { ok: true, out: stdout.trim() };
+	} catch (err) {
+		return { ok: false, out: err.stderr.split('\n')[0] };
+	}
+};
+writeFileSync(join(dir, 'viaB.mjs'), `await import('./b.mjs');`); // b → a → back to b: a ran first, no TDZ
+writeFileSync(join(dir, 'viaA.mjs'), `await import('./a.mjs');`); // a → b → back to a: b runs first, TDZ
+const rB = await runNode('viaB.mjs');
+console.log(rB.out);
+console.log('  → entered via b: a evaluated first, top-level read fine — no TDZ');
+const rA = await runNode('viaA.mjs');
+console.log('  → entered via a: ReferenceError:', rA.out.slice(0, 48) + '…');
+console.log('    reader evaluated before exporter → the binding was still in TDZ');
+// deferred read works regardless of entry order
+writeFileSync(join(dir, 'deferred.mjs'), `
 	const { readB } = await import('./b.mjs');
 	await import('./a.mjs');
-	console.log('  [root] readB() AFTER both modules evaluated:', readB());
-	console.log('  — b.mjs read aValue live: no truncation, no TDZ, because the read happened at call time');
+	console.log('  [deferred] readB() AFTER both evaluated:', readB());
 `);
-await import(pathToFileURL(root).href);
+const rD = await runNode('deferred.mjs');
+console.log(rD.out);
+console.log('  — call-time read: no truncation, no TDZ, the binding was live');
 
 console.log('--- key idea ---');
 console.log('CJS: circular require hands one side a partial exports object (warning above).');
-console.log('ESM: circular top-level reads TDZ-throw; deferred reads are live — design for the latter.');
+console.log('ESM: a top-level circular read TDZ-throws only when the reader evaluates first;');
+console.log('     deferred reads are live in every order — design for the latter.');

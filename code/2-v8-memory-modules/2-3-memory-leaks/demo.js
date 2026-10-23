@@ -11,7 +11,10 @@
 //   [1] leak: 40 requests pin 40 payloads in a module Map
 //   [2] bounded: same load, 10-entry cache — heap returns to baseline
 //   [3] listener leak: MaxListenersExceededWarning on stderr at the 11th
-//   [4] heap snapshot written to /tmp — open in DevTools for retainer paths
+//   [4] heap snapshot written to /tmp (with the leak still pinned) — open
+//       in DevTools for retainer paths
+//   [5] Buffer backing stores live in EXTERNAL memory — used_heap_size
+//       never shows them
 //
 // Three classic leaks: a closure pinned in module state, a timer capturing
 // scope, an event listener never removed. Each is "an object GC can still
@@ -54,7 +57,8 @@ function handleBounded(id) {
 	cache.set(id, { big });
 	if (cache.size > 10) cache.delete(cache.keys().next().value); // evict oldest
 }
-requests.clear(); // release [1]'s objects
+
+requests.clear(); // release [1]'s payloads so [2] can prove its own baseline
 await settle();
 const base2 = used();
 for (let i = 0; i < 400; i++) handleBounded(i);
@@ -72,9 +76,20 @@ console.log(`  listenerCount: ${bus.listenerCount('ping')} — check stderr for 
 bus.removeAllListeners('ping');
 console.log('  after removeAllListeners: leak gone');
 
-// [4] snapshot: write one, point at it
+// [4] snapshot: rebuild the leak, THEN write — a snapshot after the clear
+// would hold nothing to retain, and the payloads would be invisible
+for (let i = 0; i < 40; i++) handleRequest(i); // re-pin 40 payloads
+await settle();
 const file = writeHeapSnapshot(join(tmpdir(), 'leaks-demo.heapsnapshot'));
-console.log(`[4] heap snapshot written: ${file}`);
+console.log(`[4] heap snapshot written: ${file} (leak Map holding ${requests.size} entries at capture time)`);
 console.log('  open in Chrome DevTools → Memory → find retainer paths for the Map above');
+requests.clear();
+// [5] buffers live OUTSIDE used_heap_size — external memory, the counter
+// heap readings never show
+const ext0 = getHeapStatistics().external_memory;
+const bufs = Array.from({ length: 40 }, () => Buffer.alloc(5 * 1024 * 1024, 1)); // 200MB
+const hs = getHeapStatistics();
+console.log(`[5] buffer trap: 200MB of Buffers → used_heap ${ (hs.used_heap_size / MB).toFixed(0)}MB, external ${(hs.external_memory / MB).toFixed(0)}MB (was ${(ext0 / MB).toFixed(0)}MB)`);
+console.log('  Buffer backing stores are external memory — a buffer-heavy leak is invisible to used_heap_size');
 console.log('--- key idea ---');
 console.log('A leak is reachable-but-useless. Find WHO retains it (retainers panel), then break that edge.');

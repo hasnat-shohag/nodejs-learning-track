@@ -3,8 +3,8 @@
 // Expected output:
 //
 //   [1] stack depth before RangeError: ~10-12k frames (V8 stack, not heap)
-//   [2] heap before OOM with --max-old-space-size=64: dies near 64MB
-//   [3] heap stats printed before/after growth
+//   [2] heap stats before/after growth + heap_size_limit (a heap-wide budget)
+//   [3] child with --max-old-space-size=64 dies: SIGABRT + OOM dump on stderr
 //
 // The stack holds frames and has a fixed depth limit; the heap holds objects
 // and has a tunable size cap. Blowing the stack throws RangeError (catchable);
@@ -48,9 +48,11 @@ try {
 	const oom = lines.find((l) => l.includes('heap out of memory'));
 	console.log(`  child signal: ${err.signal ?? 'none'} — heap exhaustion aborts the process, no exception to catch`);
 	console.log(`  stderr says: ${oom ? '"JavaScript heap out of memory"' : '(no OOM line found)'}`);
-	console.log(`  stacktrace frames: ${lines.filter((l) => /^\s+\d+:/.test(l)).length} — the allocation site, not a JS frame`);
+	const gcLines = lines.filter((l) => l.includes('Last few GCs')).length;
+	console.log(`  native frames: ${lines.filter((l) => /^\s+\d+:/.test(l)).length} (node::/v8:: symbols — allocation evidence is in the`);
+	console.log(`  "Last few GCs" lines above them (${gcLines} found) — the stack is C++, not a JS throw site`);
 }
 
 console.log('--- key idea ---');
 console.log('Stack overflow throws; heap exhaustion kills. Size the heap with --max-old-space-size,');
-console.log('read the OOM stacktrace for what was allocating, and cap request sizes upstream.');
+console.log('read the OOM dump — GC history names the pressure, the native trace names the allocator path.');
