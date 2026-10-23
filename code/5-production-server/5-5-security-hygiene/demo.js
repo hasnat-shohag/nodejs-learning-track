@@ -4,7 +4,7 @@
 //
 //   [1] === on secrets leaks: timing a token check over 10k tries
 //       shows early-exit behavior (mismatch position → time grows)
-//   [2] Buffer.timingSafeEqual: same comparisons, flat time —
+//   [2] crypto.timingSafeEqual: same comparisons, flat time —
 //       no position signal to exploit
 //   [3] security headers: one middleware line each, sent and shown
 //   [4] path traversal: raw join escapes the webroot; the guard

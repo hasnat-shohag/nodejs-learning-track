@@ -553,10 +553,10 @@
   },
   {
     "term": "timing-safe compare",
-    "defEn": "Comparing secrets so the time taken does not leak where the bytes differed. Buffer.timingSafeEqual does constant-time comparison; === on attacker-controlled strings is a side channel.",
-    "defBn": "এমনভাবে secret মেলানো যেন সময় থেকে কোথায় byte আলাদা ছিল সেটা লিক না হয়। Buffer.timingSafeEqual constant-time তুলনা করে; attacker-নিয়ন্ত্রিত string-এ === মানে side channel।",
+    "defEn": "Comparing secrets so the time taken does not leak where the bytes differed. crypto.timingSafeEqual does constant-time comparison; === on attacker-controlled strings is a side channel.",
+    "defBn": "এমনভাবে secret মেলানো যেন সময় থেকে কোথায় byte আলাদা ছিল সেটা লিক না হয়। crypto.timingSafeEqual constant-time তুলনা করে; attacker-নিয়ন্ত্রিত string-এ === মানে side channel।",
     "refs": [
-      "https://nodejs.org/api/buffer.html#buffertimingsafeequala-b"
+      "https://nodejs.org/api/crypto.html#cryptotimingsafeequala-b"
     ],
     "domain": 5
   },

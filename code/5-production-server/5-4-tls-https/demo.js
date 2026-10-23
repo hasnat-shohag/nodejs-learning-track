@@ -72,7 +72,7 @@ process.on('exit', () => { rmSync(keyFile, { force: true }); rmSync(certFile, { 
 		console.log(`  status ${reply.statusCode}, protocol ${protocol}, body: "${body}"`);
 		console.log('  certificate verified against the CA, HTTP over the encrypted channel');
 	}
-	// [2] contrast: same content over plain http
+	// [2] contrast: the same exchange over plain http (body tagged 'insecure')
 	const plain = http.createServer((req, res) => { res.end('insecure hello'); });
 	await new Promise((r) => plain.listen(0, '127.0.0.1', r));
 	const p = await new Promise((resolve, reject) => {

@@ -34,7 +34,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-Naive secret compare byte 0 দেখে প্রথম mismatch-এ থেমে যায় — তাই real token-এর প্রথম ১১ byte মেলে এমন guess বাদ দিতে যেটা byte 0-এ ব্যর্থ হয় তার চেয়ে মাপার মত বেশি সময় নেয়। ডেমো প্রতি position-এ ১০,০০০ compare সময় মাপে, আর লম্বা-prefix guess চলে ~৪৬% বেশি সময়: gradient-টাই leak, আর attacker পড়ে এক byte এক byte করে পুরো token তুলে নেয়। `crypto.timingSafeEqual(a, b)` — খেয়াল: `crypto`-তে, `Buffer`-এ নয় — প্রতিটি byte শর্তহীন তুলনা করে, আর একই sweep মাপে সমতল। **Security header** মানে সার্ভার browser-কে বলছে নিজে কীভাবে জামিন দেবে, চার লাইন: `x-content-type-options: nosniff` (MIME অনুমান নিষেধ), `x-frame-options: DENY` (clickjacking frame নিষেধ), `strict-transport-security` (http downgrade নিষেধ), `content-security-policy: default-src 'self'` (rogue script নিষেধ)। **Path traversal** হলো `join(webroot, '../../etc/passwd')` — `join` জোড়ে, আর dot-এ বেরিয়ে যায়; guard হলো `resolve()` (dot সরিয়ে normalize করে) তারপর `startsWith(webroot + sep)` — কোনো fs কলের *আগে*, রুটের নিচে না থাকলে null। Input decode করুন guard-এর *আগে* — encode করা dot-ও dot। Proxy-র পেছনে আরেকটা hygiene: **X-Forwarded-For** বহন করে proxy-দেখা client IP; বিশ্বাস করুন শুধু নিজের proxy tier থেকে, কাঁচা কখনো নয়।
+Naive secret compare byte 0 দেখে প্রথম mismatch-এ থেমে যায় — তাই real token-এর প্রথম ১১ byte মেলে এমন guess বাদ দিতে যেটা byte 0-এ ব্যর্থ হয় তার চেয়ে মাপার মত বেশি সময় নেয়। ডেমো প্রতি position-এ ১০,০০০ compare সময় মাপে, আর লম্বা-prefix guess চলে মাপার মত বেশি সময় — কত শতাংশ মেশিনভেদে; ডেমো নিজের মাপা মান ছাপে: gradient-টাই leak, আর attacker পড়ে এক byte এক byte করে পুরো token তুলে নেয়। `crypto.timingSafeEqual(a, b)` — খেয়াল: `crypto`-তে, `Buffer`-এ নয় — প্রতিটি byte শর্তহীন তুলনা করে, আর একই sweep মাপে সমতল। **Security header** মানে সার্ভার browser-কে বলছে নিজে কীভাবে জামিন দেবে, চার লাইন: `x-content-type-options: nosniff` (MIME অনুমান নিষেধ), `x-frame-options: DENY` (clickjacking frame নিষেধ), `strict-transport-security` (http downgrade নিষেধ), `content-security-policy: default-src 'self'` (rogue script নিষেধ)। **Path traversal** হলো `join(webroot, '../../etc/passwd')` — `join` জোড়ে, আর dot-এ বেরিয়ে যায়; guard হলো `resolve()` (dot সরিয়ে normalize করে) তারপর `startsWith(webroot + sep)` — কোনো fs কলের *আগে*, রুটের নিচে না থাকলে null। Input decode করুন guard-এর *আগে* — encode করা dot-ও dot। Proxy-র পেছনে আরেকটা hygiene: **X-Forwarded-For** বহন করে proxy-দেখা client IP; বিশ্বাস করুন শুধু নিজের proxy tier থেকে, কাঁচা কখনো নয়।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -52,7 +52,7 @@ Naive secret compare byte 0 দেখে প্রথম mismatch-এ থেম�
 node code/5-production-server/5-5-security-hygiene/demo.js
 ```
 
-ছাপে: `[1]` early-exit compare-এর timing gradient — byte 0 বনাম byte 11 mismatch, লম্বা prefix-এ ~৪৬% বেশি; `[2]` `timingSafeEqual`-এ একই sweep — সমতল, plus length-mismatch throw আর কেন আগে length স্ক্রিন করবেন; `[3]` চার security header যেমন পাঠানো, তাদের মানে; `[4]` `join` webroot ছাড়িয়ে যাচ্ছে, আর resolve-plus-startsWith guard একই path-এ null দিচ্ছে।
+ছাপে: `[1]` early-exit compare-এর timing gradient — byte 0 বনাম byte 11 mismatch, লম্বা prefix-এ মাপার মত বেশি সময় (শতাংশ মেশিনভেদে); `[2]` `timingSafeEqual`-এ একই sweep — সমতল, plus length-mismatch throw আর কেন আগে length স্ক্রিন করবেন; `[3]` চার security header যেমন পাঠানো, তাদের মানে; `[4]` `join` webroot ছাড়িয়ে যাচ্ছে, আর resolve-plus-startsWith guard একই path-এ null দিচ্ছে।
 
 <BuildExercise
 	title="নিজের handler audit করুন"

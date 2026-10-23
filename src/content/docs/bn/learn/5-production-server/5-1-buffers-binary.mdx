@@ -39,7 +39,7 @@ JS string হলো *character*-এর সিকোয়েন্স; runtime-�
 
 <Pitfall title="allocUnsafe-র content undefined — এটা optimization, ডিফল্ট নয়">
 	<p>
-		`Buffer.alloc(n)` জিরো করা ঠিকায়া দেয়। `Buffer.allocUnsafe(n)` দেয় pooled মেমরি যার content *undefined* — যা ছিল, তা-ই আছে। না পড়ে আগে প্রতিটি byte লিখুন, নাহলে অন্য request-এর ডেটা আপনার response-এ লিক হতে পারে। ডেমোতে এটা জিরো ফিরেছিল — সেটা ভাগ্য, ওয়াদা নয়। Profiling প্রমাণ না করা পর্যন্ত `alloc`-ই ব্যবহার করুন।
+		`Buffer.alloc(n)` জিরো করেই দেয়। `Buffer.allocUnsafe(n)` দেয় pooled মেমরি যার content *undefined* — যা ছিল, তা-ই আছে। না পড়ে আগে প্রতিটি byte লিখুন, নাহলে অন্য request-এর ডেটা আপনার response-এ লিক হতে পারে। ডেমোতে এটা জিরো ফিরেছিল — সেটা ভাগ্য, ওয়াদা নয়। Profiling প্রমাণ না করা পর্যন্ত `alloc`-ই ব্যবহার করুন।
 	</p>
 </Pitfall>
 

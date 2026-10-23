@@ -33,7 +33,7 @@ import Attribution from '../../../../../components/content/Attribution.astro';
 
 ## এই লেসনে যা শিখবেন
 
-Plain HTTP identity আর content একেবারে খোলা পাঠায় — পথের যে কেউ দুটোই পড়ে আর বদলায়। **TLS** ঠিক এটাই ঠিক করে, দুই চালে: *certificate* দিয়ে server প্রমাণ করে সে কে, আর *handshake*-এ দুই পাশ বানায় shared secret যার byte কখনো wire পার হয় না। এরপর HTTP অপরিবর্তিত চলে encrypted চ্যানেলে — একই method, একই header, একই `IncomingMessage`/`ServerResponse` object, তাই `https.createServer` মানে `http.createServer` plus `key` আর `cert` option। ডেমো trust মডেল চোখে দেখায়: আপনার CA *ছাড়া* client self-signed certificate reject করে যেকোনো HTTP-এর আগেই — `DEPTH_ZERO_SELF_SIGNED_CERT` — আর সেই reject মানে সিস্টেম *কাজ করছে*; আগে identity, পরে কথা। CA option সহ client chain verify করে দুই দিকেই `TLSv1.3` বলে। Production-এ self-sign জায়গায় বসে আসল certificate authority (Let-এর Encrypt) — server code বদলায় না, শুধু জামিনদার।
+Plain HTTP identity আর content একেবারে খোলা পাঠায় — পথের যে কেউ দুটোই পড়ে আর বদলায়। **TLS** ঠিক এটাই ঠিক করে, দুই চালে: *certificate* দিয়ে server প্রমাণ করে সে কে, আর *handshake*-এ দুই পাশ বানায় shared secret যার byte কখনো wire পার হয় না। এরপর HTTP অপরিবর্তিত চলে encrypted চ্যানেলে — একই method, একই header, একই `IncomingMessage`/`ServerResponse` object, তাই `https.createServer` মানে `http.createServer` plus `key` আর `cert` option। ডেমো trust মডেল চোখে দেখায়: আপনার CA *ছাড়া* client self-signed certificate reject করে যেকোনো HTTP-এর আগেই — `DEPTH_ZERO_SELF_SIGNED_CERT` — আর সেই reject মানে সিস্টেম *কাজ করছে*; আগে identity, পরে কথা। CA option সহ client chain verify করে দুই দিকেই `TLSv1.3` বলে। Production-এ self-sign জায়গায় বসে আসল certificate authority (Let's Encrypt) — server code বদলায় না, শুধু জামিনদার।
 
 <KeywordTable keywords={frontmatter.keywords} />
 
@@ -51,7 +51,7 @@ Plain HTTP identity আর content একেবারে খোলা পাঠ�
 node code/5-production-server/5-4-tls-https/demo.js
 ```
 
-ছাপে: `[1]` openssl বানাচ্ছে self-signed key + certificate জোড়া, subject আর SAN সহ; `[2]` তার ওপর server, আর CA ছাড়া client REFUSED — self-signed মানে *ডিফল্টে* untrusted; `[3]` CA option সহ client যুক্ত হচ্ছে: status 200, protocol `TLSv1.3`, verified চ্যানেলে body — পাশে একই content plain http-তে, identity নেই, encryption নেই।
+ছাপে: `[1]` openssl বানাচ্ছে self-signed key + certificate জোড়া, subject আর SAN সহ; `[2]` তার ওপর server, আর CA ছাড়া client REFUSED — self-signed মানে *ডিফল্টে* untrusted; `[3]` CA option সহ client যুক্ত হচ্ছে: status 200, protocol `TLSv1.3`, verified চ্যানেলে body — পাশে একই exchange plain http-তে (body-তে `insecure` লেখা), identity নেই, encryption নেই।
 
 <BuildExercise
 	title="প্যাডলক চালু করুন"

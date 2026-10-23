@@ -3,13 +3,14 @@
 // Expected output (numbers vary):
 //
 //   [1] monitorEventLoopDelay samples the gap between loop turns;
-//       a 70ms blocking fs sync stall shows up as a delay spike,
-//       normal turns stay ~0-1ms
-//   [2] the same stall seen through the event-loop "tick" lens:
-//       a setTimeout(50) fires LATE by the stall size — the delay
-//       IS the stall; timers are loop turns like any other
-//   [3] a 60s no-activity window with zero delay samples would look
-//       healthy — so also watch the timer drift, the honest signal
+//       a ~90ms blocking pbkdf2Sync call shows up as a delay spike
+//       (max ≈ the stall), normal turns stay ~0-1ms
+//   [2] the same stall seen through the timer lens: a 20ms
+//       setInterval's largest gap ≈ block + one elapsed interval —
+//       the delay IS the stall; timers are loop turns like any other
+//   [3] the prod checklist from inside the process: rss/heapUsed
+//       for leak candidates, --inspect/SIGUSR1 for a live debugger,
+//       heap snapshot when rss climbs
 //
 // Production servers fail by going quiet or slow, not by crashing.
 // The two built-in instruments: perf_hooks can measure loop delay
@@ -22,7 +23,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 // [1] monitorEventLoopDelay: histogram of loop turn gaps
 {
 	console.log('[1] monitorEventLoopDelay:');
-	const h = monitorEventLoopDelay({ resolution: 1 }); // sample every 1ms — coarse settings miss spikes
+	const h = monitorEventLoopDelay({ resolution: 1 }); // sample every 1ms
 	h.enable();
 	await sleep(30); // some quiet turns first
 	const t0 = performance.now();
@@ -33,7 +34,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
 	console.log(`  blocking call held the loop for ${stall.toFixed(0)}ms`);
 	const ms = (ns) => (ns / 1e6).toFixed(1);
 	console.log(`  delay max ${ms(h.max)}ms (mean ${ms(h.mean)}ms) — the stall, as the loop felt it`);
-	console.log('  resolution matters: a 5ms sample interval can make this same stall look tiny');
+	console.log('  two ways to blind this instrument: disable() before the next loop turn samples the gap (max stays ~0),');
+	console.log('  or a resolution coarser than the stall (e.g. 100ms for a 90ms block) — the gap never fits a sample');
 }
 
 // [2] the stall from the timer side: drift = delay
@@ -61,7 +63,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 	console.log(`  rss ${(mu.rss / 1e6).toFixed(0)}MB, heapUsed ${(mu.heapUsed / 1e6).toFixed(0)}MB — rss creeping up across deploys = leak candidate`);
 	console.log(`  uptime ${process.uptime().toFixed(0)}s; process.report gives a full dump on demand`);
 	console.log('  --inspect (or SIGUSR1 on Linux) attaches a debugger to a live process — last resort, never routine');
-	console.log('  heap snapshot: node --heapsnapshot-signal=SIGUSR2 or writeHeapSnapshot() from inspector when rss climbs');
+	console.log('  heap snapshot: node --heapsnapshot-signal=SIGUSR2 or v8.writeHeapSnapshot() when rss climbs');
 }
 
 console.log('--- key idea ---');

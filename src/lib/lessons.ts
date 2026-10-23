@@ -36,13 +36,13 @@ export const LESSONS: LessonMeta[] = [
 	{ id: '4-5', domain: 4, slug: '4-5-streams', titleEn: 'Streams: Readable/Writable/Duplex/Transform, object mode', titleBn: 'স্ট্রিম: Readable/Writable/Duplex/Transform, অবজেক্ট মোড' },
 	{ id: '4-6', domain: 4, slug: '4-6-backpressure', titleEn: 'Backpressure: pipe, highWaterMark, .write() === false', titleBn: 'ব্যাকপ্রেশার: pipe, highWaterMark, .write() === false' },
 
-	{ id: '5-1', domain: 5, slug: '5-1-buffers', titleEn: 'Buffers & binary data: pool, TypedArray views, encoding', titleBn: 'Buffer ও বাইনারি ডেটা: পুল, TypedArray ভিউ, এনকোডিং' },
-	{ id: '5-2', domain: 5, slug: '5-2-file-uploads', titleEn: 'File uploads: multipart parse, streaming to disk', titleBn: 'ফাইল আপলোড: multipart পার্স, ডিস্কে স্ট্রিমিং' },
-	{ id: '5-3', domain: 5, slug: '5-3-static-server', titleEn: 'Static file server: ETag, Cache-Control, MIME, ranges', titleBn: 'স্ট্যাটিক ফাইল সার্ভার: ETag, Cache-Control, MIME, রেঞ্জ' },
-	{ id: '5-4', domain: 5, slug: '5-4-tls-server', titleEn: 'TLS server: node:https, self-signed cert demo', titleBn: 'TLS সার্ভার: node:https, সেলফ-সাইনড সার্টিফিকেট ডেমো' },
-	{ id: '5-5', domain: 5, slug: '5-5-server-security', titleEn: 'Security: timing-safe compare, header hygiene, limits', titleBn: 'সিকিউরিটি: timing-safe তুলনা, হেডার হাইজিন, লিমিট' },
-	{ id: '5-6', domain: 5, slug: '5-6-diagnostics', titleEn: 'Diagnostics: --inspect, perf_hooks, flamegraphs', titleBn: 'ডায়াগনস্টিকস: --inspect, perf_hooks, ফ্লেমগ্রাফ' },
-	{ id: '5-7', domain: 5, slug: '5-7-capstone', titleEn: 'Capstone: static server + worker pool for image resize', titleBn: 'ক্যাপস্টোন: স্ট্যাটিক সার্ভার + ইমেজ রিসাইজের ওয়ার্কার পুল' },
+	{ id: '5-1', domain: 5, slug: '5-1-buffers-binary', titleEn: 'Buffers and binary: bytes, encodings, and the ArrayBuffer under everything', titleBn: 'Buffer আর binary: বাইট, encoding, আর সবকিছুর নিচের ArrayBuffer' },
+	{ id: '5-2', domain: 5, slug: '5-2-streaming-uploads', titleEn: 'Streaming uploads: big bodies, flat memory', titleBn: 'Streaming upload: বড় body, সমতল মেমরি' },
+	{ id: '5-3', domain: 5, slug: '5-3-static-server-caching', titleEn: 'Static serving and caching: ETag stamps, Cache-Control policy, 304 saves the wire', titleBn: 'Static serving আর caching: ETag স্ট্যাম্প, Cache-Control নীতি, 304 wire বাঁচায়' },
+	{ id: '5-4', domain: 5, slug: '5-4-tls-https', titleEn: 'TLS and HTTPS: certificate identity, the handshake, and encrypted HTTP', titleBn: 'TLS আর HTTPS: certificate identity, handshake, আর encrypted HTTP' },
+	{ id: '5-5', domain: 5, slug: '5-5-security-hygiene', titleEn: 'Security hygiene: timing-safe compares, browser headers, and the path guard', titleBn: 'Security hygiene: timing-safe compare, browser header, আর path guard' },
+	{ id: '5-6', domain: 5, slug: '5-6-diagnostics', titleEn: 'Diagnostics: loop delay as the honest health metric, --inspect for the deep end', titleBn: 'Diagnostics: loop delay-ই সৎ health metric, গভীর জায়গায় --inspect' },
+	{ id: '5-7', domain: 5, slug: '5-7-capstone', titleEn: 'Capstone: a production-shaped server — routes, cache, guard, pool, shutdown', titleBn: 'Capstone: production-আকৃতির সার্ভার — route, cache, guard, pool, shutdown' },
 ];
 
 export const TOTAL_LESSONS = LESSONS.length;

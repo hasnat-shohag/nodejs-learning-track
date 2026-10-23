@@ -50,7 +50,7 @@ Run the demo file for this lesson:
 node code/5-production-server/5-4-tls-https/demo.js
 ```
 
-It prints: `[1]` openssl producing a self-signed key + certificate pair with subject and SANs; `[2]` the server on it, and a client with no CA refused — self-signed means untrusted *by default*; `[3]` the client with the CA option connecting: status 200, protocol `TLSv1.3`, body flowing over the verified channel — next to the same content over plain http with no identity and no encryption.
+It prints: `[1]` openssl producing a self-signed key + certificate pair with subject and SANs; `[2]` the server on it, and a client with no CA refused — self-signed means untrusted *by default*; `[3]` the client with the CA option connecting: status 200, protocol `TLSv1.3`, body flowing over the verified channel — next to the same exchange over plain http (body tagged `insecure`), with no identity and no encryption.
 
 <BuildExercise
 	title="Turn on the padlock"

@@ -39,7 +39,7 @@ Caching আপনার সার্ভার আর browser-এর চুক্
 
 <Pitfall title="যে byte আসলে পাঠান, সেটাই স্ট্যাম্প করুন">
 	<p>
-		Disk-এর *ফাইল থেকে* হিসাব করা ETag মিথ্যা বলে যেই মুহূর্তে আপনি পাঠানোর আগে transform করেন — gzip, templating, partial content। ভুল স্ট্যাম্প মানে আলাদা body-র জন্য 304, আর browser আপনার আশীর্বাদ নিয়ে stale byte সার্ভ করে। Hash করুন সেই ঠিকায়া Buffer যেটা সার্ভার ছেড়ে যায়, আর response বদলাতে পারলে (compression অন/অফ, language negotiation) নতুন করে হিসাব করুন।
+		Disk-এর *ফাইল থেকে* হিসাব করা ETag মিথ্যা বলে যেই মুহূর্তে আপনি পাঠানোর আগে transform করেন — gzip, templating, partial content। ভুল স্ট্যাম্প মানে আলাদা body-র জন্য 304, আর browser আপনার আশীর্বাদ নিয়ে stale byte সার্ভ করে। Hash করুন ঠিক সেই Buffer যেটা সার্ভার ছেড়ে যায়, আর response বদলাতে পারলে (compression অন/অফ, language negotiation) নতুন করে হিসাব করুন।
 	</p>
 </Pitfall>
 

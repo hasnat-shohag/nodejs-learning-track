@@ -32,13 +32,13 @@ import Attribution from '../../../../components/content/Attribution.astro';
 
 ## What you will learn
 
-`monitorEventLoopDelay()` from **perf_hooks** returns a histogram that samples the gap between loop turns — the true latency of the process, as felt by every request and timer. A ~90ms blocking `pbkdf2Sync` call freezes the loop mid-turn, and the histogram records it as a delay spike of the same size — but only with `resolution: 1` and only after one *more* turn runs: a coarse sample interval, or disabling too early, makes the same stall look tiny or invisible, which is exactly the demo's cautionary note. The stall seen from the timer side is the same fact: a 20ms `setInterval` ticker runs ~85ms late, because the tick due during the block queues behind it. Latency SLA breaches show up here before any dashboard notices — every queued request and timer waits the full gap. When inside-the-process instruments are not enough, **--inspect** (or `SIGUSR1`) opens a DevTools debugging channel to a live server, and a heap snapshot answers "what is eating the memory" when rss creeps up. Both are last-resort tools for diagnosis, never routine operation: the metrics you *watch* are loop delay, rss drift, and event-loop lag percentiles — the stall detector that runs while you sleep.
+`monitorEventLoopDelay()` from **perf_hooks** returns a histogram that samples the gap between loop turns — the true latency of the process, as felt by every request and timer. A ~90ms blocking `pbkdf2Sync` call freezes the loop mid-turn, and the histogram records it as a delay spike of the same size — but only if the instrument gets a fair reading: the big gap is recorded on the *next* loop turn after the block, and a resolution coarser than the stall (100ms sampling for a 90ms block) never fits the gap into a sample at all. Both are ways to blind the meter while the process suffers — the demo's cautionary note. The stall seen from the timer side is the same fact: a 20ms `setInterval` ticker runs ~85ms late, because the tick due during the block queues behind it. Latency SLA breaches show up here before any dashboard notices — every queued request and timer waits the full gap. When inside-the-process instruments are not enough, **--inspect** (or `SIGUSR1`) opens a DevTools debugging channel to a live server, and a heap snapshot answers "what is eating the memory" when rss creeps up. Both are last-resort tools for diagnosis, never routine operation: the metrics you *watch* are loop delay, rss drift, and event-loop lag percentiles — the stall detector that runs while you sleep.
 
 <KeywordTable keywords={frontmatter.keywords} />
 
-<Pitfall title="A coarse resolution hides the spikes you installed it to catch">
+<Pitfall title="Two ways to blind the meter while the stall is real">
 	<p>
-		`monitorEventLoopDelay({ resolution: 5 })` samples every 5ms; a 90ms stall sampled that way read as `max 5.4ms` in the demo — the spike averaged away. And the big gap is only recorded on the *next* loop turn after the block: call `disable()` too early and the histogram misses the very stall you caused. Pick `resolution: 1` for diagnosis, and let the loop turn once before you read it.
+		The big gap is only recorded on the *next* loop turn after the block: call `disable()` before that turn runs and the histogram reads `max ≈ 0` for a stall you know happened. And a resolution *coarser than the stall* — 100ms sampling for a 90ms block — never fits the gap into a sample, so the spike goes unrecorded too. (A 5ms resolution still catches a 90ms stall fine; fine sampling is not the trap, timing the read is.) Pick `resolution: 1` for diagnosis, and let the loop turn once before you read it.
 	</p>
 </Pitfall>
 
@@ -50,7 +50,7 @@ Run the demo file for this lesson:
 node code/5-production-server/5-6-diagnostics/demo.js
 ```
 
-It prints: `[1]` a ~90ms blocking call measured by `monitorEventLoopDelay` at `resolution: 1` — the stall as the loop felt it, with the coarse-resolution warning; `[2]` the same stall from the timer side — a 20ms ticker firing ~85ms late, drift equal to the block; `[3]` the prod checklist from inside the process: rss/heapUsed for leak candidates, `--inspect`/`SIGUSR1` for the debugger, heap snapshots when rss climbs.
+It prints: `[1]` a ~90ms blocking call measured by `monitorEventLoopDelay` at `resolution: 1` — the stall as the loop felt it, with the two ways to blind the instrument named; `[2]` the same stall from the timer side — a 20ms ticker firing ~85ms late, drift equal to the block; `[3]` the prod checklist from inside the process: rss/heapUsed for leak candidates, `--inspect`/`SIGUSR1` for the debugger, heap snapshots when rss climbs.
 
 <BuildExercise
 	title="Build your own stall detector"
@@ -59,7 +59,7 @@ It prints: `[1]` a ~90ms blocking call measured by `monitorEventLoopDelay` at `r
 	objectives={['Measure event-loop delay and catch a real stall in the histogram', 'Correlate the same stall with timer drift']}
 	steps={[
 		{ title: 'Record a stall', why: 'Enable monitorEventLoopDelay at resolution 1, run a 90ms sync burn, read mean and max after one extra turn.', expect: 'Max sample ≈ the stall size — the loop told the truth.' },
-		{ title: 'Hide it, then unhide', why: 'Same burn at resolution 5, then back to 1.', expect: 'Coarse sampling shrinks the spike — a healthy-looking lie.' },
+		{ title: 'Hide it, then unhide', why: 'Same burn, but disable() before the extra turn — then a resolution of 100ms (coarser than the stall), then back to resolution 1 with the extra turn.', expect: 'Read-too-early: max ≈ 0; coarse sampling: spike never sampled; fair read: max ≈ the stall.' },
 		{ title: 'See the drift', why: 'Run a 20ms ticker through the same stall and print the gaps.', expect: 'One gap ≈ stall + interval — timers queue behind the block.' },
 	]}
 />

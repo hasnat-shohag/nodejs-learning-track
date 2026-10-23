@@ -138,7 +138,7 @@ const get = (headers = {}) => new Promise((resolve, reject) => {
 	const gaps = ticks.slice(1).map((t, i) => t - ticks[i]);
 	const maxGap = Math.max(...gaps).toFixed(0);
 	console.log(`[4] /hash: 4 requests, ${replies.length}/4 served, job ids ${replies.map((r) => r.id).join(',')}, threadIds ${threads} — pool spread the CPU work`);
-	console.log(`    20ms ticker kept ticking; max gap ${maxGap}ms — pbkdf2 never blocked this loop (4 in parallel ≈ ${replies[0].ms}ms per hash in a worker)`);
+	console.log(`    20ms ticker kept ticking; max gap ${maxGap}ms — pbkdf2 never blocked this loop (2 run in parallel on the pool, 4 requests queued; ≈ ${replies[0].ms}ms per hash in a worker)`);
 }
 
 // [5] shutdown
